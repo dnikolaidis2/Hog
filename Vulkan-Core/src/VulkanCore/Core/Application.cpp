@@ -1,8 +1,7 @@
 #include "vkcpch.h"
+
 #include "VulkanCore/Core/Application.h"
-
 #include "VulkanCore/Core/Log.h"
-
 #include "VulkanCore/Core/Input.h"
 
 #include <GLFW/glfw3.h>

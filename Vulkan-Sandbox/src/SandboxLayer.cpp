@@ -3,6 +3,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "VulkanCore/Renderer/GraphicsContext.h"
+
 SandboxLayer::SandboxLayer()
 	: Layer("SandboxLayer")
 {
@@ -10,6 +12,7 @@ SandboxLayer::SandboxLayer()
 
 void SandboxLayer::OnAttach()
 {
+	GraphicsContext::Init();
 }
 
 void SandboxLayer::OnDetach()

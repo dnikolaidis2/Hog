@@ -6,6 +6,7 @@
 #include "VulkanCore/Events/ApplicationEvent.h"
 #include "VulkanCore/Events/MouseEvent.h"
 #include "VulkanCore/Events/KeyEvent.h"
+#include "VulkanCore/Renderer/GraphicsContext.h"
 
 // #include "VulkanCore/Renderer/Renderer.h"
 
@@ -57,11 +58,18 @@ namespace VulkanCore {
 			++s_GLFWWindowCount;
 		}
 
-		// m_Context = GraphicsContext::Create(m_Window);
-		// m_Context->Init();
+		uint32_t glfwExtensionCount = 0;
+		const char** glfwExtensions;
+		const char* boop = "test";
+
+		glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+		for (uint32_t i = 0; i < glfwExtensionCount; i++)
+		{
+			GraphicsContext::s_Context.InstanceExtensions.push_back((const char*)glfwExtensions[i]);
+		}
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
-		// SetVSync(true);
 
 		// Set GLFW callbacks
 		glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
