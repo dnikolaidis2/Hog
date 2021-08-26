@@ -2,81 +2,91 @@
 
 #include <vulkan/vulkan.h>
 
-static void CheckResult(VkResult result)
-{
-	if (result != 0)
-		VKC_CORE_ERROR("Vulkan check failed with code: {0}", result);
-		VKC_CORE_ASSERT(false)
-}
+#include "VulkanCore/Core/Base.h"
 
-namespace GraphicsContext {
+namespace VulkanCore {
 
-	struct ContextData
+	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+		VkDebugUtilsMessageTypeFlagsEXT messageType,
+		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+		void* pUserData)
 	{
-		VkApplicationInfo ApplicationInfo =	{	.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-												.pApplicationName = "Test app",
-												.applicationVersion = 1,
-												.pEngineName = "Hazel",
-												.engineVersion = 1,
-												.apiVersion = VK_MAKE_VERSION(1, 0, VK_HEADER_VERSION) };
-
-		std::vector<const char*> InstanceExtensions = {};
-		std::vector<const char*> DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-
-		bool EnableValidationLayers = true;
-		bool DebugInstanceExtension = false; // Enables VK_EXT_DEBUG_REPORT_EXTENSION_NAME
-		std::vector<const char*> ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
-
-		VkInstance Instance;
-	};
-
-	static ContextData s_Context;
-
-	static void CreateInstance()
-	{
-		VkInstanceCreateInfo createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		createInfo.pApplicationInfo = &(s_Context.ApplicationInfo);
-
-		bool appendDefaultDeviceExtension = true;
-		for (auto deviceExtension : s_Context.DeviceExtensions)
-			if (std::strcmp(deviceExtension, VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0)
-				appendDefaultDeviceExtension = false;
-
-		if (appendDefaultDeviceExtension)
-			s_Context.DeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-
-		if (s_Context.EnableValidationLayers)
+		switch(messageSeverity)
 		{
-			if (s_Context.DebugInstanceExtension)
-				s_Context.ValidationLayers.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-		}
-		else
-		{
-			s_Context.ValidationLayers.clear();
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+			{
+				VKC_CORE_INFO(pCallbackData->pMessage);
+			} break;
+
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+			{
+				VKC_CORE_WARN(pCallbackData->pMessage);
+			} break;
+
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+			{
+				VKC_CORE_ERROR(pCallbackData->pMessage);
+			} break;
 		}
 
-		// Give all the extensions/layers to the create info.
-		createInfo.enabledExtensionCount = s_Context.InstanceExtensions.size();
-		createInfo.ppEnabledExtensionNames = s_Context.InstanceExtensions.data();
-		createInfo.enabledLayerCount = s_Context.ValidationLayers.size();
-		createInfo.ppEnabledLayerNames = s_Context.ValidationLayers.data();
-		CheckResult(vkCreateInstance(&createInfo, NULL, &s_Context.Instance));
+		return VK_FALSE;
 	}
 
-	static void DestroyInstance()
-	{
-		vkDestroyInstance(s_Context.Instance, nullptr);
-	}
-
-	static void Init()
-	{
-		CreateInstance();
-	}
-
-	/*
 	class GraphicsContext
 	{
+	public:
+		struct GPUInfo
+		{
+			VkPhysicalDevice Device;
+			std::vector<VkQueueFamilyProperties> QueueFamilyProperties;
+			std::vector<VkExtensionProperties> ExtensionProperties;
+			VkSurfaceCapabilitiesKHR SurfaceCapabilities;
+			std::vector<VkSurfaceFormatKHR> SurfaceFormats;
+			std::vector<VkPresentModeKHR> PresentModes;
+			VkPhysicalDeviceMemoryProperties MemoryProperties;
+			VkPhysicalDeviceProperties DeviceProperties;
+		};
+
+		struct ContextData
+		{
+			VkApplicationInfo ApplicationInfo = {
+				.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+				.pApplicationName = "Test app",
+				.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+				.pEngineName = "Hazel",
+				.engineVersion = VK_MAKE_VERSION(1, 0, 0),
+				.apiVersion = VK_MAKE_VERSION(1, 0, VK_HEADER_VERSION)
+			};
+
+			VkDebugUtilsMessengerCreateInfoEXT DebugMessengerCreateInfo = {
+				.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+				.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+				.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+				.pfnUserCallback = DebugCallback,
+				.pUserData = nullptr // Optional
+			};
+
+			std::vector<const char*> InstanceExtensions;
+			std::vector<const char*> DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+
+			bool EnableValidationLayers = true;
+			std::vector<const char*> ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
+
+			std::vector<GPUInfo> GPUs;
+
+			VkInstance Instance = VK_NULL_HANDLE;
+			VkDebugUtilsMessengerEXT DebugMessenger = VK_NULL_HANDLE;
+
+
+			GPUInfo* GPU;
+			VkPhysicalDevice PhysicalDevice = VK_NULL_HANDLE;
+
+			uint32_t GraphicsFamilyIndex;
+			uint32_t PresentFamilyIndex;
+
+			VkSurfaceKHR Surface = VK_NULL_HANDLE;
+		};
+
 	public:
 		static GraphicsContext& Get()
 		{
@@ -85,21 +95,27 @@ namespace GraphicsContext {
 			return instance;
 		}
 
-		static void Init() { Get().InitImpl(); }
-		static ContextData& GetContextData() { Get().m_Data; }
+		static void Initialize() { Get().InitializeImpl(); }
+		static void Deinitialize() { Get().DeinitializeImpl(); }
+		static ContextData& GetContext() { return Get().m_Context; }
+		static VkInstance& GetInstance() { return Get().m_Context.Instance; }
 	public:
 		GraphicsContext(GraphicsContext const&) = delete;
 		void operator=(GraphicsContext const&) = delete;
 	private:
 		GraphicsContext() = default;
 
-		void InitImpl();
-		void CreateInstance();
-	private:
-		static bool s_Initialized = false;
-	private:
-		ContextData m_Data;
+		void InitializeImpl();
+		void DeinitializeImpl();
 
+		void CreateInstance();
+		void DestroyInstance();
+		void DestroySurface();
+		void SetupDebugMessenger();
+		void EnumeratePhysicalDevices();
+		void SelectPhysicalDevice();
+		
+	private:
+		ContextData m_Context;
 	};
-	*/
 }

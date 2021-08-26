@@ -11,7 +11,7 @@
 // #include "VulkanCore/Renderer/Renderer.h"
 
 namespace VulkanCore {
-	
+
 	static uint8_t s_GLFWWindowCount = 0;
 
 	static void GLFWErrorCallback(int error, const char* description)
@@ -60,14 +60,10 @@ namespace VulkanCore {
 
 		uint32_t glfwExtensionCount = 0;
 		const char** glfwExtensions;
-		const char* boop = "test";
 
 		glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-		for (uint32_t i = 0; i < glfwExtensionCount; i++)
-		{
-			GraphicsContext::s_Context.InstanceExtensions.push_back((const char*)glfwExtensions[i]);
-		}
+		
+		GraphicsContext::GetContext().InstanceExtensions = std::vector<const char*>(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 

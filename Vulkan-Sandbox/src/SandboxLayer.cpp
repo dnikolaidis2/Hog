@@ -12,11 +12,12 @@ SandboxLayer::SandboxLayer()
 
 void SandboxLayer::OnAttach()
 {
-	GraphicsContext::Init();
+	VulkanCore::GraphicsContext::Initialize();
 }
 
 void SandboxLayer::OnDetach()
 {
+	VulkanCore::GraphicsContext::Deinitialize();
 }
 
 void SandboxLayer::OnUpdate(VulkanCore::Timestep ts)

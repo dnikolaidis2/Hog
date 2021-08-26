@@ -18,6 +18,7 @@ namespace VulkanCore {
 		unsigned int GetHeight() const override { return m_Data.Height; }
 
 		// Window attributes
+		void CreateSurface(VkInstance instance, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface) override { glfwCreateWindowSurface(instance, m_Window, allocator, surface); };
 		void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }
 		void SetVSync(bool enabled) override;
 		bool IsVSync() const override;

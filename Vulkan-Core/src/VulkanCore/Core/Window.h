@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sstream>
+#include <vulkan/vulkan_core.h>
 
 #include "VulkanCore/Core/Base.h"
 #include "VulkanCore/Events/Event.h"
@@ -35,6 +36,7 @@ namespace VulkanCore {
 		virtual uint32_t GetHeight() const = 0;
 
 		// Window attributes
+		virtual void CreateSurface(VkInstance instance, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface) = 0;
 		virtual void SetEventCallback(const EventCallbackFn& callback) = 0;
 		virtual void SetVSync(bool enabled) = 0;
 		virtual bool IsVSync() const = 0;
