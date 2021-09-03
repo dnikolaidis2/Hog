@@ -13,6 +13,11 @@ project "Vulkan-Sandbox"
 		"src/**.cpp"
 	}
 
+	defines
+	{
+		"TRACY_ENABLE"
+	}
+
 	includedirs
 	{
 		"%{wks.location}/Vulkan-Core/vendor/spdlog/include",
@@ -20,6 +25,8 @@ project "Vulkan-Sandbox"
 		"%{wks.location}/Vulkan-Core/vendor",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.GLFW}",
+		"%{IncludeDir.tracy}",
+		"%{IncludeDir.vma}",
 		"%{IncludeDir.VulkanSDK}"
 	}
 
