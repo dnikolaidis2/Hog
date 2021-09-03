@@ -34,6 +34,8 @@ namespace VulkanCore {
 
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
+		virtual uint32_t GetFrameBufferWidth() const = 0;
+		virtual uint32_t GetFrameBufferHeight() const = 0;
 
 		// Window attributes
 		virtual void CreateSurface(VkInstance instance, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface) = 0;

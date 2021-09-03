@@ -78,6 +78,16 @@ namespace VulkanCore {
 			data.EventCallback(event);
 		});
 
+		glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
+		{
+				WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+				data.FrameBufferWidth = width;
+				data.FrameBufferHeight = height;
+
+				FrameBufferResizeEvent event(width, height);
+				data.EventCallback(event);
+		});
+
 		glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window)
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);

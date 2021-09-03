@@ -14,8 +14,10 @@ namespace VulkanCore {
 
 		void OnUpdate() override;
 
-		unsigned int GetWidth() const override { return m_Data.Width; }
-		unsigned int GetHeight() const override { return m_Data.Height; }
+		uint32_t GetWidth() const override { return m_Data.Width; }
+		uint32_t GetHeight() const override { return m_Data.Height; }
+		uint32_t GetFrameBufferWidth() const override { return m_Data.FrameBufferWidth; }
+		uint32_t GetFrameBufferHeight() const override { return m_Data.FrameBufferHeight; }
 
 		// Window attributes
 		void CreateSurface(VkInstance instance, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface) override { glfwCreateWindowSurface(instance, m_Window, allocator, surface); };
@@ -33,7 +35,9 @@ namespace VulkanCore {
 		struct WindowData
 		{
 			std::string Title;
-			unsigned int Width, Height;
+			uint32_t Width, Height;
+			uint32_t FrameBufferWidth;
+			uint32_t FrameBufferHeight;
 			bool VSync;
 
 			EventCallbackFn EventCallback;
