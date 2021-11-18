@@ -15,7 +15,7 @@ project "Vulkan-Sandbox"
 
 	defines
 	{
-		"TRACY_ENABLE"
+		
 	}
 
 	includedirs
@@ -25,7 +25,6 @@ project "Vulkan-Sandbox"
 		"%{wks.location}/Vulkan-Core/vendor",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.GLFW}",
-		"%{IncludeDir.tracy}",
 		"%{IncludeDir.vma}",
 		"%{IncludeDir.VulkanSDK}"
 	}
@@ -43,6 +42,7 @@ project "Vulkan-Sandbox"
 		defines "VKC_DEBUG"
 		runtime "Debug"
 		symbols "on"
+		-- editAndContinue "Off"
 		
 		postbuildcommands
 		{

@@ -20,14 +20,12 @@ project "Vulkan-Core"
 		"vendor/vma/**.cpp",
 		"vendor/glm/glm/**.hpp",
 		"vendor/glm/glm/**.inl",
-		"vendor/tracy/TracyClient.cpp",
 	}
 
 	defines
 	{
 		"_CRT_SECURE_NO_WARNINGS",
-		"GLFW_INCLUDE_VULKAN",
-		"TRACY_ENABLE"
+		"GLFW_INCLUDE_VULKAN"
 	}
 
 	includedirs
@@ -38,7 +36,6 @@ project "Vulkan-Core"
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
-		"%{IncludeDir.tracy}",
 		"%{IncludeDir.vma}",
 		"%{IncludeDir.VulkanSDK}"
 	}
@@ -60,6 +57,7 @@ project "Vulkan-Core"
 		defines "VKC_DEBUG"
 		runtime "Debug"
 		symbols "on"
+		-- editAndContinue "Off"
 
 		links
 		{

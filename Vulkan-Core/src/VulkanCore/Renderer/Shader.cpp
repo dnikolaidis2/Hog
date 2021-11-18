@@ -13,6 +13,8 @@
 
 #include "GraphicsContext.h"
 
+static auto& context = VulkanCore::GraphicsContext::Get();
+
 namespace VulkanCore {
 	namespace Utils {
 		static std::optional<shaderc_shader_kind> ShaderTypeFromString(const std::string& type)
@@ -65,7 +67,7 @@ namespace VulkanCore {
 	Shader::Shader(const std::string& filepath)
 		: m_FilePath(filepath)
 	{
-		m_Device = GraphicsContext::GetContext().Device;
+		m_Device = context.Device;
 		Utils::CreateCacheDirectoryIfNeeded();
 
 		std::string source = ReadFile(filepath);

@@ -10,6 +10,8 @@
 
 // #include "VulkanCore/Renderer/Renderer.h"
 
+static auto& context = VulkanCore::GraphicsContext::Get();
+
 namespace VulkanCore {
 
 	static uint8_t s_GLFWWindowCount = 0;
@@ -63,7 +65,7 @@ namespace VulkanCore {
 
 		glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 		
-		GraphicsContext::GetContext().InstanceExtensions = std::vector<const char*>(glfwExtensions, glfwExtensions + glfwExtensionCount);
+		context.InstanceExtensions = std::vector<const char*>(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 

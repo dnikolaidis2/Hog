@@ -6,7 +6,6 @@
 #include "VulkanCore/Utils/RendererUtils.h"
 
 namespace VulkanCore {
-	
 
 	static bool CheckPhysicalDeviceExtensionSupport(GraphicsContext::GPUInfo* gpu, std::vector<const char*>& extensions)
 	{
@@ -122,7 +121,7 @@ namespace VulkanCore {
 	{
 		CreateInstance();
 		SetupDebugMessenger();
-		Application::Get().GetWindow().CreateSurface(m_Context.Instance, nullptr, &(m_Context.Surface));
+		Application::Get().GetWindow().CreateSurface(Instance, nullptr, &(Surface));
 		EnumeratePhysicalDevices();
 		SelectPhysicalDevice();
 		CreateLogicalDeviceAndQueues();
@@ -133,56 +132,60 @@ namespace VulkanCore {
 		CreateSwapChain();
 		CreateRenderPass();
 		CreateFrameBuffers();
+
+		Initialized = true;
 	}
 
 	void GraphicsContext::DeinitializeImpl()
 	{
-		vkFreeCommandBuffers(m_Context.Device, m_Context.CommandPool, (uint32_t)(m_Context.CommandBuffers.size()), m_Context.CommandBuffers.data());
+		vkFreeCommandBuffers(Device, CommandPool, (uint32_t)(CommandBuffers.size()), CommandBuffers.data());
 
-		for (auto framebuffer : m_Context.FrameBuffers) {
-			vkDestroyFramebuffer(m_Context.Device, framebuffer, nullptr);
+		for (auto framebuffer : FrameBuffers) {
+			vkDestroyFramebuffer(Device, framebuffer, nullptr);
 		}
 
-		vkDestroyRenderPass(m_Context.Device, m_Context.RenderPass, nullptr);
+		vkDestroyRenderPass(Device, RenderPass, nullptr);
 
-		for (auto image : m_Context.SwapchainImages)
+		for (auto image : SwapchainImages)
 		{
-			vkDestroyImageView(m_Context.Device, image.View, nullptr);
+			vkDestroyImageView(Device, image.View, nullptr);
 		}
 
-		vkDestroySwapchainKHR(m_Context.Device, m_Context.Swapchain, nullptr);
+		vkDestroySwapchainKHR(Device, Swapchain, nullptr);
 
-		for (auto fence : m_Context.CommandBufferFences)
+		for (auto fence : CommandBufferFences)
 		{
-			vkDestroyFence(m_Context.Device, fence, nullptr);
+			vkDestroyFence(Device, fence, nullptr);
 		}
 
-		vkDestroyCommandPool(m_Context.Device, m_Context.CommandPool, nullptr);
+		vkDestroyCommandPool(Device, CommandPool, nullptr);
 
-		for (int i = 0; i < m_Context.FrameCount; ++i)
+		for (int i = 0; i < FrameCount; ++i)
 		{
-			vkDestroySemaphore(m_Context.Device, m_Context.AcquireSemaphores[i], nullptr);
-			vkDestroySemaphore(m_Context.Device, m_Context.RenderCompleteSemaphores[i], nullptr);
+			vkDestroySemaphore(Device, AcquireSemaphores[i], nullptr);
+			vkDestroySemaphore(Device, RenderCompleteSemaphores[i], nullptr);
 		}
 
-		vmaDestroyAllocator(m_Context.Allocator);
+		vmaDestroyAllocator(Allocator);
 
-		vkDestroyDevice(m_Context.Device, nullptr);
-		vkDestroySurfaceKHR(m_Context.Instance, m_Context.Surface, nullptr);
+		vkDestroyDevice(Device, nullptr);
+		vkDestroySurfaceKHR(Instance, Surface, nullptr);
 
-		if (m_Context.EnableValidationLayers)
+		if (EnableValidationLayers)
 		{
-			DestroyDebugUtilsMessengerEXT(m_Context.Instance, m_Context.DebugMessenger, nullptr);
+			DestroyDebugUtilsMessengerEXT(Instance, DebugMessenger, nullptr);
 		}
 
 		DestroyInstance();
+
+		Initialized = false;
 	}
 
 	void GraphicsContext::RecreateSwapChainImpl()
 	{
 		CleanupSwapChain();
 
-		CheckVKResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_Context.GPU->Device, m_Context.Surface, &m_Context.GPU->SurfaceCapabilities));
+		CheckVKResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(GPU->Device, Surface, &GPU->SurfaceCapabilities));
 		CreateSwapChain();
 		CreateRenderPass();
 		CreateFrameBuffers();
@@ -193,10 +196,10 @@ namespace VulkanCore {
 	{
 		VkInstanceCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		createInfo.pApplicationInfo = &(m_Context.ApplicationInfo);
+		createInfo.pApplicationInfo = &(ApplicationInfo);
 
-		if (m_Context.EnableValidationLayers) {
-			m_Context.InstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		if (EnableValidationLayers) {
+			InstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		}
 
 		uint32_t extensionCount = 0;
@@ -206,7 +209,7 @@ namespace VulkanCore {
 
 		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-		for (auto instanceExtension : m_Context.InstanceExtensions)
+		for (auto instanceExtension : InstanceExtensions)
 		{
 			bool exists = false;
 			for (const auto& extension : extensions) 
@@ -220,7 +223,7 @@ namespace VulkanCore {
 			VKC_ASSERT(exists, "Extension not supported");
 		}
 
-		if (m_Context.EnableValidationLayers)
+		if (EnableValidationLayers)
 		{
 			uint32_t layerCount;
 			vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -228,7 +231,7 @@ namespace VulkanCore {
 			std::vector<VkLayerProperties> availableLayers(layerCount);
 			vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-			for (auto validationLayer : m_Context.ValidationLayers)
+			for (auto validationLayer : ValidationLayers)
 			{
 				bool exists = false;
 				for (const auto& layer : availableLayers)
@@ -242,32 +245,32 @@ namespace VulkanCore {
 				VKC_ASSERT(exists, "Extension not supported");
 			}
 
-			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&m_Context.DebugMessengerCreateInfo;
+			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&DebugMessengerCreateInfo;
 		}
 		else
 		{
-			m_Context.ValidationLayers.clear();
+			ValidationLayers.clear();
 		}
 
 		// Give all the extensions/layers to the create info.
-		createInfo.enabledExtensionCount = (uint32_t)m_Context.InstanceExtensions.size();
-		createInfo.ppEnabledExtensionNames = m_Context.InstanceExtensions.data();
-		createInfo.enabledLayerCount = (uint32_t)m_Context.ValidationLayers.size();
-		createInfo.ppEnabledLayerNames = m_Context.ValidationLayers.data();
+		createInfo.enabledExtensionCount = (uint32_t)InstanceExtensions.size();
+		createInfo.ppEnabledExtensionNames = InstanceExtensions.data();
+		createInfo.enabledLayerCount = (uint32_t)ValidationLayers.size();
+		createInfo.ppEnabledLayerNames = ValidationLayers.data();
 
-		CheckVKResult(vkCreateInstance(&createInfo, nullptr, &m_Context.Instance));
+		CheckVKResult(vkCreateInstance(&createInfo, nullptr, &Instance));
 	}
 
 	void GraphicsContext::DestroyInstance()
 	{
-		vkDestroyInstance(m_Context.Instance, nullptr);
+		vkDestroyInstance(Instance, nullptr);
 	}
 
 	void GraphicsContext::SetupDebugMessenger()
 	{
-		if (!m_Context.EnableValidationLayers) return;
+		if (!EnableValidationLayers) return;
 		
-		CheckVKResult(CreateDebugUtilsMessengerEXT(m_Context.Instance, &m_Context.DebugMessengerCreateInfo, nullptr, &m_Context.DebugMessenger));
+		CheckVKResult(CreateDebugUtilsMessengerEXT(Instance, &DebugMessengerCreateInfo, nullptr, &DebugMessenger));
 	}
 
 	void GraphicsContext::EnumeratePhysicalDevices()
@@ -277,22 +280,22 @@ namespace VulkanCore {
 	
 		// First just get the number of devices.
 		uint32_t numDevices = 0;
-		CheckVKResult(vkEnumeratePhysicalDevices(m_Context.Instance, &numDevices, nullptr));
+		CheckVKResult(vkEnumeratePhysicalDevices(Instance, &numDevices, nullptr));
 		VKC_ASSERT(numDevices > 0, "vkEnumeratePhysicalDevices returned zero devices.")
 
 		std::vector<VkPhysicalDevice> devices(numDevices);
 
 		// Now get the actual devices
-		CheckVKResult(vkEnumeratePhysicalDevices(m_Context.Instance, &numDevices, devices.data()));
+		CheckVKResult(vkEnumeratePhysicalDevices(Instance, &numDevices, devices.data()));
 		VKC_ASSERT(numDevices > 0, "vkEnumeratePhysicalDevices returned zero devices.")
 
 		// GPU is a VkNeo struct which stores details about the physical device.
 		// We'll use various API calls to get the necessary information.
-		m_Context.GPUs.resize(numDevices);
+		GPUs.resize(numDevices);
 
 		for (uint32_t i = 0; i < numDevices; ++i) 
 		{
-			GPUInfo& gpu = m_Context.GPUs[i];
+			GPUInfo& gpu = GPUs[i];
 			gpu.Device = devices[i];
 
 			{
@@ -320,28 +323,28 @@ namespace VulkanCore {
 
 			// Surface capabilities basically describes what kind of image you can render to the user.
 			// Look up VkSurfaceCapabilitiesKHR in the Vulkan documentation.
-			CheckVKResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu.Device, m_Context.Surface, &gpu.SurfaceCapabilities));
+			CheckVKResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu.Device, Surface, &gpu.SurfaceCapabilities));
 
 			{
 				// Get the supported surface formats.  This includes image format and color space.
 				// A common format is VK_FORMAT_R8G8B8A8_UNORM which is 8 bits for red, green, blue, alpha making for 32 total
 				uint32_t numFormats;
-				CheckVKResult(vkGetPhysicalDeviceSurfaceFormatsKHR(gpu.Device, m_Context.Surface, &numFormats, nullptr));
+				CheckVKResult(vkGetPhysicalDeviceSurfaceFormatsKHR(gpu.Device, Surface, &numFormats, nullptr));
 				VKC_ASSERT(numFormats > 0, "vkGetPhysicalDeviceSurfaceFormatsKHR returned zero surface formats.");
 
 				gpu.SurfaceFormats.resize(numFormats);
-				CheckVKResult(vkGetPhysicalDeviceSurfaceFormatsKHR(gpu.Device, m_Context.Surface, &numFormats, gpu.SurfaceFormats.data()));
+				CheckVKResult(vkGetPhysicalDeviceSurfaceFormatsKHR(gpu.Device, Surface, &numFormats, gpu.SurfaceFormats.data()));
 				VKC_ASSERT(numFormats > 0, "vkGetPhysicalDeviceSurfaceFormatsKHR returned zero surface formats.");
 			}
 
 			{
 				// Vulkan supports multiple presentation modes, and I'll linkn to some good documentation on that in just a bit.
 				uint32_t numPresentModes;
-				CheckVKResult(vkGetPhysicalDeviceSurfacePresentModesKHR(gpu.Device, m_Context.Surface, &numPresentModes, nullptr));
+				CheckVKResult(vkGetPhysicalDeviceSurfacePresentModesKHR(gpu.Device, Surface, &numPresentModes, nullptr));
 				VKC_ASSERT(numPresentModes > 0, "vkGetPhysicalDeviceSurfacePresentModesKHR returned zero present modes.");
 
 				gpu.PresentModes.resize(numPresentModes);
-				CheckVKResult(vkGetPhysicalDeviceSurfacePresentModesKHR(gpu.Device, m_Context.Surface, &numPresentModes, gpu.PresentModes.data()));
+				CheckVKResult(vkGetPhysicalDeviceSurfacePresentModesKHR(gpu.Device, Surface, &numPresentModes, gpu.PresentModes.data()));
 				VKC_ASSERT(numPresentModes > 0, "vkGetPhysicalDeviceSurfacePresentModesKHR returned zero present modes.");
 			}
 
@@ -359,16 +362,16 @@ namespace VulkanCore {
 	void GraphicsContext::SelectPhysicalDevice()
 	{
 		// Let's pick a GPU!
-		for (uint32_t i = 0; i < m_Context.GPUs.size(); i++)
+		for (uint32_t i = 0; i < GPUs.size(); i++)
 		{
-			GPUInfo* gpu = &(m_Context.GPUs[i]);
+			GPUInfo* gpu = &(GPUs[i]);
 			// This is again related to queues.  Don't worry I'll get there soon.
 			int graphicsIdx = -1;
 			int presentIdx = -1;
 
 			// Remember when we created our instance we got all those device extensions?
 			// Now we need to make sure our physical device supports them.
-			if (!CheckPhysicalDeviceExtensionSupport(gpu, m_Context.DeviceExtensions)) 
+			if (!CheckPhysicalDeviceExtensionSupport(gpu, DeviceExtensions)) 
 			{
 				continue;
 			}
@@ -422,7 +425,7 @@ namespace VulkanCore {
 				// A rather perplexing call in the Vulkan API, but
 				// it is a necessity to call.
 				VkBool32 supportsPresent = VK_FALSE;
-				vkGetPhysicalDeviceSurfaceSupportKHR(gpu->Device, j, m_Context.Surface, &supportsPresent);
+				vkGetPhysicalDeviceSurfaceSupportKHR(gpu->Device, j, Surface, &supportsPresent);
 				if (supportsPresent) 
 				{
 					// Got it!
@@ -434,10 +437,10 @@ namespace VulkanCore {
 			// Did we find a device supporting both graphics and present.
 			if (graphicsIdx >= 0 && presentIdx >= 0) 
 			{
-				m_Context.GraphicsFamilyIndex = (uint32_t)graphicsIdx;
-				m_Context.PresentFamilyIndex = (uint32_t)presentIdx;
-				m_Context.PhysicalDevice = gpu->Device;
-				m_Context.GPU = gpu;
+				GraphicsFamilyIndex = (uint32_t)graphicsIdx;
+				PresentFamilyIndex = (uint32_t)presentIdx;
+				PhysicalDevice = gpu->Device;
+				GPU = gpu;
 				return;
 			}
 		}
@@ -453,9 +456,9 @@ namespace VulkanCore {
 		// Add each family index to a list.
 		// Don't do duplicates
 		std::vector<uint32_t> uniqueIdx;
-		uniqueIdx.push_back(m_Context.GraphicsFamilyIndex);
-		if (std::find(uniqueIdx.begin(), uniqueIdx.end(), m_Context.PresentFamilyIndex) == uniqueIdx.end()) {
-			uniqueIdx.push_back(m_Context.PresentFamilyIndex);
+		uniqueIdx.push_back(GraphicsFamilyIndex);
+		if (std::find(uniqueIdx.begin(), uniqueIdx.end(), PresentFamilyIndex) == uniqueIdx.end()) {
+			uniqueIdx.push_back(PresentFamilyIndex);
 		}
 
 		std::vector<VkDeviceQueueCreateInfo> devqInfo;
@@ -479,49 +482,49 @@ namespace VulkanCore {
 		info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		info.queueCreateInfoCount = (uint32_t)devqInfo.size();
 		info.pQueueCreateInfos = devqInfo.data();
-		info.pEnabledFeatures = &m_Context.DeviceFeatures;
-		info.enabledExtensionCount = (uint32_t)m_Context.DeviceExtensions.size();
-		info.ppEnabledExtensionNames = m_Context.DeviceExtensions.data();
+		info.pEnabledFeatures = &DeviceFeatures;
+		info.enabledExtensionCount = (uint32_t)DeviceExtensions.size();
+		info.ppEnabledExtensionNames = DeviceExtensions.data();
 
 		// If validation layers are enabled supply them here.
-		if (m_Context.EnableValidationLayers) {
-			info.enabledLayerCount = (uint32_t)m_Context.ValidationLayers.size();
-			info.ppEnabledLayerNames = m_Context.ValidationLayers.data();
+		if (EnableValidationLayers) {
+			info.enabledLayerCount = (uint32_t)ValidationLayers.size();
+			info.ppEnabledLayerNames = ValidationLayers.data();
 		}
 		else {
 			info.enabledLayerCount = 0;
 		}
 
 		// Create the device
-		CheckVKResult(vkCreateDevice(m_Context.PhysicalDevice, &info, nullptr, &m_Context.Device));
+		CheckVKResult(vkCreateDevice(PhysicalDevice, &info, nullptr, &Device));
 
 		// Now get the queues from the devie we just created.
-		vkGetDeviceQueue(m_Context.Device, m_Context.GraphicsFamilyIndex, 0, &m_Context.GraphicsQueue);
-		vkGetDeviceQueue(m_Context.Device, m_Context.PresentFamilyIndex, 0, &m_Context.PresentQueue);
+		vkGetDeviceQueue(Device, GraphicsFamilyIndex, 0, &GraphicsQueue);
+		vkGetDeviceQueue(Device, PresentFamilyIndex, 0, &PresentQueue);
 	}
 
 	void GraphicsContext::InitializeAllocator()
 	{
 		VmaAllocatorCreateInfo allocatorInfo = {};
 		allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_2;
-		allocatorInfo.physicalDevice = m_Context.PhysicalDevice;
-		allocatorInfo.device = m_Context.Device;
-		allocatorInfo.instance = m_Context.Instance;
+		allocatorInfo.physicalDevice = PhysicalDevice;
+		allocatorInfo.device = Device;
+		allocatorInfo.instance = Instance;
 
-		vmaCreateAllocator(&allocatorInfo, &m_Context.Allocator);
+		vmaCreateAllocator(&allocatorInfo, &Allocator);
 	}
 
 	void GraphicsContext::CreateSemaphores()
 	{
-		m_Context.AcquireSemaphores.resize(m_Context.FrameCount);
-		m_Context.RenderCompleteSemaphores.resize(m_Context.FrameCount);
+		AcquireSemaphores.resize(FrameCount);
+		RenderCompleteSemaphores.resize(FrameCount);
 
 		VkSemaphoreCreateInfo semaphoreCreateInfo = {};
 		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-		for (int i = 0; i < m_Context.FrameCount; ++i) {
-			CheckVKResult(vkCreateSemaphore(m_Context.Device, &semaphoreCreateInfo, nullptr, &(m_Context.AcquireSemaphores[i])));
-			CheckVKResult(vkCreateSemaphore(m_Context.Device, &semaphoreCreateInfo, nullptr, &(m_Context.RenderCompleteSemaphores[i])));
+		for (int i = 0; i < FrameCount; ++i) {
+			CheckVKResult(vkCreateSemaphore(Device, &semaphoreCreateInfo, nullptr, &(AcquireSemaphores[i])));
+			CheckVKResult(vkCreateSemaphore(Device, &semaphoreCreateInfo, nullptr, &(RenderCompleteSemaphores[i])));
 		}
 	}
 
@@ -538,9 +541,9 @@ namespace VulkanCore {
 		commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 		// We'll be building command buffers to send to the graphics queue
-		commandPoolCreateInfo.queueFamilyIndex = m_Context.GraphicsFamilyIndex;
+		commandPoolCreateInfo.queueFamilyIndex = GraphicsFamilyIndex;
 
-		CheckVKResult(vkCreateCommandPool(m_Context.Device, &commandPoolCreateInfo, nullptr, &m_Context.CommandPool));
+		CheckVKResult(vkCreateCommandPool(Device, &commandPoolCreateInfo, nullptr, &CommandPool));
 	}
 
 	void GraphicsContext::CreateCommandBuffers()
@@ -552,16 +555,16 @@ namespace VulkanCore {
 		commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
 		// The command pool we created above
-		commandBufferAllocateInfo.commandPool = m_Context.CommandPool;
+		commandBufferAllocateInfo.commandPool = CommandPool;
 
 		// We'll have two command buffers.  One will be in flight
 		// while the other is being built.
-		commandBufferAllocateInfo.commandBufferCount = m_Context.FrameCount;
+		commandBufferAllocateInfo.commandBufferCount = FrameCount;
 
-		m_Context.CommandBuffers.resize(m_Context.FrameCount);
+		CommandBuffers.resize(FrameCount);
 
 		// You can allocate multiple command buffers at once.
-		CheckVKResult(vkAllocateCommandBuffers(m_Context.Device, &commandBufferAllocateInfo, m_Context.CommandBuffers.data()));
+		CheckVKResult(vkAllocateCommandBuffers(Device, &commandBufferAllocateInfo, CommandBuffers.data()));
 
 		// We create fences that we can use to wait for a 
 		// given command buffer to be done on the GPU.
@@ -569,16 +572,16 @@ namespace VulkanCore {
 		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-		m_Context.CommandBufferFences.resize(m_Context.FrameCount);
-		for (int i = 0; i < m_Context.FrameCount; ++i)
+		CommandBufferFences.resize(FrameCount);
+		for (int i = 0; i < FrameCount; ++i)
 		{
-			CheckVKResult(vkCreateFence(m_Context.Device, &fenceCreateInfo, nullptr, &m_Context.CommandBufferFences[i]));
+			CheckVKResult(vkCreateFence(Device, &fenceCreateInfo, nullptr, &CommandBufferFences[i]));
 		}
 	}
 
 	void GraphicsContext::CreateSwapChain()
 	{
-		GPUInfo& gpu = *m_Context.GPU;
+		GPUInfo& gpu = *GPU;
 
 		// Take our selected gpu and pick three things.
 		// 1.) Surface format as described earlier.
@@ -590,10 +593,10 @@ namespace VulkanCore {
 
 		VkSwapchainCreateInfoKHR info = {};
 		info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		info.surface = m_Context.Surface;
+		info.surface = Surface;
 
 		// double buffer again!
-		info.minImageCount = m_Context.FrameCount;
+		info.minImageCount = FrameCount;
 
 		info.imageFormat = surfaceFormat.format;
 		info.imageColorSpace = surfaceFormat.colorSpace;
@@ -608,8 +611,8 @@ namespace VulkanCore {
 
 		// Moment of truth.  If the graphics queue family and present family don't match
 		// then we need to create the swapchain with different information.
-		if (m_Context.GraphicsFamilyIndex != m_Context.PresentFamilyIndex) {
-			uint32_t indices[] = { m_Context.GraphicsFamilyIndex, m_Context.PresentFamilyIndex };
+		if (GraphicsFamilyIndex != PresentFamilyIndex) {
+			uint32_t indices[] = { GraphicsFamilyIndex, PresentFamilyIndex };
 
 			// There are only two sharing modes.  This is the one to use
 			// if images are not exclusive to one queue.
@@ -631,37 +634,37 @@ namespace VulkanCore {
 		// Is Vulkan allowed to discard operations outside of the renderable space?
 		info.clipped = VK_TRUE;
 
-		info.oldSwapchain = m_Context.Swapchain;
+		info.oldSwapchain = Swapchain;
 
 		// Create the swapchain
-		CheckVKResult(vkCreateSwapchainKHR(m_Context.Device, &info, nullptr, &m_Context.Swapchain));
+		CheckVKResult(vkCreateSwapchainKHR(Device, &info, nullptr, &Swapchain));
 
 		// Save off swapchain details
-		m_Context.SwapchainFormat = surfaceFormat.format;
-		m_Context.PresentMode = presentMode;
-		m_Context.SwapchainExtent = extent;
+		SwapchainFormat = surfaceFormat.format;
+		PresentMode = presentMode;
+		SwapchainExtent = extent;
 
 		// Retrieve the swapchain images from the device.
 		// Note that VkImage is simply a handle like everything else.
 
 		// First call gets numImages.
 		uint32_t numImages = 0;
-		std::vector<VkImage> swapchainImages(m_Context.FrameCount);
-		CheckVKResult(vkGetSwapchainImagesKHR(m_Context.Device, m_Context.Swapchain, &numImages, nullptr));
+		std::vector<VkImage> swapchainImages(FrameCount);
+		CheckVKResult(vkGetSwapchainImagesKHR(Device, Swapchain, &numImages, nullptr));
 		VKC_ASSERT(numImages > 0, "vkGetSwapchainImagesKHR returned a zero image count.")
 
 		// Second call uses numImages
-		CheckVKResult(vkGetSwapchainImagesKHR(m_Context.Device, m_Context.Swapchain, &numImages, swapchainImages.data()));
+		CheckVKResult(vkGetSwapchainImagesKHR(Device, Swapchain, &numImages, swapchainImages.data()));
 		VKC_ASSERT(numImages > 0, "vkGetSwapchainImagesKHR returned a zero image count.");
 
-		m_Context.SwapchainImages.resize(m_Context.FrameCount);
+		SwapchainImages.resize(FrameCount);
 
 		// New concept - Image Views
 		// Much like the logical device is an interface to the physical device,
 		// image views are interfaces to actual images.  Think of it as this.
 		// The image exists outside of you.  But the view is your personal view 
 		// ( how you perceive ) the image.
-		for (int i = 0; i < m_Context.FrameCount; ++i) {
+		for (int i = 0; i < FrameCount; ++i) {
 			VkImageViewCreateInfo imageViewCreateInfo = {};
 			imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 
@@ -672,7 +675,7 @@ namespace VulkanCore {
 			imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 
 			// The selected format
-			imageViewCreateInfo.format = m_Context.SwapchainFormat;
+			imageViewCreateInfo.format = SwapchainFormat;
 
 			// We don't need to swizzle ( swap around ) any of the 
 			// color channels
@@ -701,18 +704,18 @@ namespace VulkanCore {
 
 			// Create the view
 			VkImageView imageView;
-			CheckVKResult(vkCreateImageView(m_Context.Device, &imageViewCreateInfo, nullptr, &imageView));
+			CheckVKResult(vkCreateImageView(Device, &imageViewCreateInfo, nullptr, &imageView));
 
 			// Now store this off in an idImage so we can take advantage
 			// of that class's API
 			VKImage image(
 				swapchainImages[i],
 				imageView,
-				m_Context.SwapchainFormat,
-				m_Context.SwapchainExtent
+				SwapchainFormat,
+				SwapchainExtent
 			);
 			image.IsSwapChainImage = true;
-			m_Context.SwapchainImages[i] = image;
+			SwapchainImages[i] = image;
 		}
 	}
 
@@ -723,7 +726,7 @@ namespace VulkanCore {
 			VkFormat format = formats[i];
 
 			VkFormatProperties props;
-			vkGetPhysicalDeviceFormatProperties(m_Context.PhysicalDevice, format, &props);
+			vkGetPhysicalDeviceFormatProperties(PhysicalDevice, format, &props);
 
 			if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) 
 			{
@@ -750,7 +753,7 @@ namespace VulkanCore {
 			};
 
 			// Make sure to check it supports optimal tiling and is a depth/stencil format.
-			m_Context.DepthFormat = ChooseSupportedFormat(
+			DepthFormat = ChooseSupportedFormat(
 					formats, 2,
 					VK_IMAGE_TILING_OPTIMAL,
 					VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
@@ -760,10 +763,10 @@ namespace VulkanCore {
 		// So now that the context contains the selected format we can simply
 		// create the internal one.
 
-		m_Context.DepthImage.Options.Format = TextureFormat::FORMAT_DEPTH;
-		m_Context.DepthImage.Options.Width = Application::Get().GetWindow().GetFrameBufferWidth();
-		m_Context.DepthImage.Options.Height = Application::Get().GetWindow().GetFrameBufferHeight();
-		m_Context.DepthImage.Options.LevelCount = 1;
+		DepthImage.Options.Format = TextureFormat::FORMAT_DEPTH;
+		DepthImage.Options.Width = Application::Get().GetWindow().GetFrameBufferWidth();
+		DepthImage.Options.Height = Application::Get().GetWindow().GetFrameBufferHeight();
+		DepthImage.Options.LevelCount = 1;
 	}
 
 	void GraphicsContext::CreateRenderPass()
@@ -775,7 +778,7 @@ namespace VulkanCore {
 
 		// For the color attachment, we'll simply be using the swapchain images.
 		VkAttachmentDescription colorAttachment = {};
-		colorAttachment.format = m_Context.SwapchainFormat;
+		colorAttachment.format = SwapchainFormat;
 		// Sample count goes from 1 - 64
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		// I don't care what you do with the image memory when you load it for use.
@@ -790,7 +793,7 @@ namespace VulkanCore {
 
 		// For the depth attachment, we'll be using the _viewDepth we just created.
 		// VkAttachmentDescription depthAttachment = {};
-		// depthAttachment.format = m_Context.DepthFormat;
+		// depthAttachment.format = DepthFormat;
 		// depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		// depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		// depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -822,12 +825,12 @@ namespace VulkanCore {
 		renderPassCreateInfo.pSubpasses = &subpass;
 		renderPassCreateInfo.dependencyCount = 0;
 
-		CheckVKResult(vkCreateRenderPass(m_Context.Device, &renderPassCreateInfo, nullptr, &m_Context.RenderPass));
+		CheckVKResult(vkCreateRenderPass(Device, &renderPassCreateInfo, nullptr, &RenderPass));
 	}
 
 	void GraphicsContext::CreateFrameBuffers()
 	{
-		m_Context.FrameBuffers.resize(m_Context.FrameCount);
+		FrameBuffers.resize(FrameCount);
 
 		VkImageView attachments[1];
 
@@ -844,41 +847,41 @@ namespace VulkanCore {
 		VkFramebufferCreateInfo frameBufferCreateInfo = {};
 		frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		// The renderpass we just created.
-		frameBufferCreateInfo.renderPass = m_Context.RenderPass;
+		frameBufferCreateInfo.renderPass = RenderPass;
 		// The color and depth attachments
 		frameBufferCreateInfo.attachmentCount = 1;
 		frameBufferCreateInfo.pAttachments = attachments;
 		// Current render size
-		frameBufferCreateInfo.width = m_Context.SwapchainExtent.width;
-		frameBufferCreateInfo.height = m_Context.SwapchainExtent.height;
+		frameBufferCreateInfo.width = SwapchainExtent.width;
+		frameBufferCreateInfo.height = SwapchainExtent.height;
 		frameBufferCreateInfo.layers = 1;
 
 		// Because we're double buffering, we need to create the same number of framebuffers.
 		// The main difference again is that both of them use the same depth image view.
-		for (int i = 0; i < m_Context.FrameCount; ++i) {
-			attachments[0] = m_Context.SwapchainImages[i].View;
-			CheckVKResult(vkCreateFramebuffer(m_Context.Device, &frameBufferCreateInfo, NULL, &m_Context.FrameBuffers[i]));
+		for (int i = 0; i < FrameCount; ++i) {
+			attachments[0] = SwapchainImages[i].View;
+			CheckVKResult(vkCreateFramebuffer(Device, &frameBufferCreateInfo, NULL, &FrameBuffers[i]));
 		}
 	}
 
 	void GraphicsContext::CleanupSwapChain()
 	{
-		for (size_t i = 0; i < m_Context.FrameBuffers.size(); i++) {
-			vkDestroyFramebuffer(m_Context.Device, m_Context.FrameBuffers[i], nullptr);
+		for (size_t i = 0; i < FrameBuffers.size(); i++) {
+			vkDestroyFramebuffer(Device, FrameBuffers[i], nullptr);
 		}
 
-		vkFreeCommandBuffers(m_Context.Device, m_Context.CommandPool, (uint32_t)(m_Context.CommandBuffers.size()), m_Context.CommandBuffers.data());
-		for (auto fence : m_Context.CommandBufferFences)
+		vkFreeCommandBuffers(Device, CommandPool, (uint32_t)(CommandBuffers.size()), CommandBuffers.data());
+		for (auto fence : CommandBufferFences)
 		{
-			vkDestroyFence(m_Context.Device, fence, nullptr);
+			vkDestroyFence(Device, fence, nullptr);
 		}
 
-		vkDestroyRenderPass(m_Context.Device, m_Context.RenderPass, nullptr);
+		vkDestroyRenderPass(Device, RenderPass, nullptr);
 
-		for (size_t i = 0; i < m_Context.SwapchainImages.size(); i++) {
-			vkDestroyImageView(m_Context.Device, m_Context.SwapchainImages[i].View, nullptr);
+		for (size_t i = 0; i < SwapchainImages.size(); i++) {
+			vkDestroyImageView(Device, SwapchainImages[i].View, nullptr);
 		}
 
-		// vkDestroySwapchainKHR(m_Context.Device, m_Context.Swapchain, nullptr);
+		// vkDestroySwapchainKHR(Device, Swapchain, nullptr);
 	}
 }
