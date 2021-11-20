@@ -58,6 +58,7 @@ namespace VulkanCore {
 			std::vector<VkPresentModeKHR> PresentModes;
 			VkPhysicalDeviceMemoryProperties MemoryProperties;
 			VkPhysicalDeviceProperties DeviceProperties;
+			VkPhysicalDeviceFeatures PhysicalDeviceFeatures;
 		};
 
 		struct VKImage
