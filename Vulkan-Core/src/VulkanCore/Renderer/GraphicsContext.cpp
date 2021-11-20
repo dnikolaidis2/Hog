@@ -455,6 +455,7 @@ namespace VulkanCore {
 
 	void GraphicsContext::InitializeImpl()
 	{
+		VKC_PROFILE_FUNCTION();
 		CreateInstance();
 		SetupDebugMessenger();
 		Application::Get().GetWindow().CreateSurface(Instance, nullptr, &(Surface));
@@ -530,6 +531,7 @@ namespace VulkanCore {
 
 	void GraphicsContext::CreateInstance()
 	{
+		VKC_PROFILE_FUNCTION();
 		VkInstanceCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		createInfo.pApplicationInfo = &(ApplicationInfo);
@@ -606,6 +608,7 @@ namespace VulkanCore {
 
 	void GraphicsContext::SetupDebugMessenger()
 	{
+		VKC_PROFILE_FUNCTION();
 		if (!EnableValidationLayers) return;
 		
 		CheckVKResult(CreateDebugUtilsMessengerEXT(Instance, &DebugMessengerCreateInfo, nullptr, &DebugMessenger));
@@ -613,6 +616,7 @@ namespace VulkanCore {
 
 	void GraphicsContext::EnumeratePhysicalDevices()
 	{
+		VKC_PROFILE_FUNCTION();
 		// CheckVKResult and VKC_ASSERT are simply macros for checking return values,
 		// and then taking action if necessary.
 	
@@ -704,6 +708,7 @@ namespace VulkanCore {
 
 	void GraphicsContext::SelectPhysicalDevice()
 	{
+		VKC_PROFILE_FUNCTION();
 		// Let's pick a GPU!
 		for (uint32_t i = 0; i < GPUs.size(); i++)
 		{
@@ -802,6 +807,7 @@ namespace VulkanCore {
 
 	void GraphicsContext::CreateLogicalDeviceAndQueues()
 	{
+		VKC_PROFILE_FUNCTION();
 		// Add each family index to a list.
 		// Don't do duplicates
 		std::vector<uint32_t> uniqueIdx;
@@ -854,6 +860,7 @@ namespace VulkanCore {
 
 	void GraphicsContext::InitializeAllocator()
 	{
+		VKC_PROFILE_FUNCTION();
 		VmaAllocatorCreateInfo allocatorInfo = {};
 		allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_2;
 		allocatorInfo.physicalDevice = PhysicalDevice;
@@ -865,6 +872,7 @@ namespace VulkanCore {
 
 	void GraphicsContext::CreateSemaphores()
 	{
+		VKC_PROFILE_FUNCTION();
 		AcquireSemaphores.resize(FrameCount);
 		RenderCompleteSemaphores.resize(FrameCount);
 
@@ -879,6 +887,7 @@ namespace VulkanCore {
 
 	void GraphicsContext::CreateCommandPool()
 	{
+		VKC_PROFILE_FUNCTION();
 		// Because command buffers can be very flexible, we don't want to be 
 		// doing a lot of allocation while we're trying to render.
 		// For this reason we create a pool to hold allocated command buffers.
@@ -897,6 +906,7 @@ namespace VulkanCore {
 
 	void GraphicsContext::CreateCommandBuffers()
 	{
+		VKC_PROFILE_FUNCTION();
 		VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
 		commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 
@@ -930,6 +940,7 @@ namespace VulkanCore {
 
 	void GraphicsContext::CreateSwapChain()
 	{
+		VKC_PROFILE_FUNCTION();
 		GPUInfo& gpu = *GPU;
 
 		// Take our selected gpu and pick three things.
@@ -1070,6 +1081,7 @@ namespace VulkanCore {
 
 	VkFormat GraphicsContext::ChooseSupportedFormat(VkFormat* formats, int numFormats, VkImageTiling tiling, VkFormatFeatureFlags features)
 	{
+		VKC_PROFILE_FUNCTION();
 		for (int i = 0; i < numFormats; ++i)
 		{
 			VkFormat format = formats[i];
@@ -1094,6 +1106,7 @@ namespace VulkanCore {
 
 	void GraphicsContext::CreateRenderTargets()
 	{
+		VKC_PROFILE_FUNCTION();
 		// Select Depth Format, prefer as high a precision as we can get.
 		{
 			VkFormat formats[] = {
@@ -1120,6 +1133,7 @@ namespace VulkanCore {
 
 	void GraphicsContext::CreateRenderPass()
 	{
+		VKC_PROFILE_FUNCTION();
 		std::vector<VkAttachmentDescription> attachments;
 
 		// VkNeo uses a single renderpass, so I just create it on startup.
@@ -1179,6 +1193,7 @@ namespace VulkanCore {
 
 	void GraphicsContext::CreateFrameBuffers()
 	{
+		VKC_PROFILE_FUNCTION();
 		FrameBuffers.resize(FrameCount);
 
 		VkImageView attachments[1];
@@ -1215,6 +1230,7 @@ namespace VulkanCore {
 
 	void GraphicsContext::CleanupSwapChain()
 	{
+		VKC_PROFILE_FUNCTION();
 		for (size_t i = 0; i < FrameBuffers.size(); i++) {
 			vkDestroyFramebuffer(Device, FrameBuffers[i], nullptr);
 		}
