@@ -72,7 +72,7 @@ namespace VulkanCore {
 
 		while (m_Running)
 		{
-			VKC_PROFILE_SCOPE("RunLoop");
+			VKC_PROFILE_START_FRAME("MainThread");
 
 			float time = (float)glfwGetTime();
 			Timestep timestep = time - m_LastFrameTime;

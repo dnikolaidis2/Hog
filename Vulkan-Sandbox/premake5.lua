@@ -26,7 +26,8 @@ project "Vulkan-Sandbox"
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.GLFW}",
 		"%{IncludeDir.vma}",
-		"%{IncludeDir.VulkanSDK}"
+		"%{IncludeDir.VulkanSDK}",
+		"%{IncludeDir.optick}"
 	}
 
 	links
@@ -46,7 +47,8 @@ project "Vulkan-Sandbox"
 		
 		postbuildcommands
 		{
-			"{COPYDIR} \"%{LibraryDir.VulkanSDK_DebugDLL}\" \"%{cfg.targetdir}\""
+			"{COPYDIR} \"%{LibraryDir.VulkanSDK_DebugDLL}\" \"%{cfg.targetdir}\"",
+			"{COPY} \"%{Library.optick_DebugDLL}\" \"%{cfg.targetdir}\""
 		}
 
 	filter "configurations:Release"

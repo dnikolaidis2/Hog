@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optick.h>
+
 #include <algorithm>
 #include <chrono>
 #include <fstream>
@@ -208,33 +210,45 @@ namespace VulkanCore {
 	// is resolved when the (pre)compiler starts, so the syntax highlighting
 	// could mark the wrong one in your editor!
 	#if defined(__GNUC__) || (defined(__MWERKS__) && (__MWERKS__ >= 0x3000)) || (defined(__ICC) && (__ICC >= 600)) || defined(__ghs__)
-		#define VKC_FUNC_SIG __PRETTY_FUNCTION__
+	#define VKC_FUNC_SIG __PRETTY_FUNCTION__
 	#elif defined(__DMC__) && (__DMC__ >= 0x810)
-		#define VKC_FUNC_SIG __PRETTY_FUNCTION__
+	#define VKC_FUNC_SIG __PRETTY_FUNCTION__
 	#elif (defined(__FUNCSIG__) || (_MSC_VER))
-		#define VKC_FUNC_SIG __FUNCSIG__
+	#define VKC_FUNC_SIG __FUNCSIG__
 	#elif (defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 600)) || (defined(__IBMCPP__) && (__IBMCPP__ >= 500))
-		#define VKC_FUNC_SIG __FUNCTION__
+	#define VKC_FUNC_SIG __FUNCTION__
 	#elif defined(__BORLANDC__) && (__BORLANDC__ >= 0x550)
-		#define VKC_FUNC_SIG __FUNC__
+	#define VKC_FUNC_SIG __FUNC__
 	#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901)
-		#define VKC_FUNC_SIG __func__
+	#define VKC_FUNC_SIG __func__
 	#elif defined(__cplusplus) && (__cplusplus >= 201103)
-		#define VKC_FUNC_SIG __func__
+	#define VKC_FUNC_SIG __func__
 	#else
-		#define VKC_FUNC_SIG "VKC_FUNC_SIG unknown!"
+	#define VKC_FUNC_SIG "VKC_FUNC_SIG unknown!"
 	#endif
-
-	#define VKC_PROFILE_BEGIN_SESSION(name, filepath) ::VulkanCore::Instrumentor::Get().BeginSession(name, filepath)
-	#define VKC_PROFILE_END_SESSION() ::VulkanCore::Instrumentor::Get().EndSession()
-	#define VKC_PROFILE_SCOPE_LINE2(name, line) constexpr auto fixedName##line = ::VulkanCore::InstrumentorUtils::CleanupOutputString(name, "__cdecl ");\
-											   ::VulkanCore::InstrumentationTimer timer##line(fixedName##line.Data)
-	#define VKC_PROFILE_SCOPE_LINE(name, line) VKC_PROFILE_SCOPE_LINE2(name, line)
-	#define VKC_PROFILE_SCOPE(name) VKC_PROFILE_SCOPE_LINE(name, __LINE__)
-	#define VKC_PROFILE_FUNCTION() VKC_PROFILE_SCOPE(VKC_FUNC_SIG)
+	#if !USE_OPTICK
+		#define VKC_PROFILE_BEGIN_SESSION(name, filepath) ::VulkanCore::Instrumentor::Get().BeginSession(name, filepath)
+		#define VKC_PROFILE_SAVE_SESSION(filepath)
+		#define VKC_PROFILE_END_SESSION() ::VulkanCore::Instrumentor::Get().EndSession()
+		#define VKC_PROFILE_SCOPE_LINE2(name, line) constexpr auto fixedName##line = ::VulkanCore::InstrumentorUtils::CleanupOutputString(name, "__cdecl ");\
+												   ::VulkanCore::InstrumentationTimer timer##line(fixedName##line.Data)
+		#define VKC_PROFILE_SCOPE_LINE(name, line) VKC_PROFILE_SCOPE_LINE2(name, line)
+		#define VKC_PROFILE_SCOPE(name) VKC_PROFILE_SCOPE_LINE(name, __LINE__)
+		#define VKC_PROFILE_FUNCTION() VKC_PROFILE_SCOPE(VKC_FUNC_SIG)
+		#define VKC_PROFILE_START_FRAME()
+	#else
+		#define VKC_PROFILE_BEGIN_SESSION(name, filepath) OPTICK_START_CAPTURE()
+		#define VKC_PROFILE_SAVE_SESSION(filepath) OPTICK_SAVE_CAPTURE(filepath)
+		#define VKC_PROFILE_END_SESSION() OPTICK_STOP_CAPTURE()
+		#define VKC_PROFILE_SCOPE(name) OPTICK_EVENT(name)
+		#define VKC_PROFILE_FUNCTION() OPTICK_EVENT()
+		#define VKC_PROFILE_START_FRAME(name) OPTICK_FRAME(name)
+	#endif
 #else
 	#define VKC_PROFILE_BEGIN_SESSION(name, filepath)
+	#define VKC_PROFILE_SAVE_SESSION(filepath)
 	#define VKC_PROFILE_END_SESSION()
 	#define VKC_PROFILE_SCOPE(name)
 	#define VKC_PROFILE_FUNCTION()
+	#define VKC_PROFILE_START_FRAME()
 #endif

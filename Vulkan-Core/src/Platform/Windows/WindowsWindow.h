@@ -20,7 +20,7 @@ namespace VulkanCore {
 		uint32_t GetFrameBufferHeight() const override { return m_Data.FrameBufferHeight; }
 
 		// Window attributes
-		void CreateSurface(VkInstance instance, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface) override { glfwCreateWindowSurface(instance, m_Window, allocator, surface); };
+		void CreateSurface(VkInstance instance, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface) override { VKC_PROFILE_FUNCTION(); glfwCreateWindowSurface(instance, m_Window, allocator, surface); };
 		void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }
 		void SetVSync(bool enabled) override;
 		bool IsVSync() const override;
