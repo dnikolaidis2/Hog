@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include "Image.h"
 #include "vk_mem_alloc.h"
 #include "VulkanCore/Core/Base.h"
 
@@ -36,17 +37,6 @@ namespace VulkanCore {
 	class GraphicsContext
 	{
 	public:
-		enum class TextureFormat
-		{
-			FORMAT_RGBA8,
-			FORMAT_DEPTH
-		};
-
-		enum class TextureType
-		{
-			TYPE_2D,
-			TYPE_CUBIC
-		};
 
 		struct GPUInfo
 		{
@@ -59,34 +49,6 @@ namespace VulkanCore {
 			VkPhysicalDeviceMemoryProperties MemoryProperties;
 			VkPhysicalDeviceProperties DeviceProperties;
 			VkPhysicalDeviceFeatures PhysicalDeviceFeatures;
-		};
-
-		struct VKImage
-		{
-			VkImage Image;
-			VkImageView View;
-			VkFormat InternalFormat;
-			struct Options
-			{
-				TextureType Type = TextureType::TYPE_2D;
-				TextureFormat Format = TextureFormat::FORMAT_RGBA8;
-				uint32_t LevelCount = 1;
-				uint32_t Width;
-				uint32_t Height;
-			} Options;
-			
-			bool IsSwapChainImage;
-
-			VKImage() = default;
-
-			VKImage(const VKImage&) = default;
-
-			VKImage(VkImage image, VkImageView imageView, VkFormat format, VkExtent2D extent)
-				: Image(image), View(imageView), InternalFormat(format)
-			{
-				Options.Width = extent.width;
-				Options.Height = extent.height;
-			}
 		};
 
 	public:
@@ -112,6 +74,7 @@ namespace VulkanCore {
 		void DeinitializeImpl();
 		void RecreateSwapChainImpl();
 
+	public:
 		void CreateInstance();
 		void DestroyInstance();
 		void SetupDebugMessenger();
@@ -129,11 +92,34 @@ namespace VulkanCore {
 		void CreateFrameBuffers();
 
 		void CleanupSwapChain();
-	private:
 	public:
 		bool Initialized = false;
 		int const FrameCount = 2;
 		int CurrentFrame = 0;
+
+		bool EnableValidationLayers = true;
+
+		VkInstance Instance = VK_NULL_HANDLE;
+		VkDebugUtilsMessengerEXT DebugMessenger = VK_NULL_HANDLE;
+
+		GPUInfo* GPU = nullptr;
+		VkPhysicalDevice PhysicalDevice = VK_NULL_HANDLE;
+		VkDevice Device = VK_NULL_HANDLE;
+
+		VkQueue GraphicsQueue = VK_NULL_HANDLE;
+		VkQueue PresentQueue = VK_NULL_HANDLE;
+
+		VkSurfaceKHR Surface = VK_NULL_HANDLE;
+
+		VmaAllocator Allocator = VK_NULL_HANDLE;
+
+		VkSwapchainKHR Swapchain = VK_NULL_HANDLE;
+		VkFormat SwapchainFormat = VK_FORMAT_UNDEFINED;
+
+		VkPresentModeKHR PresentMode = VK_PRESENT_MODE_MAX_ENUM_KHR;
+		VkExtent2D SwapchainExtent = { 0 };
+
+		std::vector<Image> SwapchainImages;
 
 		VkApplicationInfo ApplicationInfo =
 		{
@@ -166,34 +152,19 @@ namespace VulkanCore {
 			.depthBiasClamp = VK_TRUE,
 			.fillModeNonSolid = VK_TRUE,
 			.depthBounds = VK_TRUE,
+			.textureCompressionASTC_LDR = VK_TRUE,
 			.textureCompressionBC = VK_TRUE
 		};
 
 		std::vector<const char*> InstanceExtensions;
 		std::vector<const char*> DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
-		bool EnableValidationLayers = true;
 		std::vector<const char*> ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 
 		std::vector<GPUInfo> GPUs;
 
-		VkInstance Instance = VK_NULL_HANDLE;
-		VkDebugUtilsMessengerEXT DebugMessenger = VK_NULL_HANDLE;
-
-
-		GPUInfo* GPU = nullptr;
-		VkPhysicalDevice PhysicalDevice = VK_NULL_HANDLE;
-
 		uint32_t GraphicsFamilyIndex;
 		uint32_t PresentFamilyIndex;
-
-		VkDevice Device = VK_NULL_HANDLE;
-		VkQueue GraphicsQueue = VK_NULL_HANDLE;
-		VkQueue PresentQueue = VK_NULL_HANDLE;
-
-		VmaAllocator Allocator = VK_NULL_HANDLE;
-
-		VkSurfaceKHR Surface = VK_NULL_HANDLE;
 
 		std::vector<VkSemaphore> AcquireSemaphores;
 		std::vector<VkSemaphore> RenderCompleteSemaphores;
@@ -203,16 +174,8 @@ namespace VulkanCore {
 		std::vector<VkCommandBuffer> CommandBuffers;
 		std::vector<VkFence> CommandBufferFences;
 
-		VkSwapchainKHR Swapchain = VK_NULL_HANDLE;
-
-		VkFormat SwapchainFormat = VK_FORMAT_UNDEFINED;
-		VkPresentModeKHR PresentMode = VK_PRESENT_MODE_MAX_ENUM_KHR;
-		VkExtent2D SwapchainExtent = {0};
-
-		std::vector<VKImage> SwapchainImages;
-
 		VkFormat DepthFormat = VK_FORMAT_UNDEFINED;
-		VKImage DepthImage;
+		Image DepthImage;
 
 		VkRenderPass RenderPass = VK_NULL_HANDLE;
 

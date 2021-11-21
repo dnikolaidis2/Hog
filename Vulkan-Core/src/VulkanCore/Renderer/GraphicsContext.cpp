@@ -532,6 +532,7 @@ namespace VulkanCore {
 	void GraphicsContext::CreateInstance()
 	{
 		VKC_PROFILE_FUNCTION();
+
 		VkInstanceCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		createInfo.pApplicationInfo = &(ApplicationInfo);
@@ -1068,7 +1069,7 @@ namespace VulkanCore {
 
 			// Now store this off in an idImage so we can take advantage
 			// of that class's API
-			VKImage image(
+			Image image(
 				swapchainImages[i],
 				imageView,
 				SwapchainFormat,
