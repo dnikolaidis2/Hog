@@ -64,6 +64,18 @@ namespace VulkanCore {
 		}
 	}
 
+	VkShaderStageFlagBits Shader::ShaderTypeToVkShaderStageFlagBit(ShaderType type)
+	{
+		switch (type)
+		{
+			case ShaderType::Vertex: return VK_SHADER_STAGE_VERTEX_BIT;
+			case ShaderType::Fragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
+			case ShaderType::Compute: return VK_SHADER_STAGE_COMPUTE_BIT;
+		}
+
+		return (VkShaderStageFlagBits)0;
+	}
+
 	Shader::Shader(const std::string& filepath)
 		: m_FilePath(filepath)
 	{

@@ -20,6 +20,7 @@
 
 // ---Renderer------------------------
 #include "VulkanCore/Renderer/GraphicsContext.h"
+#include "VulkanCore/Renderer/GraphicsPipeline.h"
 #include "VulkanCore/Renderer/Shader.h"
 #include "VulkanCore/Renderer/Buffer.h"
 

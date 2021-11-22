@@ -3,7 +3,9 @@
 #include "VulkanCore.h"
 #include <vk_mem_alloc.h>
 
-class SandboxLayer : public VulkanCore::Layer
+using namespace VulkanCore;
+
+class SandboxLayer : public Layer
 {
 public:
 	SandboxLayer();
@@ -12,18 +14,17 @@ public:
 	virtual void OnAttach() override;
 	virtual void OnDetach() override;
 
-	void OnUpdate(VulkanCore::Timestep ts) override;
+	void OnUpdate(Timestep ts) override;
 	virtual void OnImGuiRender() override;
-	void OnEvent(VulkanCore::Event& e) override;
-	bool OnResized(VulkanCore::FrameBufferResizeEvent& e);
+	void OnEvent(Event& e) override;
+	bool OnResized(FrameBufferResizeEvent& e);
 private:
-	VulkanCore::Ref<VulkanCore::Shader> m_Shader;
+	Ref<Shader> m_Shader;
 
 	VkDescriptorSetLayout m_DescriptorSetLayout;
 	VkDescriptorPool m_DescriptorPool;
 	std::vector<VkDescriptorSet> m_DescriptorSets;
-	VkPipelineLayout m_PipelineLayout;
-	VkPipeline m_GraphicsPipeline;
+	Ref<GraphicsPipeline> m_Pipeline;
 
 	VkBuffer m_VertexBuffer;
 	VmaAllocation m_VertexBufferAllocation;

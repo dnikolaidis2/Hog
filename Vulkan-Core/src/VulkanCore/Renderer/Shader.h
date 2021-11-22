@@ -7,6 +7,10 @@ namespace VulkanCore {
 	class Shader
 	{
 	public:
+		enum ShaderType { Fragment, Vertex, Compute };
+	public:
+		static VkShaderStageFlagBits ShaderTypeToVkShaderStageFlagBit(ShaderType type);
+	public:
 		Shader(const std::string& filepath);
 		~Shader();
 

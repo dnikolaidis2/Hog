@@ -106,6 +106,9 @@ namespace VulkanCore {
 		VkPhysicalDevice PhysicalDevice = VK_NULL_HANDLE;
 		VkDevice Device = VK_NULL_HANDLE;
 
+		uint32_t GraphicsFamilyIndex;
+		uint32_t PresentFamilyIndex;
+
 		VkQueue GraphicsQueue = VK_NULL_HANDLE;
 		VkQueue PresentQueue = VK_NULL_HANDLE;
 
@@ -120,6 +123,21 @@ namespace VulkanCore {
 		VkExtent2D SwapchainExtent = { 0 };
 
 		std::vector<Image> SwapchainImages;
+
+		std::vector<VkSemaphore> AcquireSemaphores;
+		std::vector<VkSemaphore> RenderCompleteSemaphores;
+
+		VkCommandPool CommandPool = VK_NULL_HANDLE;
+
+		std::vector<VkCommandBuffer> CommandBuffers;
+		std::vector<VkFence> CommandBufferFences;
+
+		VkFormat DepthFormat = VK_FORMAT_UNDEFINED;
+		Image DepthImage;
+
+		VkRenderPass RenderPass = VK_NULL_HANDLE;
+
+		std::vector<VkFramebuffer> FrameBuffers;
 
 		VkApplicationInfo ApplicationInfo =
 		{
@@ -152,7 +170,6 @@ namespace VulkanCore {
 			.depthBiasClamp = VK_TRUE,
 			.fillModeNonSolid = VK_TRUE,
 			.depthBounds = VK_TRUE,
-			.textureCompressionASTC_LDR = VK_TRUE,
 			.textureCompressionBC = VK_TRUE
 		};
 
@@ -162,23 +179,5 @@ namespace VulkanCore {
 		std::vector<const char*> ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 
 		std::vector<GPUInfo> GPUs;
-
-		uint32_t GraphicsFamilyIndex;
-		uint32_t PresentFamilyIndex;
-
-		std::vector<VkSemaphore> AcquireSemaphores;
-		std::vector<VkSemaphore> RenderCompleteSemaphores;
-
-		VkCommandPool CommandPool = VK_NULL_HANDLE;
-
-		std::vector<VkCommandBuffer> CommandBuffers;
-		std::vector<VkFence> CommandBufferFences;
-
-		VkFormat DepthFormat = VK_FORMAT_UNDEFINED;
-		Image DepthImage;
-
-		VkRenderPass RenderPass = VK_NULL_HANDLE;
-
-		std::vector<VkFramebuffer> FrameBuffers;
 	};
 }
