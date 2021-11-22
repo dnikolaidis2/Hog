@@ -22,6 +22,9 @@ namespace VulkanCore
 	public:
 		std::vector<VkPipelineShaderStageCreateInfo> ShaderStageCreateInfos;
 
+		std::vector<VkVertexInputBindingDescription> VertexInputBindingDescriptions;
+		std::vector<VkVertexInputAttributeDescription> VertexInputAttributeDescriptions;
+
 		VkPipelineVertexInputStateCreateInfo VertexInputStateCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 		};

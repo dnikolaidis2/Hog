@@ -25,8 +25,13 @@ namespace VulkanCore
 
 	VkPipeline GraphicsPipeline::Create()
 	{
-		DynamicStateCreateInfo.dynamicStateCount = DynamicStates.size();
+		DynamicStateCreateInfo.dynamicStateCount = (uint32_t)DynamicStates.size();
 		DynamicStateCreateInfo.pDynamicStates = DynamicStates.data();
+
+		VertexInputStateCreateInfo.vertexBindingDescriptionCount = (uint32_t)VertexInputBindingDescriptions.size();
+		VertexInputStateCreateInfo.pVertexBindingDescriptions = VertexInputBindingDescriptions.data(); // Optional
+		VertexInputStateCreateInfo.vertexAttributeDescriptionCount = (uint32_t)VertexInputAttributeDescriptions.size();
+		VertexInputStateCreateInfo.pVertexAttributeDescriptions = VertexInputAttributeDescriptions.data(); // Optional
 
 		CheckVKResult(vkCreatePipelineLayout(m_Device, &PipelineLayoutCreateInfo, nullptr, &Layout));
 
