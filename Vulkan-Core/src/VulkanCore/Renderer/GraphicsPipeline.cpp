@@ -33,12 +33,12 @@ namespace VulkanCore
 		VertexInputStateCreateInfo.vertexAttributeDescriptionCount = (uint32_t)VertexInputAttributeDescriptions.size();
 		VertexInputStateCreateInfo.pVertexAttributeDescriptions = VertexInputAttributeDescriptions.data(); // Optional
 
-		CheckVKResult(vkCreatePipelineLayout(m_Device, &PipelineLayoutCreateInfo, nullptr, &Layout));
+		CheckVkResult(vkCreatePipelineLayout(m_Device, &PipelineLayoutCreateInfo, nullptr, &Layout));
 
-		GraphicsPipelineCreateInfo.stageCount = ShaderStageCreateInfos.size();
+		GraphicsPipelineCreateInfo.stageCount = (uint32_t)ShaderStageCreateInfos.size();
 		GraphicsPipelineCreateInfo.pStages = ShaderStageCreateInfos.data();
 		GraphicsPipelineCreateInfo.layout = Layout;
-		CheckVKResult(vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &PipelineHandle));
+		CheckVkResult(vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &PipelineHandle));
 		m_Initialized = true;
 		return PipelineHandle;
 	}

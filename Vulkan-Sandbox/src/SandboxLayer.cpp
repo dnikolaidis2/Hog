@@ -20,8 +20,11 @@ void SandboxLayer::OnAttach()
 	VKC_PROFILE_FUNCTION()
 
 	context.Initialize();
-
+	
 	m_Shader = CreateRef<Shader>("assets/shaders/Basic.glsl");
+
+	m_VertexBuffer = CreateRef<VertexBuffer>();
+	m_VertexBuffer->SetLayout(Vertex::Layout);
 
 	{
 		m_Pipeline = CreateRef<GraphicsPipeline>(context.Device, context.SwapchainExtent, context.RenderPass);
@@ -38,13 +41,13 @@ void SandboxLayer::OnAttach()
 		layoutInfo.bindingCount = 1;
 		layoutInfo.pBindings = &uboLayoutBinding;
 
-		CheckVKResult(vkCreateDescriptorSetLayout(context.Device, &layoutInfo, nullptr, &m_DescriptorSetLayout));
+		CheckVkResult(vkCreateDescriptorSetLayout(context.Device, &layoutInfo, nullptr, &m_DescriptorSetLayout));
 
 		m_Pipeline->AddShaderStage(Shader::ShaderType::Vertex, m_Shader->GetVertexShaderModule());
 		m_Pipeline->AddShaderStage(Shader::ShaderType::Fragment, m_Shader->GetFragmentShaderModule());
 
-		m_Pipeline->VertexInputBindingDescriptions.push_back(Vertex::GetBindingDescription());
-		m_Pipeline->VertexInputAttributeDescriptions = Vertex::GetAttributeDescriptions();
+		m_Pipeline->VertexInputBindingDescriptions.push_back(m_VertexBuffer->GetInputBindingDescription());
+		m_Pipeline->VertexInputAttributeDescriptions = m_VertexBuffer->GetInputAttributeDescriptions();
 
 		m_Pipeline->PipelineLayoutCreateInfo.setLayoutCount = 1; // Optional
 		m_Pipeline->PipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout; // Optional
@@ -54,107 +57,19 @@ void SandboxLayer::OnAttach()
 
 	{
 		const size_t bufferSize = sizeof(m_Vertices[0]) * m_Vertices.size();
-		VkBufferCreateInfo bufferInfo = {};
-		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		bufferInfo.size = (uint32_t)bufferSize;
-		bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		m_VertexBuffer->Create((uint64_t)bufferSize);
 
-		VmaAllocationCreateInfo allocInfo = {};
-		allocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-
-		VkBuffer stagingBuffer;
-		VmaAllocation stagingAllocation;
-
-		CheckVKResult(vmaCreateBuffer(context.Allocator, &bufferInfo, &allocInfo, &stagingBuffer, &stagingAllocation, nullptr));
-
-		void* data;
-		vmaMapMemory(context.Allocator, stagingAllocation, &data);
-		memcpy(data, m_Vertices.data(), bufferSize);
-		vmaUnmapMemory(context.Allocator, stagingAllocation);
-
-
-		//allocate vertex buffer
-		VkBufferCreateInfo vertexBufferInfo = {};
-		vertexBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		vertexBufferInfo.pNext = nullptr;
-		//this is the total size, in bytes, of the buffer we are allocating
-		vertexBufferInfo.size = (uint32_t)bufferSize;
-		//this buffer is going to be used as a Vertex Buffer
-		vertexBufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-		vertexBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-		//let the VMA library know that this data should be GPU native
-		allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-
-		//allocate the buffer
-		CheckVKResult(vmaCreateBuffer(context.Allocator, &vertexBufferInfo, &allocInfo, &m_VertexBuffer, &m_VertexBufferAllocation, nullptr));
-
-
-		VkCommandBufferAllocateInfo bufferAllocationInfo{};
-		bufferAllocationInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		bufferAllocationInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		bufferAllocationInfo.commandPool = context.CommandPool;
-		bufferAllocationInfo.commandBufferCount = 1;
-
-		VkCommandBuffer commandBuffer;
-		vkAllocateCommandBuffers(context.Device, &bufferAllocationInfo, &commandBuffer);
-
-		// We create fences that we can use to wait for a 
-		// given command buffer to be done on the GPU.
-		VkFenceCreateInfo fenceCreateInfo = {};
-		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-
-		VkFence uploadFence;
-		CheckVKResult(vkCreateFence(context.Device, &fenceCreateInfo, nullptr, &uploadFence));
-
-		VkCommandBufferBeginInfo beginInfo{};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-		vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-		VkBufferCopy copyRegion{};
-		copyRegion.srcOffset = 0; // Optional
-		copyRegion.dstOffset = 0; // Optional
-		copyRegion.size = bufferSize;
-		vkCmdCopyBuffer(commandBuffer, stagingBuffer, m_VertexBuffer, 1, &copyRegion);
-
-		vkEndCommandBuffer(commandBuffer);
-
-		VkSubmitInfo submitInfo{};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &commandBuffer;
-
-		vkQueueSubmit(context.GraphicsQueue, 1, &submitInfo, uploadFence);
-
-		vkWaitForFences(context.Device, 1, &uploadFence, true, UINT64_MAX);
-		vkResetFences(context.Device, 1, &uploadFence);
-
-		vkFreeCommandBuffers(context.Device, context.CommandPool, 1, &commandBuffer);
-		vkDestroyFence(context.Device, uploadFence, nullptr);
-
-		vmaDestroyBuffer(context.Allocator, stagingBuffer, stagingAllocation);
+		m_VertexBuffer->SetData((void*)m_Vertices.data(), bufferSize);
 	}
 
 	{
 		m_UniformBuffers.resize(context.FrameCount);
-		m_UniformBuffersAllocations.resize(context.FrameCount);
 		const size_t bufferSize = sizeof(UniformBufferObject);
 
 		for (int i = 0; i < context.FrameCount; ++i)
 		{
-			VkBufferCreateInfo bufferInfo = {};
-			bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-			bufferInfo.size = (uint32_t)bufferSize;
-			bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-			bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-			VmaAllocationCreateInfo allocInfo = {};
-			allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-			CheckVKResult(vmaCreateBuffer(context.Allocator, &bufferInfo, &allocInfo, &m_UniformBuffers[i], &m_UniformBuffersAllocations[i], nullptr));
+			m_UniformBuffers[i] = CreateRef<MemoryBuffer>();
+			m_UniformBuffers[i]->Create(bufferSize, MemoryUsage::UniformBuffer, MemoryType::CPUToGPU, MemorySharing::Exclusive);
 		}
 	}
 
@@ -169,7 +84,7 @@ void SandboxLayer::OnAttach()
 		poolInfo.pPoolSizes = &poolSize;
 		poolInfo.maxSets = (uint32_t)(context.SwapchainImages.size());
 
-		CheckVKResult(vkCreateDescriptorPool(context.Device, &poolInfo, nullptr, &m_DescriptorPool));
+		CheckVkResult(vkCreateDescriptorPool(context.Device, &poolInfo, nullptr, &m_DescriptorPool));
 	}
 
 	{
@@ -181,11 +96,11 @@ void SandboxLayer::OnAttach()
 		allocInfo.pSetLayouts = layouts.data();
 
 		m_DescriptorSets.resize(context.FrameCount);
-		CheckVKResult(vkAllocateDescriptorSets(context.Device, &allocInfo, m_DescriptorSets.data()));
+		CheckVkResult(vkAllocateDescriptorSets(context.Device, &allocInfo, m_DescriptorSets.data()));
 
 		for (size_t i = 0; i < m_UniformBuffers.size(); i++) {
 			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = m_UniformBuffers[i];
+			bufferInfo.buffer = *m_UniformBuffers[i];
 			bufferInfo.offset = 0;
 			bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -206,88 +121,9 @@ void SandboxLayer::OnAttach()
 
 	{
 		const size_t bufferSize = sizeof(m_Indices[0]) * m_Indices.size();
-		VkBufferCreateInfo bufferInfo = {};
-		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		bufferInfo.size = (uint32_t)bufferSize;
-		bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-		VmaAllocationCreateInfo allocInfo = {};
-		allocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-
-		VkBuffer stagingBuffer;
-		VmaAllocation stagingAllocation;
-
-		CheckVKResult(vmaCreateBuffer(context.Allocator, &bufferInfo, &allocInfo, &stagingBuffer, &stagingAllocation, nullptr));
-
-		void* data;
-		vmaMapMemory(context.Allocator, stagingAllocation, &data);
-		memcpy(data, m_Indices.data(), (size_t)bufferSize);
-		vmaUnmapMemory(context.Allocator, stagingAllocation);
-
-
-		//allocate vertex buffer
-		VkBufferCreateInfo vertexBufferInfo = {};
-		vertexBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		vertexBufferInfo.pNext = nullptr;
-		//this is the total size, in bytes, of the buffer we are allocating
-		vertexBufferInfo.size = (uint32_t)bufferSize;
-		//this buffer is going to be used as a Vertex Buffer
-		vertexBufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-		vertexBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-		//let the VMA library know that this data should be GPU native
-		allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-
-		//allocate the buffer
-		CheckVKResult(vmaCreateBuffer(context.Allocator, &vertexBufferInfo, &allocInfo, &m_IndexBuffer, &m_IndexBufferAllocation, nullptr));
-
-
-		VkCommandBufferAllocateInfo bufferAllocationInfo{};
-		bufferAllocationInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		bufferAllocationInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		bufferAllocationInfo.commandPool = context.CommandPool;
-		bufferAllocationInfo.commandBufferCount = 1;
-
-		VkCommandBuffer commandBuffer;
-		vkAllocateCommandBuffers(context.Device, &bufferAllocationInfo, &commandBuffer);
-
-		// We create fences that we can use to wait for a 
-		// given command buffer to be done on the GPU.
-		VkFenceCreateInfo fenceCreateInfo = {};
-		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-
-		VkFence uploadFence;
-		CheckVKResult(vkCreateFence(context.Device, &fenceCreateInfo, nullptr, &uploadFence));
-
-		VkCommandBufferBeginInfo beginInfo{};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-		vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-		VkBufferCopy copyRegion{};
-		copyRegion.srcOffset = 0; // Optional
-		copyRegion.dstOffset = 0; // Optional
-		copyRegion.size = bufferSize;
-		vkCmdCopyBuffer(commandBuffer, stagingBuffer, m_IndexBuffer, 1, &copyRegion);
-
-		vkEndCommandBuffer(commandBuffer);
-
-		VkSubmitInfo submitInfo{};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &commandBuffer;
-
-		vkQueueSubmit(context.GraphicsQueue, 1, &submitInfo, uploadFence);
-
-		vkWaitForFences(context.Device, 1, &uploadFence, true, UINT64_MAX);
-		vkResetFences(context.Device, 1, &uploadFence);
-
-		vkFreeCommandBuffers(context.Device, context.CommandPool, 1, &commandBuffer);
-		vkDestroyFence(context.Device, uploadFence, nullptr);
-
-		vmaDestroyBuffer(context.Allocator, stagingBuffer, stagingAllocation);
+		m_IndexBuffer = CreateRef<IndexBuffer>();
+		m_IndexBuffer->Create(bufferSize);
+		m_IndexBuffer->SetData((void*)m_Indices.data(), bufferSize);
 	}
 
 	{
@@ -298,7 +134,7 @@ void SandboxLayer::OnAttach()
 			beginInfo.flags = 0; // Optional
 			beginInfo.pInheritanceInfo = nullptr; // Optional
 
-			CheckVKResult(vkBeginCommandBuffer(commandBuffers[i], &beginInfo));
+			CheckVkResult(vkBeginCommandBuffer(commandBuffers[i], &beginInfo));
 
 			VkRenderPassBeginInfo renderPassInfo{};
 			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -316,18 +152,18 @@ void SandboxLayer::OnAttach()
 
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *m_Pipeline);
 
-			VkBuffer vertexBuffers[] = { m_VertexBuffer };
+			VkBuffer vertexBuffers[] = { *m_VertexBuffer };
 			VkDeviceSize offsets[] = { 0 };
 
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(commandBuffers[i], m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+			vkCmdBindIndexBuffer(commandBuffers[i], *m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->Layout, 0, 1, &m_DescriptorSets[i], 0, nullptr);
 			vkCmdDrawIndexed(commandBuffers[i], (uint32_t)(m_Indices.size()), 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(commandBuffers[i]);
 
-			CheckVKResult(vkEndCommandBuffer(commandBuffers[i]));
+			CheckVkResult(vkEndCommandBuffer(commandBuffers[i]));
 		}
 	}
 }
@@ -339,11 +175,11 @@ void SandboxLayer::OnDetach()
 	vkDeviceWaitIdle(context.Device);
 
 	for (size_t i = 0; i < m_UniformBuffers.size(); i++) {
-		vmaDestroyBuffer(context.Allocator, m_UniformBuffers[i], m_UniformBuffersAllocations[i]);
+		m_UniformBuffers[i].reset();
 	}
 
-	vmaDestroyBuffer(context.Allocator, m_VertexBuffer, m_VertexBufferAllocation);
-	vmaDestroyBuffer(context.Allocator, m_IndexBuffer, m_IndexBufferAllocation);
+	m_VertexBuffer.reset();
+	m_IndexBuffer.reset();
 
 	vkDestroyDescriptorPool(context.Device, m_DescriptorPool, nullptr);
 
@@ -377,10 +213,7 @@ void SandboxLayer::OnUpdate(Timestep ts)
 	ubo.proj = glm::perspective(glm::radians(45.0f), (float)context.SwapchainExtent.width / (float)context.SwapchainExtent.height, 0.1f, 10.0f);
 	ubo.proj[1][1] *= -1;
 
-	void* data;
-	vmaMapMemory(context.Allocator, m_UniformBuffersAllocations[imageIndex], &data);
-		memcpy(data, &ubo, sizeof(ubo));
-	vmaUnmapMemory(context.Allocator, m_UniformBuffersAllocations[imageIndex]);
+	m_UniformBuffers[imageIndex]->SetData(&ubo, sizeof(ubo));
 
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -400,7 +233,7 @@ void SandboxLayer::OnUpdate(Timestep ts)
 
 	vkResetFences(context.Device, 1, &commandBufferFences[currentFrame]);
 
-	CheckVKResult(vkQueueSubmit(context.GraphicsQueue, 1, &submitInfo, commandBufferFences[currentFrame]));
+	CheckVkResult(vkQueueSubmit(context.GraphicsQueue, 1, &submitInfo, commandBufferFences[currentFrame]));
 
 	VkPresentInfoKHR presentInfo{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -436,7 +269,7 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 	vkDeviceWaitIdle(context.Device);
 
 	for (size_t i = 0; i < m_UniformBuffers.size(); i++) {
-		vmaDestroyBuffer(context.Allocator, m_UniformBuffers[i], m_UniformBuffersAllocations[i]);
+		m_UniformBuffers[i].reset();
 	}
 
 	vkDestroyDescriptorPool(context.Device, m_DescriptorPool, nullptr);
@@ -448,21 +281,11 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 
 	{
 		m_UniformBuffers.resize(context.FrameCount);
-		m_UniformBuffersAllocations.resize(context.FrameCount);
 		const size_t bufferSize = sizeof(UniformBufferObject);
 
 		for (int i = 0; i < context.FrameCount; ++i)
 		{
-			VkBufferCreateInfo bufferInfo = {};
-			bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-			bufferInfo.size = (uint32_t)bufferSize;
-			bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-			bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-			VmaAllocationCreateInfo allocInfo = {};
-			allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-			CheckVKResult(vmaCreateBuffer(context.Allocator, &bufferInfo, &allocInfo, &m_UniformBuffers[i], &m_UniformBuffersAllocations[i], nullptr));
+			m_UniformBuffers[i]->Create(bufferSize, MemoryUsage::UniformBuffer, MemoryType::CPUToGPU, MemorySharing::Exclusive);
 		}
 	}
 
@@ -477,7 +300,7 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 		poolInfo.pPoolSizes = &poolSize;
 		poolInfo.maxSets = (uint32_t)(context.SwapchainImages.size());
 
-		CheckVKResult(vkCreateDescriptorPool(context.Device, &poolInfo, nullptr, &m_DescriptorPool));
+		CheckVkResult(vkCreateDescriptorPool(context.Device, &poolInfo, nullptr, &m_DescriptorPool));
 	}
 
 	{
@@ -489,11 +312,11 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 		allocInfo.pSetLayouts = layouts.data();
 
 		m_DescriptorSets.resize(context.FrameCount);
-		CheckVKResult(vkAllocateDescriptorSets(context.Device, &allocInfo, m_DescriptorSets.data()));
+		CheckVkResult(vkAllocateDescriptorSets(context.Device, &allocInfo, m_DescriptorSets.data()));
 
 		for (size_t i = 0; i < m_UniformBuffers.size(); i++) {
 			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = m_UniformBuffers[i];
+			bufferInfo.buffer = *m_UniformBuffers[i];
 			bufferInfo.offset = 0;
 			bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -519,7 +342,7 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 		beginInfo.flags = 0; // Optional
 		beginInfo.pInheritanceInfo = nullptr; // Optional
 
-		CheckVKResult(vkBeginCommandBuffer(commandBuffers[i], &beginInfo));
+		CheckVkResult(vkBeginCommandBuffer(commandBuffers[i], &beginInfo));
 
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -537,18 +360,18 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 
 		vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *m_Pipeline);
 
-		VkBuffer vertexBuffers[] = { m_VertexBuffer };
+		VkBuffer vertexBuffers[] = { *m_VertexBuffer };
 		VkDeviceSize offsets[] = { 0 };
 
 		vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(commandBuffers[i], m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdBindIndexBuffer(commandBuffers[i], *m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
 		vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->Layout, 0, 1, &m_DescriptorSets[i], 0, nullptr);
 		vkCmdDrawIndexed(commandBuffers[i], (uint32_t)(m_Indices.size()), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffers[i]);
 
-		CheckVKResult(vkEndCommandBuffer(commandBuffers[i]));
+		CheckVkResult(vkEndCommandBuffer(commandBuffers[i]));
 	}
 
 	return false;

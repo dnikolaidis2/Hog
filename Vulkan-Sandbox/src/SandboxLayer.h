@@ -26,20 +26,16 @@ private:
 	std::vector<VkDescriptorSet> m_DescriptorSets;
 	Ref<GraphicsPipeline> m_Pipeline;
 
-	VkBuffer m_VertexBuffer;
-	VmaAllocation m_VertexBufferAllocation;
+	Ref<VertexBuffer> m_VertexBuffer;
+	Ref<IndexBuffer> m_IndexBuffer;
 
-	VkBuffer m_IndexBuffer;
-	VmaAllocation m_IndexBufferAllocation;
+	std::vector<Ref<MemoryBuffer>> m_UniformBuffers;
 
-	std::vector<VkBuffer> m_UniformBuffers;
-	std::vector<VmaAllocation> m_UniformBuffersAllocations;
-
-	const std::vector<VulkanCore::Vertex> m_Vertices = {
-		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+	const std::vector<Vertex> m_Vertices = {
+		{{-0.5f, -0.5f, 0.0f}, {}, {1.0f, 0.0f, 0.0f}},
+		{{0.5f, -0.5f, 0.0f}, {}, {0.0f, 1.0f, 0.0f}},
+		{{0.5f, 0.5f, 0.0f}, {}, {0.0f, 0.0f, 1.0f}},
+		{{-0.5f, 0.5f, 0.0f}, {}, {1.0f, 1.0f, 1.0f}}
 	};
 
 	const std::vector<uint16_t> m_Indices = {

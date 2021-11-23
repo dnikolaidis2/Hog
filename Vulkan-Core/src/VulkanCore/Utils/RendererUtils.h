@@ -6,7 +6,7 @@
 
 namespace VulkanCore
 {
-	static void CheckVKResult(VkResult result)
+	static void CheckVkResult(VkResult result)
 	{
 		if (result != VK_SUCCESS)
 		{

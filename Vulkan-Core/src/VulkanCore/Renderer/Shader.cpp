@@ -226,7 +226,7 @@ namespace VulkanCore {
 		createInfo.pCode = code.data();
 
 		VkShaderModule shaderModule;
-		CheckVKResult(vkCreateShaderModule(m_Device, &createInfo, nullptr, &shaderModule));
+		CheckVkResult(vkCreateShaderModule(m_Device, &createInfo, nullptr, &shaderModule));
 
 		return shaderModule;
 	}
