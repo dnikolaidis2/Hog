@@ -18,6 +18,8 @@ project "Vulkan-Core"
 		"vendor/stb_image/**.cpp",
 		"vendor/vma/**.h",
 		"vendor/vma/**.cpp",
+		"vendor/tinyobjloader/**.h",
+		"vendor/tinyobjloader/**.cpp",
 		"vendor/glm/glm/**.hpp",
 		"vendor/glm/glm/**.inl",
 	}
@@ -37,6 +39,7 @@ project "Vulkan-Core"
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
 		"%{IncludeDir.vma}",
+		"%{IncludeDir.tinyobjloader}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.optick}"
 	}

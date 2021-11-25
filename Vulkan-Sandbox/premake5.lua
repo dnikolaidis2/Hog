@@ -26,6 +26,7 @@ project "Vulkan-Sandbox"
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.GLFW}",
 		"%{IncludeDir.vma}",
+		"%{IncludeDir.tinyobjloader}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.optick}"
 	}

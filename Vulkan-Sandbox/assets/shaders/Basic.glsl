@@ -2,30 +2,30 @@
 #version 450
 
 layout(binding = 0) uniform UniformBufferObject {
-    mat4 model;
-    mat4 view;
-    mat4 proj;
-} ubo;
+    mat4 u_Model;
+    mat4 u_View;
+    mat4 u_Proj;
+};
 
-layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec3 inNormal;
-layout(location = 2) in vec3 inColor;
+layout(location = 0) in vec3 a_Position;
+layout(location = 1) in vec3 a_Normal;
+layout(location = 2) in vec3 a_Color;
 
-layout(location = 0) out vec3 fragColor;
+layout(location = 0) out vec3 o_Color;
 
 void main() {
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
-    fragColor = inColor;
+    gl_Position = u_Proj * u_View * u_Model * vec4(a_Position, 1.0);
+    o_Color = a_Color;
 }
 
 #type fragment
 #version 450
 
-layout(location = 0) in vec3 fragColor;
+layout(location = 0) in vec3 v_Color;
 
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out vec4 o_Color;
 
 void main() {
-    outColor = vec4(fragColor, 1.0);
+    o_Color = vec4(v_Color, 1.0);
 }

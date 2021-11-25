@@ -6,6 +6,7 @@
 #include "VulkanCore/Renderer/GraphicsContext.h"
 #include "VulkanCore/Renderer/Shader.h"
 #include "VulkanCore/Utils/RendererUtils.h"
+#include "VulkanCore/Utils/Loader.h"
 
 static auto& context = GraphicsContext::Get();
 
@@ -20,11 +21,15 @@ void SandboxLayer::OnAttach()
 	VKC_PROFILE_FUNCTION()
 
 	context.Initialize();
-	
+
+	VKC_PROFILE_GPU_INIT_VULKAN(&context.Device, &context.PhysicalDevice, &context.GraphicsQueue, &context.GraphicsFamilyIndex, 1);
+
+	LoadObjFile("assets/models/monkey/monkey_smooth.obj", m_Meshes);
+
 	m_Shader = CreateRef<Shader>("assets/shaders/Basic.glsl");
 
-	m_VertexBuffer = CreateRef<VertexBuffer>();
-	m_VertexBuffer->SetLayout(Vertex::Layout);
+	VertexBuffer vertexBuffer;
+	vertexBuffer.SetLayout(Vertex::Layout);
 
 	{
 		m_Pipeline = CreateRef<GraphicsPipeline>(context.Device, context.SwapchainExtent, context.RenderPass);
@@ -46,20 +51,13 @@ void SandboxLayer::OnAttach()
 		m_Pipeline->AddShaderStage(Shader::ShaderType::Vertex, m_Shader->GetVertexShaderModule());
 		m_Pipeline->AddShaderStage(Shader::ShaderType::Fragment, m_Shader->GetFragmentShaderModule());
 
-		m_Pipeline->VertexInputBindingDescriptions.push_back(m_VertexBuffer->GetInputBindingDescription());
-		m_Pipeline->VertexInputAttributeDescriptions = m_VertexBuffer->GetInputAttributeDescriptions();
+		m_Pipeline->VertexInputBindingDescriptions.push_back(vertexBuffer.GetInputBindingDescription());
+		m_Pipeline->VertexInputAttributeDescriptions = vertexBuffer.GetInputAttributeDescriptions();
 
 		m_Pipeline->PipelineLayoutCreateInfo.setLayoutCount = 1; // Optional
 		m_Pipeline->PipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout; // Optional
 
 		m_Pipeline->Create();
-	}
-
-	{
-		const size_t bufferSize = sizeof(m_Vertices[0]) * m_Vertices.size();
-		m_VertexBuffer->Create((uint64_t)bufferSize);
-
-		m_VertexBuffer->SetData((void*)m_Vertices.data(), bufferSize);
 	}
 
 	{
@@ -69,7 +67,7 @@ void SandboxLayer::OnAttach()
 		for (int i = 0; i < context.FrameCount; ++i)
 		{
 			m_UniformBuffers[i] = CreateRef<MemoryBuffer>();
-			m_UniformBuffers[i]->Create(bufferSize, MemoryUsage::UniformBuffer, MemoryType::CPUToGPU, MemorySharing::Exclusive);
+			m_UniformBuffers[i]->Create(bufferSize, MemoryType::UniformBuffer);
 		}
 	}
 
@@ -100,7 +98,7 @@ void SandboxLayer::OnAttach()
 
 		for (size_t i = 0; i < m_UniformBuffers.size(); i++) {
 			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = *m_UniformBuffers[i];
+			bufferInfo.buffer = m_UniformBuffers[i]->Handle;
 			bufferInfo.offset = 0;
 			bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -118,14 +116,7 @@ void SandboxLayer::OnAttach()
 			vkUpdateDescriptorSets(context.Device, 1, &descriptorWrite, 0, nullptr);
 		}
 	}
-
-	{
-		const size_t bufferSize = sizeof(m_Indices[0]) * m_Indices.size();
-		m_IndexBuffer = CreateRef<IndexBuffer>();
-		m_IndexBuffer->Create(bufferSize);
-		m_IndexBuffer->SetData((void*)m_Indices.data(), bufferSize);
-	}
-
+	
 	{
 		auto& commandBuffers = context.CommandBuffers;
 		for (size_t i = 0; i < commandBuffers.size(); i++) {
@@ -152,14 +143,18 @@ void SandboxLayer::OnAttach()
 
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *m_Pipeline);
 
-			VkBuffer vertexBuffers[] = { *m_VertexBuffer };
-			VkDeviceSize offsets[] = { 0 };
-
-			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(commandBuffers[i], *m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+			std::vector<VkBuffer> vertexBuffers(1);
+			std::vector<VkDeviceSize> offsets(1);
+			for (int i = 0; i < vertexBuffers.size(); ++i)
+			{
+				vertexBuffers[i] = m_Meshes[i].GetBufferHandle();
+				offsets[i] = 0;
+			}
+			
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers.data(), offsets.data());
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->Layout, 0, 1, &m_DescriptorSets[i], 0, nullptr);
-			vkCmdDrawIndexed(commandBuffers[i], (uint32_t)(m_Indices.size()), 1, 0, 0, 0);
+			vkCmdDraw(commandBuffers[i], (uint32_t)m_Meshes[0].GetSize(), 1, 0, 0);
 
 			vkCmdEndRenderPass(commandBuffers[i]);
 
@@ -174,12 +169,14 @@ void SandboxLayer::OnDetach()
 
 	vkDeviceWaitIdle(context.Device);
 
+	for (auto& mesh : m_Meshes)
+	{
+		mesh.Destroy();
+	}
+
 	for (size_t i = 0; i < m_UniformBuffers.size(); i++) {
 		m_UniformBuffers[i].reset();
 	}
-
-	m_VertexBuffer.reset();
-	m_IndexBuffer.reset();
 
 	vkDestroyDescriptorPool(context.Device, m_DescriptorPool, nullptr);
 
@@ -208,10 +205,11 @@ void SandboxLayer::OnUpdate(Timestep ts)
 	vkAcquireNextImageKHR(context.Device, context.Swapchain, UINT64_MAX, acquireSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
 	UniformBufferObject ubo{};
-	ubo.model = glm::rotate(glm::mat4(1.0f), ts * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), (float)context.SwapchainExtent.width / (float)context.SwapchainExtent.height, 0.1f, 10.0f);
-	ubo.proj[1][1] *= -1;
+	glm::vec3 camPos = { 0.f,0.f,-2.f };
+	ubo.Model = glm::rotate(glm::mat4{ 1.0f }, glm::radians(m_FrameNumber * .01f), glm::vec3(0, 1, 0));
+	ubo.View = glm::translate(glm::mat4(1.f), camPos);
+	ubo.Projection = glm::perspective(glm::radians(45.0f), (float)context.SwapchainExtent.width / (float)context.SwapchainExtent.height, 0.1f, 10.0f);
+	ubo.Projection[1][1] *= -1;
 
 	m_UniformBuffers[imageIndex]->SetData(&ubo, sizeof(ubo));
 
@@ -247,11 +245,13 @@ void SandboxLayer::OnUpdate(Timestep ts)
 
 	presentInfo.pImageIndices = &imageIndex;
 
+	VKC_PROFILE_GPU_FLIP(context.Swapchain);
 	vkQueuePresentKHR(context.PresentQueue, &presentInfo);
 
 	currentFrame = (currentFrame + 1) % context.FrameCount;
 
 	context.CurrentFrame = currentFrame;
+	m_FrameNumber++;
 }
 
 void SandboxLayer::OnImGuiRender()
@@ -285,7 +285,7 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 
 		for (int i = 0; i < context.FrameCount; ++i)
 		{
-			m_UniformBuffers[i]->Create(bufferSize, MemoryUsage::UniformBuffer, MemoryType::CPUToGPU, MemorySharing::Exclusive);
+			m_UniformBuffers[i]->Create(bufferSize, MemoryType::UniformBuffer);
 		}
 	}
 
@@ -316,7 +316,7 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 
 		for (size_t i = 0; i < m_UniformBuffers.size(); i++) {
 			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = *m_UniformBuffers[i];
+			bufferInfo.buffer = m_UniformBuffers[i]->Handle;
 			bufferInfo.offset = 0;
 			bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -360,14 +360,18 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 
 		vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *m_Pipeline);
 
-		VkBuffer vertexBuffers[] = { *m_VertexBuffer };
-		VkDeviceSize offsets[] = { 0 };
+		std::vector<VkBuffer> vertexBuffers(1);
+		std::vector<VkDeviceSize> offsets(1);
+		for (int i = 0; i < vertexBuffers.size(); ++i)
+		{
+			vertexBuffers[i] = m_Meshes[i].GetBufferHandle();
+			offsets[i] = 0;
+		}
 
-		vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(commandBuffers[i], *m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers.data(), offsets.data());
 
 		vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->Layout, 0, 1, &m_DescriptorSets[i], 0, nullptr);
-		vkCmdDrawIndexed(commandBuffers[i], (uint32_t)(m_Indices.size()), 1, 0, 0, 0);
+		vkCmdDraw(commandBuffers[i], (uint32_t)m_Meshes[0].GetSize(), 1, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffers[i]);
 

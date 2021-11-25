@@ -23,6 +23,7 @@
 #include "VulkanCore/Renderer/GraphicsPipeline.h"
 #include "VulkanCore/Renderer/Shader.h"
 #include "VulkanCore/Renderer/Buffer.h"
+#include "VulkanCore/Renderer/Mesh.h"
 
 /*
 #include "VulkanCore/Renderer/Renderer.h"

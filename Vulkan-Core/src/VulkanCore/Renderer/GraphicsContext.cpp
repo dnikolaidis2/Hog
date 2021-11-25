@@ -1126,10 +1126,10 @@ namespace VulkanCore {
 		// So now that the context contains the selected format we can simply
 		// create the internal one.
 
-		DepthImage.Options.Format = TextureFormat::FORMAT_DEPTH;
-		DepthImage.Options.Width = Application::Get().GetWindow().GetFrameBufferWidth();
-		DepthImage.Options.Height = Application::Get().GetWindow().GetFrameBufferHeight();
-		DepthImage.Options.LevelCount = 1;
+		DepthImage.Type = ImageType::Depth;
+		DepthImage.Width = Application::Get().GetWindow().GetFrameBufferWidth();
+		DepthImage.Height = Application::Get().GetWindow().GetFrameBufferHeight();
+		DepthImage.LevelCount = 1;
 	}
 
 	void GraphicsContext::CreateRenderPass()

@@ -235,7 +235,12 @@ namespace VulkanCore {
 		#define VKC_PROFILE_SCOPE_LINE(name, line) VKC_PROFILE_SCOPE_LINE2(name, line)
 		#define VKC_PROFILE_SCOPE(name) VKC_PROFILE_SCOPE_LINE(name, __LINE__)
 		#define VKC_PROFILE_FUNCTION() VKC_PROFILE_SCOPE(VKC_FUNC_SIG)
-		#define VKC_PROFILE_START_FRAME()
+		#define VKC_PROFILE_START_FRAME(name)
+
+		#define VKC_PROFILE_GPU_INIT_VULKAN(devices, physical_devices, cnd_queues, cnd_queues_family, num_cmd_queus)
+		#define VKC_PROFILE_GPU_CONTEXT(command_list)
+		#define VKC_PROFILE_GPU_EVENT(name)
+		#define VKC_PROFILE_GPU_FLIP(swap_chain)
 	#else
 		#define VKC_PROFILE_BEGIN_SESSION(name, filepath) OPTICK_START_CAPTURE()
 		#define VKC_PROFILE_SAVE_SESSION(filepath) OPTICK_SAVE_CAPTURE(filepath)
@@ -243,6 +248,12 @@ namespace VulkanCore {
 		#define VKC_PROFILE_SCOPE(name) OPTICK_EVENT(name)
 		#define VKC_PROFILE_FUNCTION() OPTICK_EVENT()
 		#define VKC_PROFILE_START_FRAME(name) OPTICK_FRAME(name)
+
+		#define VKC_PROFILE_GPU_INIT_VULKAN(devices, physical_devices, cnd_queues, cnd_queues_family, num_cmd_queus) \
+			OPTICK_GPU_INIT_VULKAN(devices, physical_devices, cnd_queues, cnd_queues_family, num_cmd_queus)
+		#define VKC_PROFILE_GPU_CONTEXT(command_list) OPTICK_GPU_CONTEXT(command_list)
+		#define VKC_PROFILE_GPU_EVENT(name) OPTICK_GPU_EVENT(name)
+		#define VKC_PROFILE_GPU_FLIP(swap_chain) OPTICK_GPU_FLIP(swap_chain)
 	#endif
 #else
 	#define VKC_PROFILE_BEGIN_SESSION(name, filepath)
@@ -250,5 +261,10 @@ namespace VulkanCore {
 	#define VKC_PROFILE_END_SESSION()
 	#define VKC_PROFILE_SCOPE(name)
 	#define VKC_PROFILE_FUNCTION()
-	#define VKC_PROFILE_START_FRAME()
+	#define VKC_PROFILE_START_FRAME(name)
+
+	#define VKC_PROFILE_GPU_INIT_VULKAN(devices, physical_devices, cnd_queues, cnd_queues_family, num_cmd_queus)
+	#define VKC_PROFILE_GPU_CONTEXT(command_list)
+	#define VKC_PROFILE_GPU_EVENT(name)
+	#define VKC_PROFILE_GPU_FLIP(swap_chain)
 #endif

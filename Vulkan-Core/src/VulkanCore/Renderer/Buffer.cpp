@@ -11,69 +11,62 @@ namespace VulkanCore
 	{
 		switch (type)
 		{
-			case MemoryType::GPUOnly: return VMA_MEMORY_USAGE_GPU_ONLY;
-			case MemoryType::CPUToGPU: return VMA_MEMORY_USAGE_CPU_TO_GPU;
-			case MemoryType::CPUOnly: return VMA_MEMORY_USAGE_CPU_ONLY;
+			case MemoryType::CPUWritableVertexBuffer: return VMA_MEMORY_USAGE_CPU_TO_GPU;
+			case MemoryType::CPUWritableIndexBuffer: return VMA_MEMORY_USAGE_CPU_TO_GPU;
+			case MemoryType::UniformBuffer: return VMA_MEMORY_USAGE_CPU_TO_GPU;
 		}
 
 		VKC_CORE_ASSERT(false, "Unknown MemoryType!");
 		return (VmaMemoryUsage)0;
 	}
 
-	VkBufferUsageFlagBits MemoryUsageToVkBufferUsageFlagBits(MemoryUsage usage)
+	VkBufferUsageFlagBits MemoryTypeToVkBufferUsageFlagBits(MemoryType type)
 	{
-		switch (usage)
+		switch (type)
 		{
-			case MemoryUsage::IndexBuffer: return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-			case MemoryUsage::VertexBuffer: return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-			case MemoryUsage::UniformBuffer: return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			case MemoryType::CPUWritableVertexBuffer: return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+			case MemoryType::CPUWritableIndexBuffer: return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+			case MemoryType::UniformBuffer: return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		}
 
-		VKC_CORE_ASSERT(false, "Unknown MemoryUsage!");
+		VKC_CORE_ASSERT(false, "Unknown MemoryType!");
 		return (VkBufferUsageFlagBits)0;
 	}
 
-	VkSharingMode MemorySharingtoVkSharingMode(MemorySharing mode)
+	VkSharingMode MemoryTypeToVkSharingMode(MemoryType type)
 	{
-		switch (mode)
+		switch (type)
 		{
-			case MemorySharing::Exclusive: return VK_SHARING_MODE_EXCLUSIVE;
-			case MemorySharing::Concurrent: return VK_SHARING_MODE_CONCURRENT;
+			case MemoryType::CPUWritableVertexBuffer: return VK_SHARING_MODE_EXCLUSIVE;
+			case MemoryType::CPUWritableIndexBuffer: return VK_SHARING_MODE_EXCLUSIVE;
+			case MemoryType::UniformBuffer: return VK_SHARING_MODE_EXCLUSIVE;
 		}
 
-		VKC_CORE_ASSERT(false, "Unknown MemorySharing!");
+		VKC_CORE_ASSERT(false, "Unknown MemoryType!");
 		return (VkSharingMode)0;
 	}
 
 	MemoryBuffer::~MemoryBuffer()
 	{
-		vmaDestroyBuffer(GraphicsContext::GetAllocator(), m_Buffer, m_Allocation);
+		if (m_Initialized)
+			Destroy();
 	}
 
-	void MemoryBuffer::Create(uint64_t size, MemoryUsage usage, MemoryType type, MemorySharing mode)
+	void MemoryBuffer::Create(uint64_t size, MemoryType type)
 	{
-		m_MemoryUsage = usage;
-		m_MemoryType = type;
-		m_MemorySharing = mode;
+		Type = type;
+		m_Size = size;
 
-		//allocate vertex buffer
-		VkBufferCreateInfo bufferInfo = {};
-		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		//this is the total size, in bytes, of the buffer we are allocating
-		bufferInfo.size = size;
-		//this buffer is going to be used as a Vertex Buffer
-		bufferInfo.usage = MemoryUsageToVkBufferUsageFlagBits(usage);
-		bufferInfo.sharingMode = MemorySharingtoVkSharingMode(mode);
+		BufferCreateInfo.size = size;
+		BufferCreateInfo.usage = MemoryTypeToVkBufferUsageFlagBits(type);
+		BufferCreateInfo.sharingMode = MemoryTypeToVkSharingMode(type);
 
-
-		//let the VMA library know that this data should be writeable by CPU, but also readable by GPU
-		VmaAllocationCreateInfo vmaallocInfo = {};
-		vmaallocInfo.usage = MemoryTypeToVmaMemoryUsage(type);
+		AllocationCreateInfo.usage = MemoryTypeToVmaMemoryUsage(type);
 
 		//allocate the buffer
-		CheckVkResult(vmaCreateBuffer(GraphicsContext::GetAllocator(), &bufferInfo, &vmaallocInfo,
-			&m_Buffer,
-			&m_Allocation,
+		CheckVkResult(vmaCreateBuffer(GraphicsContext::GetAllocator(), &BufferCreateInfo, &AllocationCreateInfo,
+			&Handle,
+			&Allocation,
 			nullptr));
 
 		m_Initialized = true;
@@ -81,18 +74,32 @@ namespace VulkanCore
 
 	void MemoryBuffer::SetData(void* data, size_t size)
 	{
+		VKC_ASSERT(size <= m_Size, "Invalid write command. Tried to write more data then can fit buffer.")
+
 		void* dstAdr;
-		vmaMapMemory(GraphicsContext::GetAllocator(), m_Allocation, &dstAdr);
+		vmaMapMemory(GraphicsContext::GetAllocator(), Allocation, &dstAdr);
 
 		memcpy(dstAdr, data, size);
 
-		vmaUnmapMemory(GraphicsContext::GetAllocator(), m_Allocation);
+		vmaUnmapMemory(GraphicsContext::GetAllocator(), Allocation);
+	}
+
+	void MemoryBuffer::Destroy()
+	{
+		vmaDestroyBuffer(GraphicsContext::GetAllocator(), Handle, Allocation);
+		m_Initialized = false;
 	}
 
 	void VertexBuffer::Create(uint64_t size)
 	{
 		// Need to move from to gpu only ram
-		m_Buffer.Create(size, MemoryUsage::VertexBuffer, MemoryType::CPUToGPU, MemorySharing::Exclusive);
+		m_Buffer.Create(size, MemoryType::CPUWritableVertexBuffer);
+		m_Size = size;
+	}
+
+	void VertexBuffer::Destroy()
+	{
+		m_Buffer.Destroy();
 	}
 
 	void VertexBuffer::SetData(void* data, uint64_t size)
@@ -118,7 +125,7 @@ namespace VulkanCore
 		{
 			attributeDescriptions[i].binding = 0;
 			attributeDescriptions[i].location = layout[i].Location;
-			attributeDescriptions[i].format = ShaderDataTypeToVkFormat(layout[i].Type);
+			attributeDescriptions[i].format = DataTypeToVkFormat(layout[i].Type);
 			attributeDescriptions[i].offset = (uint32_t)layout[i].Offset;
 		}
 
@@ -128,7 +135,7 @@ namespace VulkanCore
 	void IndexBuffer::Create(uint64_t size)
 	{
 		// Need to move from to gpu only ram
-		m_Buffer.Create(size, MemoryUsage::IndexBuffer, MemoryType::CPUToGPU, MemorySharing::Exclusive);
+		m_Buffer.Create(size, MemoryType::CPUWritableIndexBuffer);
 	}
 
 	void IndexBuffer::SetData(void* data, uint64_t size)
