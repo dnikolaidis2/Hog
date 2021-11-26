@@ -23,29 +23,56 @@ namespace VulkanCore {
 
 	enum class DataType
 	{
-		None = 0, Float, Float2, Float3, Float4, Mat3, Mat4, Int, Int2, Int3, Int4, Bool, Depth
+		None = 0, Float, Float2, Float3, Float4, Mat3, Mat4, Int, Int2, Int3, Int4, Bool,
+		Depth32, Depth32Stencil8, Depth24Stencil8, RGB8
 	};
 
-	static VkFormat DataTypeToVkFormat(DataType type)
+	inline static VkFormat DataTypeToVkFormat(DataType type)
 	{
 		switch (type)
 		{
-			case DataType::Float:    return VK_FORMAT_R32_SFLOAT;
-			case DataType::Float2:   return VK_FORMAT_R32G32_SFLOAT;
-			case DataType::Float3:   return VK_FORMAT_R32G32B32_SFLOAT;
-			case DataType::Float4:   return VK_FORMAT_R32G32B32A32_SFLOAT;
-			case DataType::Mat3:     return VK_FORMAT_R32G32B32_SFLOAT;
-			case DataType::Mat4:     return VK_FORMAT_R32G32B32A32_SFLOAT;
-			case DataType::Int:      return VK_FORMAT_R32_SINT;
-			case DataType::Int2:     return VK_FORMAT_R32G32_SINT;
-			case DataType::Int3:     return VK_FORMAT_R32G32B32_SINT;
-			case DataType::Int4:     return VK_FORMAT_R32G32B32A32_SINT;
-			case DataType::Bool:     return VK_FORMAT_R8_UINT;
-			case DataType::Depth:     return VK_FORMAT_D32_SFLOAT;
+			case DataType::Float:            return VK_FORMAT_R32_SFLOAT;
+			case DataType::Float2:           return VK_FORMAT_R32G32_SFLOAT;
+			case DataType::Float3:           return VK_FORMAT_R32G32B32_SFLOAT;
+			case DataType::Float4:           return VK_FORMAT_R32G32B32A32_SFLOAT;
+			case DataType::Mat3:             return VK_FORMAT_R32G32B32_SFLOAT;
+			case DataType::Mat4:             return VK_FORMAT_R32G32B32A32_SFLOAT;
+			case DataType::Int:              return VK_FORMAT_R32_SINT;
+			case DataType::Int2:             return VK_FORMAT_R32G32_SINT;
+			case DataType::Int3:             return VK_FORMAT_R32G32B32_SINT;
+			case DataType::Int4:             return VK_FORMAT_R32G32B32A32_SINT;
+			case DataType::Bool:             return VK_FORMAT_R8_UINT;
+			case DataType::Depth32:          return VK_FORMAT_D32_SFLOAT;
+			case DataType::Depth24Stencil8:  return VK_FORMAT_D24_UNORM_S8_UINT;
+			case DataType::Depth32Stencil8:  return VK_FORMAT_D32_SFLOAT_S8_UINT;
+			case DataType::RGB8:             return VK_FORMAT_B8G8R8A8_UNORM;
 		}
 
 		VKC_CORE_ASSERT(false, "Unknown DataType!");
 		return VK_FORMAT_UNDEFINED;
+	}
+
+	inline static DataType VkFormatToDataType(VkFormat format)
+	{
+		switch (format)
+		{
+			case VK_FORMAT_R32_SFLOAT:          return DataType::Float;
+			case VK_FORMAT_R32G32_SFLOAT:       return DataType::Float2;
+			case VK_FORMAT_R32G32B32_SFLOAT:    return DataType::Float3;
+			case VK_FORMAT_R32G32B32A32_SFLOAT: return DataType::Float4;
+			case VK_FORMAT_R32_SINT:            return DataType::Int;
+			case VK_FORMAT_R32G32_SINT:         return DataType::Int2;
+			case VK_FORMAT_R32G32B32_SINT:      return DataType::Int3;
+			case VK_FORMAT_R32G32B32A32_SINT:   return DataType::Int4;
+			case VK_FORMAT_R8_UINT:             return DataType::Bool;
+			case VK_FORMAT_D32_SFLOAT:          return DataType::Depth32;
+			case VK_FORMAT_D24_UNORM_S8_UINT:   return DataType::Depth24Stencil8;
+			case VK_FORMAT_D32_SFLOAT_S8_UINT:  return DataType::Depth32Stencil8;
+			case VK_FORMAT_B8G8R8A8_UNORM:      return DataType::RGB8;
+		}
+
+		VKC_CORE_ASSERT(false, "Unknown VkFormat!");
+		return DataType::None;
 	}
 
 	static uint32_t ShaderDataTypeSize(DataType type)

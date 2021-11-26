@@ -104,6 +104,17 @@ namespace VulkanCore
 			VK_DYNAMIC_STATE_LINE_WIDTH
 		};
 
+		VkPipelineDepthStencilStateCreateInfo PipelineDepthStencilCreateInfo = {
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+			.depthTestEnable = VK_TRUE,
+			.depthWriteEnable = VK_TRUE,
+			.depthCompareOp = VK_COMPARE_OP_ALWAYS,
+			.depthBoundsTestEnable = VK_FALSE,
+			.stencilTestEnable = VK_FALSE,
+			.minDepthBounds = 0.0f, // Optional
+			.maxDepthBounds = 1.0f, // Optional
+		};
+
 		VkPipelineDynamicStateCreateInfo DynamicStateCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
 			// .dynamicStateCount = DynamicStates.size(),
@@ -125,7 +136,7 @@ namespace VulkanCore
 			.pViewportState = &ViewportStateCreateInfo,
 			.pRasterizationState = &RasterizationStateCreateInfo,
 			.pMultisampleState = &MultisamplingStateCreateInfo,
-			.pDepthStencilState = nullptr, // Optional
+			.pDepthStencilState = &PipelineDepthStencilCreateInfo, // Optional
 			.pColorBlendState = &ColorBlendStateCreateInfo,
 			.pDynamicState = nullptr, // Optional
 			.subpass = 0,

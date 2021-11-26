@@ -57,6 +57,8 @@ void SandboxLayer::OnAttach()
 		m_Pipeline->PipelineLayoutCreateInfo.setLayoutCount = 1; // Optional
 		m_Pipeline->PipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout; // Optional
 
+		m_Pipeline->PipelineDepthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+
 		m_Pipeline->Create();
 	}
 
@@ -135,9 +137,14 @@ void SandboxLayer::OnAttach()
 			renderPassInfo.renderArea.offset = { 0, 0 };
 			renderPassInfo.renderArea.extent = context.SwapchainExtent;
 
-			VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-			renderPassInfo.clearValueCount = 1;
-			renderPassInfo.pClearValues = &clearColor;
+			VkClearValue clearValues[2];
+			clearValues[0] = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+
+			//clear depth at 1
+			clearValues[1].depthStencil.depth = 1.f;
+
+			renderPassInfo.clearValueCount = 2;
+			renderPassInfo.pClearValues = clearValues;
 
 			vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 

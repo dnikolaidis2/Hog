@@ -467,6 +467,7 @@ namespace VulkanCore {
 		CreateCommandPool();
 		CreateCommandBuffers();
 		CreateSwapChain();
+		CreateRenderTargets();
 		CreateRenderPass();
 		CreateFrameBuffers();
 
@@ -483,9 +484,9 @@ namespace VulkanCore {
 
 		vkDestroyRenderPass(Device, RenderPass, nullptr);
 
-		for (auto image : SwapchainImages)
+		for (auto& image : SwapchainImages)
 		{
-			vkDestroyImageView(Device, image.View, nullptr);
+			image.Destroy();
 		}
 
 		vkDestroySwapchainKHR(Device, Swapchain, nullptr);
@@ -1026,57 +1027,36 @@ namespace VulkanCore {
 		// The image exists outside of you.  But the view is your personal view 
 		// ( how you perceive ) the image.
 		for (int i = 0; i < FrameCount; ++i) {
-			VkImageViewCreateInfo imageViewCreateInfo = {};
-			imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-
-			// Just plug it in
-			imageViewCreateInfo.image = swapchainImages[i];
-
-			// These are 2D images
-			imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-
-			// The selected format
-			imageViewCreateInfo.format = SwapchainFormat;
+			SwapchainImages[i] = Image(swapchainImages[i], ImageType::RenderTarget, SwapchainFormat, SwapchainExtent);
 
 			// We don't need to swizzle ( swap around ) any of the 
 			// color channels
-			imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_R;
-			imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_G;
-			imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_B;
-			imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_A;
+			SwapchainImages[i].ViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_R;
+			SwapchainImages[i].ViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_G;
+			SwapchainImages[i].ViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_B;
+			SwapchainImages[i].ViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_A;
 
 			// There are only 4x aspect bits.  And most people will only use 3x.
 			// These determine what is affected by your image operations.
 			// VK_IMAGE_ASPECT_COLOR_BIT
 			// VK_IMAGE_ASPECT_DEPTH_BIT
 			// VK_IMAGE_ASPECT_STENCIL_BIT
-			imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
 			// For beginners - a base mip level of zero is par for the course.
-			imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+			SwapchainImages[i].ViewCreateInfo.subresourceRange.baseMipLevel = 0;
 
 			// Level count is the # of images visible down the mip chain.
 			// So basically just 1...
-			imageViewCreateInfo.subresourceRange.levelCount = 1;
+			SwapchainImages[i].ViewCreateInfo.subresourceRange.levelCount = 1;
 			// We don't have multiple layers to these images.
-			imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-			imageViewCreateInfo.subresourceRange.layerCount = 1;
-			imageViewCreateInfo.flags = 0;
+			SwapchainImages[i].ViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+			SwapchainImages[i].ViewCreateInfo.subresourceRange.layerCount = 1;
+			SwapchainImages[i].ViewCreateInfo.flags = 0;
 
 			// Create the view
-			VkImageView imageView;
-			CheckVkResult(vkCreateImageView(Device, &imageViewCreateInfo, nullptr, &imageView));
+			SwapchainImages[i].CreateViewForImage();
 
-			// Now store this off in an idImage so we can take advantage
-			// of that class's API
-			Image image(
-				swapchainImages[i],
-				imageView,
-				SwapchainFormat,
-				SwapchainExtent
-			);
-			image.IsSwapChainImage = true;
-			SwapchainImages[i] = image;
+			SwapchainImages[i].IsSwapChainImage = true;
 		}
 	}
 
@@ -1116,10 +1096,10 @@ namespace VulkanCore {
 			};
 
 			// Make sure to check it supports optimal tiling and is a depth/stencil format.
-			DepthFormat = ChooseSupportedFormat(
-					formats, 2,
-					VK_IMAGE_TILING_OPTIMAL,
-					VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+			DepthImage.InternalFormat = ChooseSupportedFormat(
+				formats, 2,
+				VK_IMAGE_TILING_OPTIMAL,
+				VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 		}
 
 		// idTech4.5 does have an independent idea of a depth attachment
@@ -1127,9 +1107,11 @@ namespace VulkanCore {
 		// create the internal one.
 
 		DepthImage.Type = ImageType::Depth;
-		DepthImage.Width = Application::Get().GetWindow().GetFrameBufferWidth();
-		DepthImage.Height = Application::Get().GetWindow().GetFrameBufferHeight();
+		DepthImage.Width = GPU->SurfaceCapabilities.currentExtent.width;
+		DepthImage.Height = GPU->SurfaceCapabilities.currentExtent.height;
 		DepthImage.LevelCount = 1;
+
+		DepthImage.Create();
 	}
 
 	void GraphicsContext::CreateRenderPass()
@@ -1156,30 +1138,33 @@ namespace VulkanCore {
 		attachments.push_back(colorAttachment);
 
 		// For the depth attachment, we'll be using the _viewDepth we just created.
-		// VkAttachmentDescription depthAttachment = {};
-		// depthAttachment.format = DepthFormat;
-		// depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		// depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		// depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		// depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		// depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		// attachments.push_back(depthAttachment);
+		VkAttachmentDescription depthAttachment = {};
+		depthAttachment.format = DepthImage.InternalFormat;
+		depthAttachment.flags = 0;
+		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		attachments.push_back(depthAttachment);
 
 		// Now we enumerate the attachments for a subpass.  We have to have at least one subpass.
 		VkAttachmentReference colorRef = {};
 		colorRef.attachment = 0;
 		colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-		// VkAttachmentReference depthRef = {};
-		// depthRef.attachment = 1;
-		// depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		VkAttachmentReference depthRef = {};
+		depthRef.attachment = 1;
+		depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 		// Basically is this graphics or compute
 		VkSubpassDescription subpass = {};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorRef;
-		// subpass.pDepthStencilAttachment = &depthRef;
+		subpass.pDepthStencilAttachment = &depthRef;
 
 		VkRenderPassCreateInfo renderPassCreateInfo = {};
 		renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -1197,16 +1182,11 @@ namespace VulkanCore {
 		VKC_PROFILE_FUNCTION();
 		FrameBuffers.resize(FrameCount);
 
-		VkImageView attachments[1];
+		VkImageView attachments[2];
 
 		// Depth attachment is the same
 		// We never show the depth buffer, so we only ever need one.
-		// idImage* depthImg = globalImages->GetImage("_viewDepth");
-		// if (depthImg == NULL) {
-		// 	idLib::FatalError("CreateFrameBuffers: No _viewDepth image.");
-		// }
-		//
-		// attachments[1] = depthImg->GetView();
+		attachments[1] = DepthImage.View;
 
 		// VkFrameBuffer is what maps attachments to a renderpass.  That's really all it is.
 		VkFramebufferCreateInfo frameBufferCreateInfo = {};
@@ -1214,7 +1194,7 @@ namespace VulkanCore {
 		// The renderpass we just created.
 		frameBufferCreateInfo.renderPass = RenderPass;
 		// The color and depth attachments
-		frameBufferCreateInfo.attachmentCount = 1;
+		frameBufferCreateInfo.attachmentCount = 2;
 		frameBufferCreateInfo.pAttachments = attachments;
 		// Current render size
 		frameBufferCreateInfo.width = SwapchainExtent.width;
@@ -1245,7 +1225,7 @@ namespace VulkanCore {
 		vkDestroyRenderPass(Device, RenderPass, nullptr);
 
 		for (size_t i = 0; i < SwapchainImages.size(); i++) {
-			vkDestroyImageView(Device, SwapchainImages[i].View, nullptr);
+			SwapchainImages[i].Destroy();
 		}
 
 		// vkDestroySwapchainKHR(Device, Swapchain, nullptr);

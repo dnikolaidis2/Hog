@@ -4,3 +4,5 @@
  ☐ PBR Shaders
  ☐ Working sponza scene
  ☐ editor camera
+ ☐ Split Image to FrameBuffer, Texture and AllocatedImage
+ ☐ Switch Buffers to not be initializable and be created as a Ref

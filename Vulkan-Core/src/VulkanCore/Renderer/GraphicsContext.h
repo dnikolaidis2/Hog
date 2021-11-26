@@ -65,6 +65,7 @@ namespace VulkanCore {
 		static void Deinitialize() { Get().DeinitializeImpl(); }
 		static void RecreateSwapChain() { Get().RecreateSwapChainImpl(); }
 		static VmaAllocator GetAllocator() { return Get().Allocator; }
+		static VkDevice GetDevice() { return Get().Device; }
 	public:
 		GraphicsContext(GraphicsContext const&) = delete;
 		void operator=(GraphicsContext const&) = delete;
@@ -132,8 +133,7 @@ namespace VulkanCore {
 
 		std::vector<VkCommandBuffer> CommandBuffers;
 		std::vector<VkFence> CommandBufferFences;
-
-		VkFormat DepthFormat = VK_FORMAT_UNDEFINED;
+		
 		Image DepthImage;
 
 		VkRenderPass RenderPass = VK_NULL_HANDLE;
