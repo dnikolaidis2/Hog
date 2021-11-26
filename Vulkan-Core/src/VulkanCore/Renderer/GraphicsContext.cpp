@@ -489,6 +489,8 @@ namespace VulkanCore {
 			image.Destroy();
 		}
 
+		DepthImage.Destroy();
+
 		vkDestroySwapchainKHR(Device, Swapchain, nullptr);
 
 		for (auto fence : CommandBufferFences)
@@ -525,6 +527,7 @@ namespace VulkanCore {
 
 		CheckVkResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(GPU->Device, Surface, &GPU->SurfaceCapabilities));
 		CreateSwapChain();
+		CreateRenderTargets();
 		CreateRenderPass();
 		CreateFrameBuffers();
 		CreateCommandBuffers();
@@ -1100,6 +1103,7 @@ namespace VulkanCore {
 				formats, 2,
 				VK_IMAGE_TILING_OPTIMAL,
 				VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+			DepthImage.InternalFormat = VK_FORMAT_D32_SFLOAT;
 		}
 
 		// idTech4.5 does have an independent idea of a depth attachment
@@ -1227,6 +1231,8 @@ namespace VulkanCore {
 		for (size_t i = 0; i < SwapchainImages.size(); i++) {
 			SwapchainImages[i].Destroy();
 		}
+
+		DepthImage.Destroy();
 
 		// vkDestroySwapchainKHR(Device, Swapchain, nullptr);
 	}

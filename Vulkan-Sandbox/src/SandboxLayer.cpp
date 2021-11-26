@@ -24,7 +24,8 @@ void SandboxLayer::OnAttach()
 
 	VKC_PROFILE_GPU_INIT_VULKAN(&context.Device, &context.PhysicalDevice, &context.GraphicsQueue, &context.GraphicsFamilyIndex, 1);
 
-	LoadObjFile("assets/models/monkey/monkey_smooth.obj", m_Meshes);
+	// LoadObjFile("assets/models/sponza/sponza.obj", m_Meshes);
+	LoadObjFile("assets/models/monkey/monkey_flat.obj", m_Meshes);
 
 	m_Shader = CreateRef<Shader>("assets/shaders/Basic.glsl");
 
@@ -292,6 +293,7 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 
 		for (int i = 0; i < context.FrameCount; ++i)
 		{
+			m_UniformBuffers[i] = CreateRef<MemoryBuffer>();
 			m_UniformBuffers[i]->Create(bufferSize, MemoryType::UniformBuffer);
 		}
 	}
@@ -359,9 +361,14 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 		renderPassInfo.renderArea.offset = { 0, 0 };
 		renderPassInfo.renderArea.extent = context.SwapchainExtent;
 
-		VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-		renderPassInfo.clearValueCount = 1;
-		renderPassInfo.pClearValues = &clearColor;
+		VkClearValue clearValues[2];
+		clearValues[0] = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+
+		//clear depth at 1
+		clearValues[1].depthStencil.depth = 1.f;
+
+		renderPassInfo.clearValueCount = 2;
+		renderPassInfo.pClearValues = clearValues;
 
 		vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 

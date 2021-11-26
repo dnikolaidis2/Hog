@@ -5,7 +5,7 @@
 
 namespace VulkanCore
 {
-	static bool LoadObjFile(const std::string& filepath, std::vector<Mesh>& meshes)
+	inline static bool LoadObjFile(const std::string& filepath, std::vector<Mesh>& meshes)
 	{
 		//attrib will contain the vertex arrays of the file
 		tinyobj::attrib_t attrib;
@@ -58,7 +58,11 @@ namespace VulkanCore
 					tinyobj::real_t ny = attrib.normals[3 * size_t(idx.normal_index) + 1];
 					tinyobj::real_t nz = attrib.normals[3 * size_t(idx.normal_index) + 2];
 
-					verties->push_back({{vx, vy, vz}, {nx, ny, nz}, {nx, ny, nz}});
+					tinyobj::real_t tx = attrib.texcoords[2 * size_t(idx.texcoord_index) + 0];
+					tinyobj::real_t ty = attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
+
+
+					verties->push_back({ {vx, vy, vz}, {nx, ny, nz},{tx, ty}, {nx, ny, nz} });
 				}
 
 				indexOffset += fv;

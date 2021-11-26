@@ -20,11 +20,10 @@ namespace VulkanCore
 
 		VkBuffer GetBufferHandle() const { return m_VertexBuffer.GetHandle(); }
 
-		uint64_t GetSize() const { return m_Size; }
+		uint64_t GetSize() const { return (uint64_t)m_Vertices->size(); }
 	private:
 		std::string m_Name = "unamed";
 		VertexBuffer m_VertexBuffer;
 		Ref<std::vector<Vertex>> m_Vertices = CreateRef<std::vector<Vertex>>();
-		uint64_t m_Size;
 	};
 }
