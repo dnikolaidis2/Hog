@@ -9,6 +9,7 @@ SourceDir["optick"] = "%{wks.location}/vendor/optick/src"
 IncludeDir = {}
 IncludeDir["stb_image"] = "%{wks.location}/Vulkan-Core/vendor/stb_image"
 IncludeDir["vma"] = "%{wks.location}/Vulkan-Core/vendor/vma"
+IncludeDir["yaml_cpp"] = "%{wks.location}/Vulkan-Core/vendor/yaml-cpp/include"
 IncludeDir["tinyobjloader"] = "%{wks.location}/Vulkan-Core/vendor/tinyobjloader"
 IncludeDir["GLFW"] = "%{wks.location}/Vulkan-Core/vendor/GLFW/include"
 IncludeDir["ImGui"] = "%{wks.location}/Vulkan-Core/vendor/ImGui"

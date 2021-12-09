@@ -39,6 +39,7 @@ project "Vulkan-Core"
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
 		"%{IncludeDir.vma}",
+		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.tinyobjloader}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.optick}"
@@ -47,6 +48,7 @@ project "Vulkan-Core"
 	links
 	{
 		"GLFW",
+		"yaml-cpp",
 		"ImGui",
 	}
 

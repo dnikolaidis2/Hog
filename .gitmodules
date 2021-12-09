@@ -10,3 +10,6 @@
 [submodule "Vulkan-Core/vendor/imgui"]
 	path = Vulkan-Core/vendor/imgui
 	url = https://github.com/TheCherno/imgui
+[submodule "Vulkan-Core/vendor/yaml-cpp"]
+	path = Vulkan-Core/vendor/yaml-cpp
+	url = https://github.com/thecherno/yaml-cpp

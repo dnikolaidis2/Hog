@@ -28,6 +28,7 @@ group "Dependencies"
 	include "vendor/premake"
 	include "Vulkan-Core/vendor/GLFW"
 	include "Vulkan-Core/vendor/imgui"
+	include "Vulkan-Core/vendor/yaml-cpp"
 group ""
 
 include "Vulkan-Core"
