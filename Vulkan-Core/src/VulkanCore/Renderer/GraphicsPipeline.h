@@ -13,7 +13,7 @@ namespace VulkanCore
 		~GraphicsPipeline();
 
 		VkPipeline Create();
-		void Update(VkExtent2D swapchainExtent, VkRenderPass renderPass);
+		void Update(VkExtent2D swapchainExtent);
 		void Destroy();
 		void AddShaderStage(Shader::ShaderType type, VkShaderModule shaderModule, const char* main = "main");
 

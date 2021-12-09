@@ -528,7 +528,6 @@ namespace VulkanCore {
 		CheckVkResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(GPU->Device, Surface, &GPU->SurfaceCapabilities));
 		CreateSwapChain();
 		CreateRenderTargets();
-		CreateRenderPass();
 		CreateFrameBuffers();
 		CreateCommandBuffers();
 	}
@@ -1226,14 +1225,10 @@ namespace VulkanCore {
 			vkDestroyFence(Device, fence, nullptr);
 		}
 
-		vkDestroyRenderPass(Device, RenderPass, nullptr);
-
 		for (size_t i = 0; i < SwapchainImages.size(); i++) {
 			SwapchainImages[i].Destroy();
 		}
 
 		DepthImage.Destroy();
-
-		// vkDestroySwapchainKHR(Device, Swapchain, nullptr);
 	}
 }

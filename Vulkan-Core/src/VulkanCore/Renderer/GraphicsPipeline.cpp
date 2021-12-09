@@ -43,14 +43,12 @@ namespace VulkanCore
 		return PipelineHandle;
 	}
 
-	void GraphicsPipeline::Update(VkExtent2D swapchainExtent, VkRenderPass renderPass)
+	void GraphicsPipeline::Update(VkExtent2D swapchainExtent)
 	{
 		Viewport.width = (float)swapchainExtent.width;
 		Viewport.height = (float)swapchainExtent.height;
 
 		Scissor.extent = swapchainExtent;
-
-		GraphicsPipelineCreateInfo.renderPass = renderPass;
 	}
 
 	void GraphicsPipeline::Destroy()

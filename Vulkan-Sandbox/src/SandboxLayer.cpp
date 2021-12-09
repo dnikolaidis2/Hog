@@ -265,7 +265,7 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 	m_Pipeline->Destroy();
 	GraphicsContext::RecreateSwapChain();
 
-	m_Pipeline->Update(context.SwapchainExtent, context.RenderPass);
+	m_Pipeline->Update(context.SwapchainExtent);
 	m_Pipeline->Create();
 
 	{
