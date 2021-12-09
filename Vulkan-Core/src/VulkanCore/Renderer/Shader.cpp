@@ -3,6 +3,7 @@
 
 #include "VulkanCore/Core/Timer.h"
 #include "VulkanCore/Utils/RendererUtils.h"
+#include "VulkanCore/Renderer/GraphicsContext.h"
 
 #include <fstream>
 
@@ -10,8 +11,7 @@
 #include <spirv_cross/spirv_cross.hpp>
 #include <spirv_cross/spirv_glsl.hpp>
 #include <vulkan/vulkan.h>
-
-#include "GraphicsContext.h"
+#include <yaml-cpp/yaml.h>
 
 static auto& context = VulkanCore::GraphicsContext::Get();
 
@@ -62,6 +62,87 @@ namespace VulkanCore {
 			VKC_CORE_ASSERT(false);
 			return nullptr;
 		}
+
+		static shaderc_shader_kind StringToShaderStage(std::string string)
+		{
+			if (string == "shaderc_glsl_vertex_shader") return shaderc_glsl_vertex_shader;
+			if (string == "shaderc_glsl_fragment_shader") return shaderc_glsl_fragment_shader;
+
+			VKC_CORE_ASSERT(false);
+			return (shaderc_shader_kind)0;
+		}
+
+		static const char* GetShaderCacheDB()
+		{
+			return "assets/cache/shader/vulkan/.db";
+		}
+
+		static std::unordered_map<std::string, std::unordered_map<shaderc_shader_kind, std::size_t>> LoadShaderCacheDB()
+		{
+			std::unordered_map<std::string, std::unordered_map<shaderc_shader_kind, std::size_t>> db;
+			std::filesystem::path path = GetShaderCacheDB();
+
+			if (!std::filesystem::exists(path))
+				return db;
+
+			YAML::Node data;
+			try
+			{
+				data = YAML::LoadFile(path.string());
+			}
+			catch (YAML::ParserException e)
+			{
+				return db;
+			}
+
+			auto shaders = data["Cache Database"];
+			if (shaders)
+			{
+				for (auto shader : shaders)
+				{
+					std::string name = shader.first.as<std::string>();
+					std::unordered_map<shaderc_shader_kind, std::size_t> stageHashes;
+					auto stages = data["Cache Database"][name.c_str()];
+					if (stages)
+					{
+						for (auto stage : stages)
+						{
+							shaderc_shader_kind kind = StringToShaderStage(stage.first.as<std::string>());
+							stageHashes.insert({ kind, stage.second.as<std::size_t>()});
+						}
+					}
+
+					db.insert({ name, stageHashes });
+				}
+			}
+
+			return db;
+		}
+
+		static void SaveShaderCacheDB(std::unordered_map<std::string, std::unordered_map<shaderc_shader_kind, std::size_t>>& db)
+		{
+			YAML::Emitter out;
+			out << YAML::BeginMap;
+			out << YAML::Key << "Cache Database" << YAML::Value << YAML::BeginMap;
+			for (auto entry : db)
+			{
+				std::string name = entry.first;
+				
+				out << YAML::Key << name << YAML::BeginMap;
+				for (auto stage : entry.second)
+				{
+					out << YAML::Key << ShaderStageToString(stage.first) << YAML::Value << stage.second;
+				}
+
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndMap;
+			out << YAML::EndMap;
+
+			std::ofstream fout(GetShaderCacheDB());
+			fout << out.c_str();
+		}
 	}
 
 	VkShaderStageFlagBits Shader::ShaderTypeToVkShaderStageFlagBit(ShaderType type)
@@ -85,19 +166,19 @@ namespace VulkanCore {
 		std::string source = ReadFile(filepath);
 		auto shaderSources = PreProcess(source);
 
-		{
-			Timer timer;
-			CompileOrGetVulkanBinaries(shaderSources);
-			CreateProgram();
-			VKC_CORE_WARN("Shader creation took {0} ms", timer.ElapsedMillis());
-		}
-
 		// Extract name from filepath
 		auto lastSlash = filepath.find_last_of("/\\");
 		lastSlash = lastSlash == std::string::npos ? 0 : lastSlash + 1;
 		auto lastDot = filepath.rfind('.');
 		auto count = lastDot == std::string::npos ? filepath.size() - lastSlash : lastDot - lastSlash;
 		m_Name = filepath.substr(lastSlash, count);
+
+		{
+			Timer timer;
+			CompileOrGetVulkanBinaries(shaderSources);
+			CreateProgram();
+			VKC_CORE_WARN("Shader creation took {0} ms", timer.ElapsedMillis());
+		}
 	}
 
 	Shader::~Shader()
@@ -143,6 +224,7 @@ namespace VulkanCore {
 			options.SetOptimizationLevel(shaderc_optimization_level_performance);
 
 		std::filesystem::path cacheDirectory = Utils::GetCacheDirectory();
+		auto cacheDB = Utils::LoadShaderCacheDB();
 
 		auto& shaderData = m_VulkanSPIRV;
 		shaderData.clear();
@@ -151,38 +233,72 @@ namespace VulkanCore {
 			std::filesystem::path shaderFilePath = m_FilePath;
 			std::filesystem::path cachedPath = cacheDirectory / (shaderFilePath.filename().string() + Utils::ShaderStageCachedVulkanFileExtension(stage));
 
-			std::ifstream in(cachedPath, std::ios::in | std::ios::binary);
-			if (in.is_open())
+			if (cacheDB.contains(m_Name))
 			{
-				in.seekg(0, std::ios::end);
-				auto size = in.tellg();
-				in.seekg(0, std::ios::beg);
+				if (cacheDB[m_Name].contains(stage))
+				{
+					if (cacheDB[m_Name][stage] == std::hash<std::string>{}(source))
+					{
+						std::ifstream in(cachedPath, std::ios::in | std::ios::binary);
+						if (in.is_open())
+						{
+							in.seekg(0, std::ios::end);
+							auto size = in.tellg();
+							in.seekg(0, std::ios::beg);
 
+							auto& data = shaderData[stage];
+							data.resize(size / sizeof(uint32_t));
+							in.read((char*)data.data(), size);
+						}
+
+						// Done lets move on to the next one
+						continue;
+					}
+				}
+			}
+
+			// Cache did not contain an up to date version of the shader
+			shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, stage, m_FilePath.c_str(), options);
+			if (module.GetCompilationStatus() != shaderc_compilation_status_success)
+			{
+				VKC_CORE_ERROR(module.GetErrorMessage());
+				VKC_CORE_ASSERT(false);
+			}
+
+			shaderData[stage] = std::vector<uint32_t>(module.cbegin(), module.cend());
+
+			std::ofstream out(cachedPath, std::ios::out | std::ios::binary);
+			if (out.is_open())
+			{
 				auto& data = shaderData[stage];
-				data.resize(size / sizeof(uint32_t));
-				in.read((char*)data.data(), size);
+				out.write((char*)data.data(), data.size() * sizeof(uint32_t));
+				out.flush();
+				out.close();
+			}
+
+			std::size_t hash = std::hash<std::string>{}(source);
+
+			if (!cacheDB.contains(m_Name))
+			{
+				// Never seen this shader before
+				cacheDB.insert({ m_Name, {{stage, hash}} });
 			}
 			else
 			{
-				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, stage, m_FilePath.c_str(), options);
-				if (module.GetCompilationStatus() != shaderc_compilation_status_success)
+				if (cacheDB[m_Name].contains(stage))
 				{
-					VKC_CORE_ERROR(module.GetErrorMessage());
-					VKC_CORE_ASSERT(false);
+					// Seen this shader just need to update the cache
+					cacheDB[m_Name][stage] = hash;
 				}
-
-				shaderData[stage] = std::vector<uint32_t>(module.cbegin(), module.cend());
-
-				std::ofstream out(cachedPath, std::ios::out | std::ios::binary);
-				if (out.is_open())
+				else
 				{
-					auto& data = shaderData[stage];
-					out.write((char*)data.data(), data.size() * sizeof(uint32_t));
-					out.flush();
-					out.close();
+					// Seen this shader but not his stage
+					cacheDB[m_Name].insert({ stage, hash });
 				}
 			}
 		}
+
+		Utils::SaveShaderCacheDB(cacheDB);
 
 		for (auto&& [stage, data] : shaderData)
 			Reflect(stage, data);
@@ -201,7 +317,11 @@ namespace VulkanCore {
 		for (const auto& resource : resources.uniform_buffers)
 		{
 			const auto& bufferType = compiler.get_type(resource.base_type_id);
-			uint32_t bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
+			uint32_t bufferSize;
+			if (bufferType.basetype == spirv_cross::SPIRType::Struct)
+				bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType) / 8;
+			else
+				bufferSize = (bufferType.width * bufferType.vecsize) / 8;
 			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
 			int memberCount = (int)bufferType.member_types.size();
 
@@ -209,6 +329,47 @@ namespace VulkanCore {
 			VKC_CORE_TRACE("    Size = {0}", bufferSize);
 			VKC_CORE_TRACE("    Binding = {0}", binding);
 			VKC_CORE_TRACE("    Members = {0}", memberCount);
+		}
+
+		VKC_CORE_TRACE("Stage Inputs:");
+		for (const auto& resource : resources.stage_inputs)
+		{
+			const auto& bufferType = compiler.get_type(resource.base_type_id);
+			uint32_t bufferSize;
+			if (bufferType.basetype == spirv_cross::SPIRType::Struct)
+				bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
+			else
+				bufferSize = (bufferType.width * bufferType.vecsize) / 8;
+			uint32_t location = compiler.get_decoration(resource.id, spv::DecorationLocation);
+			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+			uint32_t offset = compiler.get_decoration(resource.id, spv::DecorationAlignment);
+
+			VKC_CORE_TRACE("  {0}", resource.name);
+			VKC_CORE_TRACE("    Size = {0}", bufferSize);
+			VKC_CORE_TRACE("    Location = {0}", location);
+			VKC_CORE_TRACE("    Binding = {0}", binding);
+			VKC_CORE_TRACE("    Offset = {0}", offset);
+			VKC_CORE_TRACE("    HasDecoration = {0}", compiler.has_decoration(resource.id, spv::DecorationMatrixStride));
+		}
+
+		VKC_CORE_TRACE("Stage Outputs:");
+		for (const auto& resource : resources.stage_outputs)
+		{
+			const auto& bufferType = compiler.get_type(resource.base_type_id);
+			uint32_t bufferSize;
+			if (bufferType.basetype == spirv_cross::SPIRType::Struct)
+				bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
+			else
+				bufferSize = (bufferType.width * bufferType.vecsize) / 8;
+			uint32_t location = compiler.get_decoration(resource.id, spv::DecorationLocation);
+			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+			uint32_t offset = compiler.get_decoration(resource.id, spv::DecorationOffset);
+
+			VKC_CORE_TRACE("  {0}", resource.name);
+			VKC_CORE_TRACE("    Size = {0}", bufferSize);
+			VKC_CORE_TRACE("    Location = {0}", location);
+			VKC_CORE_TRACE("    Binding = {0}", binding);
+			VKC_CORE_TRACE("    Offset = {0}", offset);
 		}
 	}
 

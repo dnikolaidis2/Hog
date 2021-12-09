@@ -28,12 +28,12 @@ namespace VulkanCore
 		DynamicStateCreateInfo.dynamicStateCount = (uint32_t)DynamicStates.size();
 		DynamicStateCreateInfo.pDynamicStates = DynamicStates.data();
 
+		CheckVkResult(vkCreatePipelineLayout(m_Device, &PipelineLayoutCreateInfo, nullptr, &Layout));
+
 		VertexInputStateCreateInfo.vertexBindingDescriptionCount = (uint32_t)VertexInputBindingDescriptions.size();
 		VertexInputStateCreateInfo.pVertexBindingDescriptions = VertexInputBindingDescriptions.data(); // Optional
 		VertexInputStateCreateInfo.vertexAttributeDescriptionCount = (uint32_t)VertexInputAttributeDescriptions.size();
 		VertexInputStateCreateInfo.pVertexAttributeDescriptions = VertexInputAttributeDescriptions.data(); // Optional
-
-		CheckVkResult(vkCreatePipelineLayout(m_Device, &PipelineLayoutCreateInfo, nullptr, &Layout));
 
 		GraphicsPipelineCreateInfo.stageCount = (uint32_t)ShaderStageCreateInfos.size();
 		GraphicsPipelineCreateInfo.pStages = ShaderStageCreateInfos.data();

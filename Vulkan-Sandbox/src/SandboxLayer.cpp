@@ -25,7 +25,7 @@ void SandboxLayer::OnAttach()
 	VKC_PROFILE_GPU_INIT_VULKAN(&context.Device, &context.PhysicalDevice, &context.GraphicsQueue, &context.GraphicsFamilyIndex, 1);
 
 	// LoadObjFile("assets/models/sponza/sponza.obj", m_Meshes);
-	LoadObjFile("assets/models/monkey/monkey_flat.obj", m_Meshes);
+	LoadObjFile("assets/models/monkey/monkey_smooth.obj", m_Meshes);
 
 	m_Shader = CreateRef<Shader>("assets/shaders/Basic.glsl");
 

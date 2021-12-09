@@ -1,8 +1,10 @@
  ☐ Finish cleanup and abstraction implementation
- ☐ Smarter shader cache
+ ✔ Smarter shader cache @done (21-12-09 18:56)
  ☐ ImGui Vulkan implementation
  ☐ PBR Shaders
  ☐ Working sponza scene
  ☐ editor camera
  ☐ Split Image to FrameBuffer, Texture and AllocatedImage
  ☐ Switch Buffers to not be initializable and be created as a Ref
+ ☐ Make MemoryBuffer abstract
+ ☐ Make another abstract class for allocated image
