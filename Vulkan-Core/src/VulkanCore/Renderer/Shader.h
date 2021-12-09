@@ -16,6 +16,8 @@ namespace VulkanCore {
 
 		VkShaderModule GetVertexShaderModule() { return m_VertexShaderModule; }
 		VkShaderModule GetFragmentShaderModule() { return m_FragmentShaderModule; }
+		VkPipelineLayout GetPipelineLayout() { return m_PipelineLayout; }
+		const std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() { return m_DescriptorSetLayouts; }
 	private:
 		std::string ReadFile(const std::string& filepath);
 		std::unordered_map<shaderc_shader_kind, std::string> PreProcess(const std::string& source);
@@ -25,6 +27,7 @@ namespace VulkanCore {
 		void Reflect(shaderc_shader_kind stage, const std::vector<uint32_t>& shaderData);
 		void CreateProgram();
 		VkShaderModule CreateShaderModule(const std::vector<uint32_t>& code);
+		void GeneratePipelineLayout();
 	private:
 		VkDevice m_Device;
 
@@ -35,6 +38,15 @@ namespace VulkanCore {
 
 		VkShaderModule m_VertexShaderModule;
 		VkShaderModule m_FragmentShaderModule;
+
+		std::vector<VkDescriptorSetLayoutBinding> m_DescriptorSetLayoutBinding;
+		std::vector<VkDescriptorSetLayout> m_DescriptorSetLayouts;
+
+		VkPipelineLayoutCreateInfo m_PipelineLayoutCreateInfo = {
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		};
+
+		VkPipelineLayout m_PipelineLayout;
 	};
 }
 

@@ -20,8 +20,7 @@ public:
 	bool OnResized(FrameBufferResizeEvent& e);
 private:
 	Ref<Shader> m_Shader;
-
-	VkDescriptorSetLayout m_DescriptorSetLayout;
+	
 	VkDescriptorPool m_DescriptorPool;
 	std::vector<VkDescriptorSet> m_DescriptorSets;
 	Ref<GraphicsPipeline> m_Pipeline;

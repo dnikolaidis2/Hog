@@ -17,6 +17,18 @@ static auto& context = VulkanCore::GraphicsContext::Get();
 
 namespace VulkanCore {
 	namespace Utils {
+		static std::optional<VkShaderStageFlagBits> ShaderStageFlagBitsFromShaderKind(shaderc_shader_kind kind)
+		{
+			switch(kind)
+			{
+				case shaderc_glsl_vertex_shader:	return VK_SHADER_STAGE_VERTEX_BIT;
+				case shaderc_glsl_fragment_shader:	return VK_SHADER_STAGE_FRAGMENT_BIT;
+			}
+
+			VKC_CORE_ASSERT(false, "Unknown shader type!");
+			return std::nullopt;
+		}
+
 		static std::optional<shaderc_shader_kind> ShaderTypeFromString(const std::string& type)
 		{
 			if (type == "vertex")
@@ -177,12 +189,20 @@ namespace VulkanCore {
 			Timer timer;
 			CompileOrGetVulkanBinaries(shaderSources);
 			CreateProgram();
+			GeneratePipelineLayout();
 			VKC_CORE_WARN("Shader creation took {0} ms", timer.ElapsedMillis());
 		}
 	}
 
 	Shader::~Shader()
 	{
+		for (auto& layout : m_DescriptorSetLayouts)
+		{
+			vkDestroyDescriptorSetLayout(m_Device, layout, nullptr);
+		}
+
+		vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);
+
 		vkDestroyShaderModule(m_Device, m_VertexShaderModule, nullptr);
 		vkDestroyShaderModule(m_Device, m_FragmentShaderModule, nullptr);
 	}
@@ -316,6 +336,8 @@ namespace VulkanCore {
 		VKC_CORE_TRACE("Uniform buffers:");
 		for (const auto& resource : resources.uniform_buffers)
 		{
+			VkDescriptorSetLayoutBinding layoutBinding;
+
 			const auto& bufferType = compiler.get_type(resource.base_type_id);
 			uint32_t bufferSize;
 			if (bufferType.basetype == spirv_cross::SPIRType::Struct)
@@ -329,6 +351,12 @@ namespace VulkanCore {
 			VKC_CORE_TRACE("    Size = {0}", bufferSize);
 			VKC_CORE_TRACE("    Binding = {0}", binding);
 			VKC_CORE_TRACE("    Members = {0}", memberCount);
+
+			layoutBinding.binding = binding;
+			layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			layoutBinding.descriptorCount = 1;
+			layoutBinding.stageFlags = Utils::ShaderStageFlagBitsFromShaderKind(stage).value();
+			m_DescriptorSetLayoutBinding.push_back(layoutBinding);
 		}
 
 		VKC_CORE_TRACE("Stage Inputs:");
@@ -390,6 +418,22 @@ namespace VulkanCore {
 		CheckVkResult(vkCreateShaderModule(m_Device, &createInfo, nullptr, &shaderModule));
 
 		return shaderModule;
+	}
+
+	void Shader::GeneratePipelineLayout()
+	{
+		VkDescriptorSetLayoutCreateInfo layoutInfo{};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutInfo.bindingCount = (uint32_t)m_DescriptorSetLayoutBinding.size();
+		layoutInfo.pBindings = m_DescriptorSetLayoutBinding.data();
+
+		m_DescriptorSetLayouts.resize(1);
+		CheckVkResult(vkCreateDescriptorSetLayout(context.Device, &layoutInfo, nullptr, &m_DescriptorSetLayouts[0]));
+
+		m_PipelineLayoutCreateInfo.setLayoutCount = (uint32_t)m_DescriptorSetLayouts.size(); // Optional
+		m_PipelineLayoutCreateInfo.pSetLayouts = m_DescriptorSetLayouts.data(); // Optional
+
+		CheckVkResult(vkCreatePipelineLayout(m_Device, &m_PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 	}
 
 	std::unordered_map<shaderc_shader_kind, std::string> Shader::PreProcess(const std::string& source)

@@ -6,8 +6,8 @@
 
 namespace VulkanCore
 {
-	GraphicsPipeline::GraphicsPipeline(VkDevice device, VkExtent2D swapchainExtent, VkRenderPass renderPass)
-		:m_Device(device)
+	GraphicsPipeline::GraphicsPipeline(VkDevice device, VkPipelineLayout layout, VkExtent2D swapchainExtent, VkRenderPass renderPass)
+		:m_Device(device), m_PipelineLayout(layout)
 	{
 		Viewport.width = (float)swapchainExtent.width;
 		Viewport.height = (float)swapchainExtent.height;
@@ -28,8 +28,6 @@ namespace VulkanCore
 		DynamicStateCreateInfo.dynamicStateCount = (uint32_t)DynamicStates.size();
 		DynamicStateCreateInfo.pDynamicStates = DynamicStates.data();
 
-		CheckVkResult(vkCreatePipelineLayout(m_Device, &PipelineLayoutCreateInfo, nullptr, &Layout));
-
 		VertexInputStateCreateInfo.vertexBindingDescriptionCount = (uint32_t)VertexInputBindingDescriptions.size();
 		VertexInputStateCreateInfo.pVertexBindingDescriptions = VertexInputBindingDescriptions.data(); // Optional
 		VertexInputStateCreateInfo.vertexAttributeDescriptionCount = (uint32_t)VertexInputAttributeDescriptions.size();
@@ -37,8 +35,10 @@ namespace VulkanCore
 
 		GraphicsPipelineCreateInfo.stageCount = (uint32_t)ShaderStageCreateInfos.size();
 		GraphicsPipelineCreateInfo.pStages = ShaderStageCreateInfos.data();
-		GraphicsPipelineCreateInfo.layout = Layout;
+		GraphicsPipelineCreateInfo.layout = m_PipelineLayout;
+
 		CheckVkResult(vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &PipelineHandle));
+
 		m_Initialized = true;
 		return PipelineHandle;
 	}
@@ -56,7 +56,6 @@ namespace VulkanCore
 	void GraphicsPipeline::Destroy()
 	{
 		vkDestroyPipeline(m_Device, PipelineHandle, nullptr);
-		vkDestroyPipelineLayout(m_Device, Layout, nullptr);
 		m_Initialized = false;
 	}
 

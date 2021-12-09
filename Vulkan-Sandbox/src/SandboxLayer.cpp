@@ -33,31 +33,14 @@ void SandboxLayer::OnAttach()
 	vertexBuffer.SetLayout(Vertex::Layout);
 
 	{
-		m_Pipeline = CreateRef<GraphicsPipeline>(context.Device, context.SwapchainExtent, context.RenderPass);
-
-		VkDescriptorSetLayoutBinding uboLayoutBinding{};
-		uboLayoutBinding.binding = 0;
-		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uboLayoutBinding.descriptorCount = 1;
-		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-		uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-		VkDescriptorSetLayoutCreateInfo layoutInfo{};
-		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		layoutInfo.bindingCount = 1;
-		layoutInfo.pBindings = &uboLayoutBinding;
-
-		CheckVkResult(vkCreateDescriptorSetLayout(context.Device, &layoutInfo, nullptr, &m_DescriptorSetLayout));
+		m_Pipeline = CreateRef<GraphicsPipeline>(context.Device, m_Shader->GetPipelineLayout(), context.SwapchainExtent, context.RenderPass);
 
 		m_Pipeline->AddShaderStage(Shader::ShaderType::Vertex, m_Shader->GetVertexShaderModule());
 		m_Pipeline->AddShaderStage(Shader::ShaderType::Fragment, m_Shader->GetFragmentShaderModule());
 
 		m_Pipeline->VertexInputBindingDescriptions.push_back(vertexBuffer.GetInputBindingDescription());
 		m_Pipeline->VertexInputAttributeDescriptions = vertexBuffer.GetInputAttributeDescriptions();
-
-		m_Pipeline->PipelineLayoutCreateInfo.setLayoutCount = 1; // Optional
-		m_Pipeline->PipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout; // Optional
-
+		
 		m_Pipeline->PipelineDepthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 
 		m_Pipeline->Create();
@@ -89,7 +72,7 @@ void SandboxLayer::OnAttach()
 	}
 
 	{
-		std::vector<VkDescriptorSetLayout> layouts(context.FrameCount, m_DescriptorSetLayout);
+		std::vector<VkDescriptorSetLayout> layouts(context.FrameCount, m_Shader->GetDescriptorSetLayouts()[0]);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = m_DescriptorPool;
@@ -161,7 +144,7 @@ void SandboxLayer::OnAttach()
 			
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers.data(), offsets.data());
 
-			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->Layout, 0, 1, &m_DescriptorSets[i], 0, nullptr);
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_Shader->GetPipelineLayout(), 0, 1, &m_DescriptorSets[i], 0, nullptr);
 			vkCmdDraw(commandBuffers[i], (uint32_t)m_Meshes[0].GetSize(), 1, 0, 0);
 
 			vkCmdEndRenderPass(commandBuffers[i]);
@@ -189,8 +172,6 @@ void SandboxLayer::OnDetach()
 	vkDestroyDescriptorPool(context.Device, m_DescriptorPool, nullptr);
 
 	m_Pipeline->Destroy();
-
-	vkDestroyDescriptorSetLayout(context.Device, m_DescriptorSetLayout, nullptr);
 
 	m_Shader.reset();
 
@@ -313,7 +294,7 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 	}
 
 	{
-		std::vector<VkDescriptorSetLayout> layouts(context.FrameCount, m_DescriptorSetLayout);
+		std::vector<VkDescriptorSetLayout> layouts(context.FrameCount, m_Shader->GetDescriptorSetLayouts()[0]);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = m_DescriptorPool;
@@ -384,7 +365,7 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 
 		vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers.data(), offsets.data());
 
-		vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline->Layout, 0, 1, &m_DescriptorSets[i], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_Shader->GetPipelineLayout(), 0, 1, &m_DescriptorSets[i], 0, nullptr);
 		vkCmdDraw(commandBuffers[i], (uint32_t)m_Meshes[0].GetSize(), 1, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffers[i]);

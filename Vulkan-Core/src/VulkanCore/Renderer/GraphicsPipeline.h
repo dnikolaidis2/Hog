@@ -9,7 +9,7 @@ namespace VulkanCore
 	class GraphicsPipeline
 	{
 	public:
-		GraphicsPipeline(VkDevice device, VkExtent2D swapchainExtent, VkRenderPass renderPass);
+		GraphicsPipeline(VkDevice device, VkPipelineLayout layout, VkExtent2D swapchainExtent, VkRenderPass renderPass);
 		~GraphicsPipeline();
 
 		VkPipeline Create();
@@ -121,12 +121,6 @@ namespace VulkanCore
 			// .pDynamicStates = DynamicStates.data(),
 		};
 
-		VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo = {
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-		};
-
-		VkPipelineLayout Layout;
-
 		VkGraphicsPipelineCreateInfo GraphicsPipelineCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 			// .stageCount = 2,
@@ -147,6 +141,7 @@ namespace VulkanCore
 		VkPipeline PipelineHandle;
 	private:
 		VkDevice m_Device;
+		VkPipelineLayout m_PipelineLayout;
 		bool m_Initialized = false;
 	};
 }
