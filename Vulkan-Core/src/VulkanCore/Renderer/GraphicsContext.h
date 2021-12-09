@@ -66,6 +66,7 @@ namespace VulkanCore {
 		static void RecreateSwapChain() { Get().RecreateSwapChainImpl(); }
 		static VmaAllocator GetAllocator() { return Get().Allocator; }
 		static VkDevice GetDevice() { return Get().Device; }
+		static VkExtent2D GetExtent() { return Get().SwapchainExtent; }
 	public:
 		GraphicsContext(GraphicsContext const&) = delete;
 		void operator=(GraphicsContext const&) = delete;

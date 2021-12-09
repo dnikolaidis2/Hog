@@ -132,7 +132,7 @@ void SandboxLayer::OnAttach()
 
 			vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *m_Pipeline);
+			m_Pipeline->Bind(commandBuffers[i]);
 
 			std::vector<VkBuffer> vertexBuffers(1);
 			std::vector<VkDeviceSize> offsets(1);
@@ -262,11 +262,7 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 	}
 
 	vkDestroyDescriptorPool(context.Device, m_DescriptorPool, nullptr);
-	m_Pipeline->Destroy();
 	GraphicsContext::RecreateSwapChain();
-
-	m_Pipeline->Update(context.SwapchainExtent);
-	m_Pipeline->Create();
 
 	{
 		m_UniformBuffers.resize(context.FrameCount);
@@ -353,7 +349,7 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 
 		vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, *m_Pipeline);
+		m_Pipeline->Bind(commandBuffers[i]);
 
 		std::vector<VkBuffer> vertexBuffers(1);
 		std::vector<VkDeviceSize> offsets(1);

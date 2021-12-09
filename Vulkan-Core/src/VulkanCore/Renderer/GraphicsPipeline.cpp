@@ -2,7 +2,8 @@
 
 #include "GraphicsPipeline.h"
 
-#include "VulkanCore/Utils/RendererUtils.h"
+#include <VulkanCore/Utils/RendererUtils.h>
+#include <VulkanCore/Renderer/GraphicsContext.h>
 
 namespace VulkanCore
 {
@@ -43,12 +44,17 @@ namespace VulkanCore
 		return PipelineHandle;
 	}
 
-	void GraphicsPipeline::Update(VkExtent2D swapchainExtent)
+	void GraphicsPipeline::Bind(VkCommandBuffer commandBuffer)
 	{
-		Viewport.width = (float)swapchainExtent.width;
-		Viewport.height = (float)swapchainExtent.height;
+		VkExtent2D extent = GraphicsContext::GetExtent();
+		Viewport.width = (float)extent.width;
+		Viewport.height = (float)extent.height;
 
-		Scissor.extent = swapchainExtent;
+		Scissor.extent = extent;
+
+		vkCmdSetViewport(commandBuffer, 0, 1, &Viewport);
+		vkCmdSetScissor(commandBuffer, 0, 1, &Scissor);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineHandle);
 	}
 
 	void GraphicsPipeline::Destroy()

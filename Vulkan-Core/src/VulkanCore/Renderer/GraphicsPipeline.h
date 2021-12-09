@@ -13,7 +13,7 @@ namespace VulkanCore
 		~GraphicsPipeline();
 
 		VkPipeline Create();
-		void Update(VkExtent2D swapchainExtent);
+		void Bind(VkCommandBuffer commandBuffer);
 		void Destroy();
 		void AddShaderStage(Shader::ShaderType type, VkShaderModule shaderModule, const char* main = "main");
 
@@ -101,7 +101,8 @@ namespace VulkanCore
 
 		std::vector<VkDynamicState> DynamicStates = {
 			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_LINE_WIDTH
+			VK_DYNAMIC_STATE_SCISSOR
+			// VK_DYNAMIC_STATE_LINE_WIDTH
 		};
 
 		VkPipelineDepthStencilStateCreateInfo PipelineDepthStencilCreateInfo = {
@@ -132,7 +133,7 @@ namespace VulkanCore
 			.pMultisampleState = &MultisamplingStateCreateInfo,
 			.pDepthStencilState = &PipelineDepthStencilCreateInfo, // Optional
 			.pColorBlendState = &ColorBlendStateCreateInfo,
-			.pDynamicState = nullptr, // Optional
+			.pDynamicState = &DynamicStateCreateInfo, // Optional
 			.subpass = 0,
 			.basePipelineHandle = VK_NULL_HANDLE, // Optional
 			.basePipelineIndex = -1, // Optional

@@ -12,6 +12,6 @@
  ☐ Switch to std::optional for all enums that do not have a null value
  ✔ Moved VkPipelineLayout out of GraphicsPipeline and into Shader @done (21-12-09 20:22)
  ✔ Creation of PipelineLayout is done with shader reflection @done (21-12-09 20:22)
- ☐ Dynamic pipeline state
+ ✔ Dynamic pipeline state @done (21-12-10 00:49)
  ✔ Stop recreating renderpass after resize @done (21-12-10 00:30)
  ☐ Handle minimizing
