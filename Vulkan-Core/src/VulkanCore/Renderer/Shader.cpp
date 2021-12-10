@@ -17,6 +17,79 @@ static auto& context = VulkanCore::GraphicsContext::Get();
 
 namespace VulkanCore {
 	namespace Utils {
+		static VkFormat SpirvBaseTypeToVkFormat(const spirv_cross::SPIRType& type)
+		{
+			switch (type.basetype) {
+				case spirv_cross::SPIRType::SByte:
+					switch (type.vecsize) {
+						case 1: return VK_FORMAT_R8_SINT;
+						case 2: return VK_FORMAT_R8G8_SINT;
+						case 3: return VK_FORMAT_R8G8B8_SINT;
+						case 4: return VK_FORMAT_R8G8B8A8_SINT;
+					}
+					break;
+				case spirv_cross::SPIRType::UByte:
+					switch (type.vecsize) {
+						case 1: return VK_FORMAT_R8_UINT;
+						case 2: return VK_FORMAT_R8G8_UINT;
+						case 3: return VK_FORMAT_R8G8B8_UINT;
+						case 4: return VK_FORMAT_R8G8B8A8_UINT;
+					}
+					break;
+				case spirv_cross::SPIRType::Short:
+					switch (type.vecsize) {
+						case 1: return VK_FORMAT_R16_SINT;
+						case 2: return VK_FORMAT_R16G16_SINT;
+						case 3: return VK_FORMAT_R16G16B16_SINT;
+						case 4: return VK_FORMAT_R16G16B16A16_SINT;
+					}
+					break;
+				case spirv_cross::SPIRType::UShort:
+					switch (type.vecsize) {
+						case 1: return VK_FORMAT_R16_UINT;
+						case 2: return VK_FORMAT_R16G16_UINT;
+						case 3: return VK_FORMAT_R16G16B16_UINT;
+						case 4: return VK_FORMAT_R16G16B16A16_UINT;
+					}
+					break;
+				case spirv_cross::SPIRType::Half:
+					switch (type.vecsize) {
+						case 1: return VK_FORMAT_R16_SFLOAT;
+						case 2: return VK_FORMAT_R16G16_SFLOAT;
+						case 3: return VK_FORMAT_R16G16B16_SFLOAT;
+						case 4: return VK_FORMAT_R16G16B16A16_SFLOAT;
+					}
+					break;
+				case spirv_cross::SPIRType::Int:
+					switch (type.vecsize) {
+						case 1: return VK_FORMAT_R32_SINT;
+						case 2: return VK_FORMAT_R32G32_SINT;
+						case 3: return VK_FORMAT_R32G32B32_SINT;
+						case 4: return VK_FORMAT_R32G32B32A32_SINT;
+					}
+					break;
+				case spirv_cross::SPIRType::UInt:
+					switch (type.vecsize) {
+						case 1: return VK_FORMAT_R32_UINT;
+						case 2: return VK_FORMAT_R32G32_UINT;
+						case 3: return VK_FORMAT_R32G32B32_UINT;
+						case 4: return VK_FORMAT_R32G32B32A32_UINT;
+					}
+					break;
+				case spirv_cross::SPIRType::Float:
+					switch (type.vecsize) {
+						case 1: return VK_FORMAT_R32_SFLOAT;
+						case 2: return VK_FORMAT_R32G32_SFLOAT;
+						case 3: return VK_FORMAT_R32G32B32_SFLOAT;
+						case 4: return VK_FORMAT_R32G32B32A32_SFLOAT;
+					}
+					break;
+				default:
+					break;
+			}
+			return VK_FORMAT_UNDEFINED;
+		}
+
 		static std::optional<VkShaderStageFlagBits> ShaderStageFlagBitsFromShaderKind(shaderc_shader_kind kind)
 		{
 			switch(kind)
@@ -360,6 +433,7 @@ namespace VulkanCore {
 		}
 
 		VKC_CORE_TRACE("Stage Inputs:");
+		
 		for (const auto& resource : resources.stage_inputs)
 		{
 			const auto& bufferType = compiler.get_type(resource.base_type_id);
@@ -378,6 +452,44 @@ namespace VulkanCore {
 			VKC_CORE_TRACE("    Binding = {0}", binding);
 			VKC_CORE_TRACE("    Offset = {0}", offset);
 			VKC_CORE_TRACE("    HasDecoration = {0}", compiler.has_decoration(resource.id, spv::DecorationMatrixStride));
+		}
+
+		if (stage == shaderc_glsl_vertex_shader)
+		{
+			m_VertexInputAttributeDescriptions.resize(resources.stage_inputs.size());
+
+			std::vector<uint32_t> elementSize(resources.stage_inputs.size());
+
+			for (int i = 0; i < resources.stage_inputs.size(); ++i)
+			{
+				auto id = resources.stage_inputs[i].id;
+				auto typeId = resources.stage_inputs[i].base_type_id;
+				uint32_t location = compiler.get_decoration(resources.stage_inputs[i].id, spv::DecorationLocation);
+				const auto& bufferType = compiler.get_type(typeId);
+
+				uint32_t bufferSize;
+				if (bufferType.basetype == spirv_cross::SPIRType::Struct)
+					bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
+				else
+					bufferSize = (bufferType.width * bufferType.vecsize) / 8;
+
+				elementSize[location] = bufferSize;
+				m_VertexInputAttributeDescriptions[location].binding = 0;
+				m_VertexInputAttributeDescriptions[location].location = location;
+				m_VertexInputAttributeDescriptions[location].format = Utils::SpirvBaseTypeToVkFormat(bufferType);
+				m_VertexInputAttributeDescriptions[location].offset = 0;
+			}
+
+			uint32_t offset = 0;
+			for (int i = 0; i < elementSize.size(); ++i)
+			{
+				m_VertexInputAttributeDescriptions[i].offset = offset;
+				offset += elementSize[i];
+			}
+
+			m_VertexInputBindingDescription.binding = 0;
+			m_VertexInputBindingDescription.stride = offset;
+			m_VertexInputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 		}
 
 		VKC_CORE_TRACE("Stage Outputs:");

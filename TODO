@@ -15,3 +15,5 @@
  ✔ Dynamic pipeline state @done (21-12-10 00:49)
  ✔ Stop recreating renderpass after resize @done (21-12-10 00:30)
  ☐ Handle minimizing
+ ☐ Switch to not creating smart pointers manually but using Create methods
+ ☐ GPU profiling

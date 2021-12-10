@@ -24,6 +24,8 @@
 #include "VulkanCore/Renderer/Shader.h"
 #include "VulkanCore/Renderer/Buffer.h"
 #include "VulkanCore/Renderer/Mesh.h"
+#include "VulkanCore/Renderer/Material.h"
+#include "VulkanCore/Renderer/RendererObject.h"
 
 /*
 #include "VulkanCore/Renderer/Renderer.h"

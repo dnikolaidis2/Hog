@@ -19,13 +19,11 @@ public:
 	void OnEvent(Event& e) override;
 	bool OnResized(FrameBufferResizeEvent& e);
 private:
-	Ref<Shader> m_Shader;
+	std::unordered_map<std::string, Ref<Material>> m_MaterialLibrary;
+	std::vector<Ref<RendererObject>> m_Objects;
 	
 	VkDescriptorPool m_DescriptorPool;
 	std::vector<VkDescriptorSet> m_DescriptorSets;
-	Ref<GraphicsPipeline> m_Pipeline;
-
-	std::vector<Mesh> m_Meshes;
 
 	std::vector<Ref<MemoryBuffer>> m_UniformBuffers;
 

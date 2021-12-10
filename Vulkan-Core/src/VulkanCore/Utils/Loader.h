@@ -2,17 +2,19 @@
 
 #include "tiny_obj_loader.h"
 #include <VulkanCore/Renderer/Mesh.h>
+#include <VulkanCore/Renderer/RendererObject.h>
+#include <VulkanCore/Renderer/Material.h>
 
 namespace VulkanCore
 {
-	inline static bool LoadObjFile(const std::string& filepath, std::vector<Mesh>& meshes)
+	inline static bool LoadObjFile(const std::string& filepath, std::vector<Ref<RendererObject>>& objects, std::unordered_map<std::string, Ref<Material>>& materials)
 	{
 		//attrib will contain the vertex arrays of the file
 		tinyobj::attrib_t attrib;
 		//shapes contains the info for each separate object in the file
 		std::vector<tinyobj::shape_t> shapes;
 		//materials contains the information about the material of each shape, but we won't use it.
-		std::vector<tinyobj::material_t> materials;
+		std::vector<tinyobj::material_t> objMaterials;
 
 		//error and warning output from the load function
 		std::string errors;
@@ -23,7 +25,7 @@ namespace VulkanCore
 		std::filesystem::current_path(currentPath / path.parent_path());
 
 		//load the OBJ file
-		tinyobj::LoadObj(&attrib, &shapes, &materials, &errors, path.filename().string().c_str());
+		tinyobj::LoadObj(&attrib, &shapes, &objMaterials, &errors, path.filename().string().c_str());
 
 		std::filesystem::current_path(currentPath);
 
@@ -34,14 +36,20 @@ namespace VulkanCore
 			return false;
 		}
 
-		meshes.resize(meshes.size() + shapes.size());
+		for (size_t s = 0; s < objMaterials.size(); s++)
+		{
+			materials.insert({ objMaterials[s].name, Material::Create(nullptr, nullptr) });
+		}
+		
+		objects.resize(objects.size() + shapes.size());
 		// Loop over shapes
 		for (size_t s = 0; s < shapes.size(); s++) {
-			meshes[s].SetName(shapes[s].name);
+			auto mesh = Mesh::Create();
+			mesh->SetName(shapes[s].name);
 			// Loop over faces(polygon)
 			size_t indexOffset = 0;
 			for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
-				auto verties = meshes[s].GetVertices();
+				auto& verties = mesh->GetVertices();
 				//hardcode loading to triangles
 				int fv = 3;
 
@@ -62,13 +70,14 @@ namespace VulkanCore
 					tinyobj::real_t ty = attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
 
 
-					verties->push_back({ {vx, vy, vz}, {nx, ny, nz},{tx, ty}, {nx, ny, nz} });
+					verties.push_back({ {vx, vy, vz}, {nx, ny, nz},{tx, ty}, {nx, ny, nz} });
 				}
 
 				indexOffset += fv;
 			}
 
-			meshes[s].Create();
+			mesh->Load();
+			objects[s] = RendererObject::Create(std::move(mesh), materials[objMaterials[shapes[s].mesh.material_ids[0]].name]);
 		}
 
 		return true;

@@ -14,10 +14,12 @@ namespace VulkanCore {
 		Shader(const std::string& filepath);
 		~Shader();
 
-		VkShaderModule GetVertexShaderModule() { return m_VertexShaderModule; }
-		VkShaderModule GetFragmentShaderModule() { return m_FragmentShaderModule; }
-		VkPipelineLayout GetPipelineLayout() { return m_PipelineLayout; }
+		VkShaderModule GetVertexShaderModule() const { return m_VertexShaderModule; }
+		VkShaderModule GetFragmentShaderModule() const { return m_FragmentShaderModule; }
+		VkPipelineLayout GetPipelineLayout() const { return m_PipelineLayout; }
 		const std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() { return m_DescriptorSetLayouts; }
+		const std::vector<VkVertexInputAttributeDescription>& GetVertexInputAttributeDescriptions() { return m_VertexInputAttributeDescriptions; }
+		VkVertexInputBindingDescription GetVertexInputBindingDescription() const { return m_VertexInputBindingDescription; }
 	private:
 		std::string ReadFile(const std::string& filepath);
 		std::unordered_map<shaderc_shader_kind, std::string> PreProcess(const std::string& source);
@@ -45,6 +47,9 @@ namespace VulkanCore {
 		VkPipelineLayoutCreateInfo m_PipelineLayoutCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 		};
+
+		VkVertexInputBindingDescription m_VertexInputBindingDescription = {};
+		std::vector<VkVertexInputAttributeDescription> m_VertexInputAttributeDescriptions;
 
 		VkPipelineLayout m_PipelineLayout;
 	};
