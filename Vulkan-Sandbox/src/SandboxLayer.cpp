@@ -24,7 +24,7 @@ void SandboxLayer::OnAttach()
 
 	// VKC_PROFILE_GPU_INIT_VULKAN(&context.Device, &context.PhysicalDevice, &context.GraphicsQueue, &context.GraphicsFamilyIndex, 1);
 	
-	LoadObjFile("assets/models/monkey/monkey_flat.obj", m_Objects, m_MaterialLibrary);
+	LoadObjFile("assets/models/sponza/sponza.obj", m_Objects, m_MaterialLibrary);
 
 	{
 		m_UniformBuffers.resize(context.FrameCount);
@@ -52,7 +52,7 @@ void SandboxLayer::OnAttach()
 	}
 
 	{
-		std::vector<VkDescriptorSetLayout> layouts(context.FrameCount, m_MaterialLibrary["None"]->GetShader()->GetDescriptorSetLayouts()[0]);
+		std::vector<VkDescriptorSetLayout> layouts(context.FrameCount, m_MaterialLibrary["bricks"]->GetShader()->GetDescriptorSetLayouts()[0]);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = m_DescriptorPool;
@@ -82,6 +82,8 @@ void SandboxLayer::OnAttach()
 			vkUpdateDescriptorSets(context.Device, 1, &descriptorWrite, 0, nullptr);
 		}
 	}
+
+	m_EditorCamera = EditorCamera(30.0f, 1.778f, 0.1f, 10000.0f);
 }
 
 void SandboxLayer::OnDetach()
@@ -113,6 +115,8 @@ void SandboxLayer::OnUpdate(Timestep ts)
 {
 	VKC_PROFILE_FUNCTION()
 
+	m_EditorCamera.OnUpdate(ts);
+
 	int currentFrame = context.CurrentFrame;
 	auto& commandBufferFences = context.CommandBufferFences;
 	auto& acquireSemaphores = context.AcquireSemaphores;
@@ -126,12 +130,10 @@ void SandboxLayer::OnUpdate(Timestep ts)
 	vkAcquireNextImageKHR(context.Device, context.Swapchain, UINT64_MAX, acquireSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
 	UniformBufferObject ubo{};
-	glm::vec3 camPos = { 0.f,0.f,-2.f };
-	ubo.Model = glm::rotate(glm::mat4{ 1.0f }, glm::radians(m_FrameNumber * .01f), glm::vec3(0, 1, 0));
-	ubo.View = glm::translate(glm::mat4(1.f), camPos);
-	ubo.Projection = glm::perspective(glm::radians(45.0f), (float)context.SwapchainExtent.width / (float)context.SwapchainExtent.height, 0.1f, 10.0f);
-	ubo.Projection[1][1] *= -1;
-
+	ubo.Model = glm::rotate(glm::mat4{ 1.0f }, glm::radians(90.0f), glm::vec3(0, 1, 0)) * glm::rotate(glm::mat4{ 1.0f }, glm::radians(180.0f), glm::vec3(1, 0, 0));
+	ubo.View = m_EditorCamera.GetViewMatrix();
+	ubo.Projection = m_EditorCamera.GetProjection();
+	
 	m_UniformBuffers[imageIndex]->SetData(&ubo, sizeof(ubo));
 
 	{
@@ -161,7 +163,10 @@ void SandboxLayer::OnUpdate(Timestep ts)
 
 		vkCmdBeginRenderPass(commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		m_Objects[0]->Render(commandBuffers[imageIndex], &m_DescriptorSets[imageIndex]);
+		for (auto& object : m_Objects)
+		{
+			object->Render(commandBuffers[imageIndex], &m_DescriptorSets[imageIndex]);
+		}
 
 		vkCmdEndRenderPass(commandBuffers[imageIndex]);
 
@@ -215,6 +220,8 @@ void SandboxLayer::OnImGuiRender()
 
 void SandboxLayer::OnEvent(Event& e)
 {
+	m_EditorCamera.OnEvent(e);
+
 	EventDispatcher dispatcher(e);
 	dispatcher.Dispatch<FrameBufferResizeEvent>(VKC_BIND_EVENT_FN(SandboxLayer::OnResized));
 }
@@ -224,6 +231,8 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 	vkDeviceWaitIdle(context.Device);
 
 	GraphicsContext::RecreateSwapChain();
+
+	m_EditorCamera.SetViewportSize(e.GetWidth(), e.GetHeight());
 
 	return false;
 }

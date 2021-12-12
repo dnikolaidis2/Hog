@@ -26,6 +26,7 @@ private:
 	std::vector<VkDescriptorSet> m_DescriptorSets;
 
 	std::vector<Ref<MemoryBuffer>> m_UniformBuffers;
+	EditorCamera m_EditorCamera;
 
 	uint64_t m_FrameNumber = 0;
 };
