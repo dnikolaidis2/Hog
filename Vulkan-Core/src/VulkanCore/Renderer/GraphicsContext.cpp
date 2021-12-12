@@ -464,7 +464,7 @@ namespace VulkanCore {
 		CreateLogicalDeviceAndQueues();
 		InitializeAllocator();
 		CreateSemaphores();
-		CreateCommandPool();
+		CreateCommandPools();
 		CreateCommandBuffers();
 		CreateSwapChain();
 		CreateRenderTargets();
@@ -476,7 +476,9 @@ namespace VulkanCore {
 
 	void GraphicsContext::DeinitializeImpl()
 	{
-		vkFreeCommandBuffers(Device, CommandPool, (uint32_t)(CommandBuffers.size()), CommandBuffers.data());
+		for (size_t i = 0; i < CommandPools.size(); i++) {
+			vkFreeCommandBuffers(Device, CommandPools[i], 1, &CommandBuffers[i]);
+		}
 
 		for (auto framebuffer : FrameBuffers) {
 			vkDestroyFramebuffer(Device, framebuffer, nullptr);
@@ -498,7 +500,10 @@ namespace VulkanCore {
 			vkDestroyFence(Device, fence, nullptr);
 		}
 
-		vkDestroyCommandPool(Device, CommandPool, nullptr);
+		for (size_t i = 0; i < CommandPools.size(); i++) {
+			vkDestroyCommandPool(Device, CommandPools[i], nullptr);
+		}
+		
 
 		for (int i = 0; i < FrameCount; ++i)
 		{
@@ -889,55 +894,61 @@ namespace VulkanCore {
 		}
 	}
 
-	void GraphicsContext::CreateCommandPool()
+	void GraphicsContext::CreateCommandPools()
 	{
 		VKC_PROFILE_FUNCTION();
-		// Because command buffers can be very flexible, we don't want to be 
-		// doing a lot of allocation while we're trying to render.
-		// For this reason we create a pool to hold allocated command buffers.
-		VkCommandPoolCreateInfo commandPoolCreateInfo = {};
-		commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 
-		// This allows the command buffer to be implicitly reset when vkBeginCommandBuffer is called.
-		// You can also explicitly call vkResetCommandBuffer.  
-		commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		CommandPools.resize(FrameCount);
+		for (int i = 0; i < FrameCount; ++i)
+		{
+			// Because command buffers can be very flexible, we don't want to be 
+			// doing a lot of allocation while we're trying to render.
+			// For this reason we create a pool to hold allocated command buffers.
+			VkCommandPoolCreateInfo commandPoolCreateInfo = {};
+			commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 
-		// We'll be building command buffers to send to the graphics queue
-		commandPoolCreateInfo.queueFamilyIndex = GraphicsFamilyIndex;
+			// This allows the command buffer to be implicitly reset when vkBeginCommandBuffer is called.
+			// You can also explicitly call vkResetCommandBuffer.  
+			commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-		CheckVkResult(vkCreateCommandPool(Device, &commandPoolCreateInfo, nullptr, &CommandPool));
+			// We'll be building command buffers to send to the graphics queue
+			commandPoolCreateInfo.queueFamilyIndex = GraphicsFamilyIndex;
+
+			CheckVkResult(vkCreateCommandPool(Device, &commandPoolCreateInfo, nullptr, &CommandPools[i]));
+		}
 	}
 
 	void GraphicsContext::CreateCommandBuffers()
 	{
 		VKC_PROFILE_FUNCTION();
-		VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
-		commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-
-		// Don't worry about this
-		commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-
-		// The command pool we created above
-		commandBufferAllocateInfo.commandPool = CommandPool;
-
-		// We'll have two command buffers.  One will be in flight
-		// while the other is being built.
-		commandBufferAllocateInfo.commandBufferCount = FrameCount;
 
 		CommandBuffers.resize(FrameCount);
-
-		// You can allocate multiple command buffers at once.
-		CheckVkResult(vkAllocateCommandBuffers(Device, &commandBufferAllocateInfo, CommandBuffers.data()));
-
-		// We create fences that we can use to wait for a 
-		// given command buffer to be done on the GPU.
-		VkFenceCreateInfo fenceCreateInfo = {};
-		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
 		CommandBufferFences.resize(FrameCount);
 		for (int i = 0; i < FrameCount; ++i)
 		{
+			VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
+			commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+
+			// Don't worry about this
+			commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+			// The command pool we created above
+			commandBufferAllocateInfo.commandPool = CommandPools[i];
+
+			// We'll have two command buffers.  One will be in flight
+			// while the other is being built.
+			commandBufferAllocateInfo.commandBufferCount = 1;
+
+
+			// You can allocate multiple command buffers at once.
+			CheckVkResult(vkAllocateCommandBuffers(Device, &commandBufferAllocateInfo, &CommandBuffers[i]));
+
+			// We create fences that we can use to wait for a 
+			// given command buffer to be done on the GPU.
+			VkFenceCreateInfo fenceCreateInfo = {};
+			fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+			fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
 			CheckVkResult(vkCreateFence(Device, &fenceCreateInfo, nullptr, &CommandBufferFences[i]));
 		}
 	}
@@ -1219,7 +1230,10 @@ namespace VulkanCore {
 			vkDestroyFramebuffer(Device, FrameBuffers[i], nullptr);
 		}
 
-		vkFreeCommandBuffers(Device, CommandPool, (uint32_t)(CommandBuffers.size()), CommandBuffers.data());
+		for (size_t i = 0; i < CommandPools.size(); i++) {
+			vkFreeCommandBuffers(Device, CommandPools[i], 1, &CommandBuffers[i]);
+		}
+		
 		for (auto fence : CommandBufferFences)
 		{
 			vkDestroyFence(Device, fence, nullptr);

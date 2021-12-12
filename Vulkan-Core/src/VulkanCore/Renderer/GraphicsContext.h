@@ -86,7 +86,7 @@ namespace VulkanCore {
 		void CreateLogicalDeviceAndQueues();
 		void InitializeAllocator();
 		void CreateSemaphores();
-		void CreateCommandPool();
+		void CreateCommandPools();
 		void CreateCommandBuffers();
 		void CreateSwapChain();
 		VkFormat ChooseSupportedFormat(VkFormat* formats, int numFormats, VkImageTiling tiling, VkFormatFeatureFlags features);
@@ -130,7 +130,7 @@ namespace VulkanCore {
 		std::vector<VkSemaphore> AcquireSemaphores;
 		std::vector<VkSemaphore> RenderCompleteSemaphores;
 
-		VkCommandPool CommandPool = VK_NULL_HANDLE;
+		std::vector<VkCommandPool> CommandPools;
 
 		std::vector<VkCommandBuffer> CommandBuffers;
 		std::vector<VkFence> CommandBufferFences;
