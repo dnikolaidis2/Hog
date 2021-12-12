@@ -28,15 +28,12 @@ namespace VulkanCore
 
 	void Mesh::Draw(VkCommandBuffer commandBuffer)
 	{
-		std::vector<VkBuffer> vertexBuffers(1);
-		std::vector<VkDeviceSize> offsets(1);
-		for (int i = 0; i < vertexBuffers.size(); ++i)
-		{
-			vertexBuffers[i] = m_VertexBuffer.GetHandle();
-			offsets[i] = 0;
-		}
+		VKC_PROFILE_FUNCTION()
 
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers.data(), offsets.data());
+		VkBuffer vertexBuffers[] = { m_VertexBuffer.GetHandle() };
+		VkDeviceSize offsets[] = { 0 };
+		
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
 		vkCmdDraw(commandBuffer, (uint32_t)GetSize(), 1, 0, 0);
 	}

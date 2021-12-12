@@ -46,6 +46,8 @@ namespace VulkanCore
 
 	void GraphicsPipeline::Bind(VkCommandBuffer commandBuffer)
 	{
+		VKC_PROFILE_FUNCTION();
+
 		VkExtent2D extent = GraphicsContext::GetExtent();
 		Viewport.width = (float)extent.width;
 		Viewport.height = (float)extent.height;

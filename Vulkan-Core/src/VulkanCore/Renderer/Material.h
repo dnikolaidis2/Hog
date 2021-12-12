@@ -17,6 +17,7 @@ namespace VulkanCore
 		~Material() = default;
 
 		Ref<Shader> GetShader() const { return m_Shader; }
+		Ref<GraphicsPipeline> GetPipeline() const { return m_Pipeline; }
 
 		void Bind(VkCommandBuffer commandBuffer, VkDescriptorSet* descriptorSetPtr);
 	private:

@@ -12,9 +12,9 @@ namespace VulkanCore
 		return ref;
 	}
 
-	void RendererObject::Render(VkCommandBuffer commandBuffer, VkDescriptorSet* descriptorSetPtr)
+	void RendererObject::Draw(VkCommandBuffer commandBuffer)
 	{
-		m_Material->Bind(commandBuffer, descriptorSetPtr);
+		VKC_PROFILE_FUNCTION()
 
 		m_Mesh->Draw(commandBuffer);
 	}

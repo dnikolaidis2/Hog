@@ -13,17 +13,14 @@ int main(int argc, char** argv)
 	VKC_PROFILE_BEGIN_SESSION("Startup", "HazelProfile-Startup.json");
 	auto app = VulkanCore::CreateApplication({ argc, argv });
 	VKC_PROFILE_END_SESSION();
-	VKC_PROFILE_SAVE_SESSION("VKCProfile-Startup.opt");
 
 	VKC_PROFILE_BEGIN_SESSION("Runtime", "HazelProfile-Runtime.json");
 	app->Run();
 	VKC_PROFILE_END_SESSION();
-	VKC_PROFILE_SAVE_SESSION("VKCProfile-Runtime.opt");
 
 	VKC_PROFILE_BEGIN_SESSION("Shutdown", "HazelProfile-Shutdown.json");
 	delete app;
 	VKC_PROFILE_END_SESSION();
-	VKC_PROFILE_SAVE_SESSION("VKCProfile-Shutdown.opt");
 }
 
 #endif

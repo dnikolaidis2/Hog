@@ -39,8 +39,6 @@ namespace VulkanCore
 
 	void Material::Bind(VkCommandBuffer commandBuffer, VkDescriptorSet* descriptorSetPtr)
 	{
-		m_Pipeline->Bind(commandBuffer);
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Shader->GetPipelineLayout(), 0, 1, descriptorSetPtr, 0, nullptr);
+		VKC_PROFILE_FUNCTION()
 	}
 }

@@ -16,7 +16,9 @@ namespace VulkanCore
 		void SetMesh(Scope<Mesh> mesh) { m_Mesh = std::move(mesh); }
 		void SetMaterial(Ref<Material> material) { m_Material = material; }
 
-		void Render(VkCommandBuffer commandBuffer, VkDescriptorSet* descriptorSetPtr);
+		Ref<Material> GetMaterial() const { return m_Material; }
+
+		void Draw(VkCommandBuffer commandBuffer);
 	private:
 		Scope<Mesh> m_Mesh;
 		Ref<Material> m_Material;

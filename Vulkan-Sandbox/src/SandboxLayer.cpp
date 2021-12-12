@@ -22,7 +22,7 @@ void SandboxLayer::OnAttach()
 
 	context.Initialize();
 
-	// VKC_PROFILE_GPU_INIT_VULKAN(&context.Device, &context.PhysicalDevice, &context.GraphicsQueue, &context.GraphicsFamilyIndex, 1);
+	// VKC_PROFILE_GPU_INIT_VULKAN(&(context.Device), &(context.PhysicalDevice), &(context.GraphicsQueue), &(context.GraphicsFamilyIndex), 1)
 	
 	LoadObjFile("assets/models/sponza/sponza.obj", m_Objects, m_MaterialLibrary);
 
@@ -92,6 +92,8 @@ void SandboxLayer::OnDetach()
 
 	vkDeviceWaitIdle(context.Device);
 
+	Renderer::Reset();
+
 	for (size_t i = 0; i < m_UniformBuffers.size(); i++) {
 		m_UniformBuffers[i].reset();
 	}
@@ -116,6 +118,7 @@ void SandboxLayer::OnUpdate(Timestep ts)
 	VKC_PROFILE_FUNCTION()
 
 	m_EditorCamera.OnUpdate(ts);
+	Renderer::Reset();
 
 	int currentFrame = context.CurrentFrame;
 	auto& commandBufferFences = context.CommandBufferFences;
@@ -129,6 +132,8 @@ void SandboxLayer::OnUpdate(Timestep ts)
 	uint32_t imageIndex;
 	vkAcquireNextImageKHR(context.Device, context.Swapchain, UINT64_MAX, acquireSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
+	// VKC_PROFILE_GPU_CONTEXT(commandBuffers[imageIndex]);
+
 	UniformBufferObject ubo{};
 	ubo.Model = glm::rotate(glm::mat4{ 1.0f }, glm::radians(90.0f), glm::vec3(0, 1, 0)) * glm::rotate(glm::mat4{ 1.0f }, glm::radians(180.0f), glm::vec3(1, 0, 0));
 	ubo.View = m_EditorCamera.GetViewMatrix();
@@ -137,6 +142,8 @@ void SandboxLayer::OnUpdate(Timestep ts)
 	m_UniformBuffers[imageIndex]->SetData(&ubo, sizeof(ubo));
 
 	{
+		VKC_PROFILE_SCOPE("Recording to command buffer")
+
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.flags = 0; // Optional
@@ -163,10 +170,7 @@ void SandboxLayer::OnUpdate(Timestep ts)
 
 		vkCmdBeginRenderPass(commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		for (auto& object : m_Objects)
-		{
-			object->Render(commandBuffers[imageIndex], &m_DescriptorSets[imageIndex]);
-		}
+		Renderer::DrawObjects(commandBuffers[imageIndex], m_DescriptorSets.data(), m_Objects);
 
 		vkCmdEndRenderPass(commandBuffers[imageIndex]);
 
