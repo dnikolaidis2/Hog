@@ -8,7 +8,7 @@ namespace VulkanCore
 	class Renderer
 	{
 	public:
-		static void Reset();
+		static void Deinitialize();
 		static void DrawObject(VkCommandBuffer commandBuffer, VkDescriptorSet* descriptorSetPtr, const Ref<RendererObject> object);
 		static void DrawObjects(VkCommandBuffer commandBuffer, VkDescriptorSet* descriptorSetPtr, const std::vector<Ref<RendererObject>>& objects);
 	};

@@ -12,7 +12,7 @@ namespace VulkanCore
 
 	static RendererState s_Data;
 
-	void Renderer::Reset()
+	void Renderer::Deinitialize()
 	{
 		s_Data.BoundPipeline = nullptr;
 	}

@@ -24,7 +24,7 @@ void SandboxLayer::OnAttach()
 
 	// VKC_PROFILE_GPU_INIT_VULKAN(&(context.Device), &(context.PhysicalDevice), &(context.GraphicsQueue), &(context.GraphicsFamilyIndex), 1)
 	
-	LoadObjFile("assets/models/sponza/sponza.obj", m_Objects, m_MaterialLibrary);
+	LoadObjFile("assets/models/sponza/sponza.obj", m_Objects);
 
 	{
 		m_UniformBuffers.resize(context.FrameCount);
@@ -52,7 +52,7 @@ void SandboxLayer::OnAttach()
 	}
 
 	{
-		std::vector<VkDescriptorSetLayout> layouts(context.FrameCount, m_MaterialLibrary["bricks"]->GetShader()->GetDescriptorSetLayouts()[0]);
+		std::vector<VkDescriptorSetLayout> layouts(context.FrameCount, MaterialLibrary::Get("bricks")->GetShader()->GetDescriptorSetLayouts()[0]);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = m_DescriptorPool;
@@ -92,15 +92,12 @@ void SandboxLayer::OnDetach()
 
 	vkDeviceWaitIdle(context.Device);
 
-	Renderer::Reset();
+	Renderer::Deinitialize();
+	ShaderLibrary::Deinitialize();
+	MaterialLibrary::Deinitialize();
 
 	for (size_t i = 0; i < m_UniformBuffers.size(); i++) {
 		m_UniformBuffers[i].reset();
-	}
-
-	for (auto& material : m_MaterialLibrary)
-	{
-		material.second.reset();
 	}
 
 	for (auto& obj : m_Objects)
@@ -118,7 +115,7 @@ void SandboxLayer::OnUpdate(Timestep ts)
 	VKC_PROFILE_FUNCTION()
 
 	m_EditorCamera.OnUpdate(ts);
-	Renderer::Reset();
+	Renderer::Deinitialize();
 
 	int currentFrame = context.CurrentFrame;
 	auto& commandBufferFences = context.CommandBufferFences;
@@ -236,7 +233,7 @@ bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
 
 	GraphicsContext::RecreateSwapChain();
 
-	m_EditorCamera.SetViewportSize(e.GetWidth(), e.GetHeight());
+	m_EditorCamera.SetViewportSize((float)e.GetWidth(), (float)e.GetHeight());
 
 	return false;
 }

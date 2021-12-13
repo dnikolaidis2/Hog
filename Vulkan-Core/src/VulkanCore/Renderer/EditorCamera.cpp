@@ -61,18 +61,48 @@ namespace VulkanCore {
 
 	void EditorCamera::OnUpdate(Timestep ts)
 	{
-		if (Input::IsKeyPressed(Key::LeftAlt))
-		{
-			const glm::vec2& mouse{ Input::GetMouseX(), Input::GetMouseY() };
-			glm::vec2 delta = (mouse - m_InitialMousePosition) * 0.003f;
-			m_InitialMousePosition = mouse;
+		const glm::vec2& mouse{ Input::GetMouseX(), Input::GetMouseY() };
+		glm::vec2 delta = (mouse - m_InitialMousePosition) * 0.003f;
+		m_InitialMousePosition = mouse;
 
-			if (Input::IsMouseButtonPressed(Mouse::ButtonMiddle))
-				MousePan(delta);
-			else if (Input::IsMouseButtonPressed(Mouse::ButtonLeft))
-				MouseRotate(delta);
-			else if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
-				MouseZoom(delta.y);
+		if (Input::IsMouseButtonPressed(Mouse::ButtonMiddle))
+			MousePan(delta);
+		else if (Input::IsMouseButtonPressed(Mouse::ButtonLeft))
+			MouseRotate(delta);
+		else if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
+			MouseZoom(delta.y);
+
+		auto [xSpeed, ySpeed] = PanSpeed();
+
+		if (Input::IsKeyPressed(Key::LeftShift))
+		{
+			xSpeed *= 2;
+			ySpeed *= 2;
+		}
+
+		if (Input::IsKeyPressed(Key::W))
+		{
+			m_FocalPoint += GetForwardDirection() * 1.0f * xSpeed * m_Distance;
+		}
+		if (Input::IsKeyPressed(Key::S))
+		{
+			m_FocalPoint += -GetForwardDirection() * 1.0f * xSpeed * m_Distance;
+		}
+		if (Input::IsKeyPressed(Key::A))
+		{
+			m_FocalPoint += -GetRightDirection() * 1.0f * xSpeed * m_Distance;
+		}
+		if (Input::IsKeyPressed(Key::D))
+		{
+			m_FocalPoint += GetRightDirection() * 1.0f * xSpeed * m_Distance;
+		}
+		if (Input::IsKeyPressed(Key::Q))
+		{
+			m_FocalPoint += GetUpDirection() * 1.0f * ySpeed * m_Distance;
+		}
+		if (Input::IsKeyPressed(Key::E))
+		{
+			m_FocalPoint += -GetUpDirection() * 1.0f * ySpeed * m_Distance;
 		}
 
 		UpdateView();
@@ -103,7 +133,7 @@ namespace VulkanCore {
 	{
 		float yawSign = GetUpDirection().y < 0 ? -1.0f : 1.0f;
 		m_Yaw += yawSign * delta.x * RotationSpeed();
-		m_Pitch += delta.y * RotationSpeed();
+		m_Pitch += -delta.y * RotationSpeed();
 	}
 
 	void EditorCamera::MouseZoom(float delta)

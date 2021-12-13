@@ -4,6 +4,7 @@
 
 #include <VulkanCore/Utils/RendererUtils.h>
 #include <VulkanCore/Renderer/GraphicsContext.h>
+#include <VulkanCore/Renderer/Shader.h>
 
 namespace VulkanCore
 {
@@ -65,7 +66,7 @@ namespace VulkanCore
 		m_Initialized = false;
 	}
 
-	void GraphicsPipeline::AddShaderStage(Shader::ShaderType type, VkShaderModule shaderModule, const char* main)
+	void GraphicsPipeline::AddShaderStage(ShaderType type, VkShaderModule shaderModule, const char* main)
 	{
 		VkPipelineShaderStageCreateInfo info = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,

@@ -242,6 +242,11 @@ namespace VulkanCore {
 		return (VkShaderStageFlagBits)0;
 	}
 
+	Ref<Shader> Shader::Create(const std::string& filepath)
+	{
+		return CreateRef<Shader>(filepath);
+	}
+
 	Shader::Shader(const std::string& filepath)
 		: m_FilePath(filepath)
 	{
@@ -278,6 +283,26 @@ namespace VulkanCore {
 
 		vkDestroyShaderModule(m_Device, m_VertexShaderModule, nullptr);
 		vkDestroyShaderModule(m_Device, m_FragmentShaderModule, nullptr);
+	}
+
+	Ref<GraphicsPipeline> Shader::CreateOrGetDefaultPipeline()
+	{
+		if (!m_DefaultPipeline)
+		{
+			m_DefaultPipeline = CreateRef<GraphicsPipeline>(context.Device, GetPipelineLayout(), context.SwapchainExtent, context.RenderPass);
+
+			m_DefaultPipeline->AddShaderStage(ShaderType::Vertex, GetVertexShaderModule());
+			m_DefaultPipeline->AddShaderStage(ShaderType::Fragment, GetFragmentShaderModule());
+
+			m_DefaultPipeline->VertexInputBindingDescriptions.push_back(GetVertexInputBindingDescription());
+			m_DefaultPipeline->VertexInputAttributeDescriptions = GetVertexInputAttributeDescriptions();
+
+			m_DefaultPipeline->PipelineDepthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+
+			m_DefaultPipeline->Create();
+		}
+
+		return m_DefaultPipeline;
 	}
 
 	std::string Shader::ReadFile(const std::string& filepath)
@@ -571,5 +596,63 @@ namespace VulkanCore {
 		}
 
 		return shaderSources;
+	}
+
+	static std::unordered_map<std::string, Ref<Shader>> s_Shaders;
+
+	void ShaderLibrary::Add(const std::string& name, const Ref<Shader>& shader)
+	{
+		VKC_CORE_ASSERT(!Exists(name), "Shader already exists!");
+		s_Shaders[name] = shader;
+	}
+
+	void ShaderLibrary::Add(const Ref<Shader>& shader)
+	{
+		auto& name = shader->GetName();
+		Add(name, shader);
+	}
+
+	Ref<Shader> ShaderLibrary::Load(const std::string& filepath)
+	{
+		auto shader = Shader::Create(filepath);
+		Add(shader);
+		return shader;
+	}
+
+	Ref<Shader> ShaderLibrary::Load(const std::string& name, const std::string& filepath)
+	{
+		auto shader = Shader::Create(filepath);
+		Add(name, shader);
+		return shader;
+	}
+
+	Ref<Shader> ShaderLibrary::LoadOrGet(const std::string& filepath)
+	{
+		auto lastSlash = filepath.find_last_of("/\\");
+		lastSlash = lastSlash == std::string::npos ? 0 : lastSlash + 1;
+		auto lastDot = filepath.rfind('.');
+		auto count = lastDot == std::string::npos ? filepath.size() - lastSlash : lastDot - lastSlash;
+		std::string name = filepath.substr(lastSlash, count);
+
+		if (Exists(name))
+			return Get(name);
+		else
+			return Load(filepath);
+	}
+
+	Ref<Shader> ShaderLibrary::Get(const std::string& name)
+	{
+		VKC_CORE_ASSERT(Exists(name), "Shader not found!");
+		return s_Shaders[name];
+	}
+
+	void ShaderLibrary::Deinitialize()
+	{
+		s_Shaders.clear();
+	}
+
+	bool ShaderLibrary::Exists(const std::string& name)
+	{
+		return s_Shaders.find(name) != s_Shaders.end();
 	}
 }

@@ -2,10 +2,10 @@
 
 #include <vulkan/vulkan.h>
 
-#include "Shader.h"
-
 namespace VulkanCore
 {
+	enum class ShaderType;
+
 	class GraphicsPipeline
 	{
 	public:
@@ -15,7 +15,7 @@ namespace VulkanCore
 		VkPipeline Create();
 		void Bind(VkCommandBuffer commandBuffer);
 		void Destroy();
-		void AddShaderStage(Shader::ShaderType type, VkShaderModule shaderModule, const char* main = "main");
+		void AddShaderStage(ShaderType type, VkShaderModule shaderModule, const char* main = "main");
 
 		operator VkPipeline() const { return PipelineHandle; }
 	private:

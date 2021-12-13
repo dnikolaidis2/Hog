@@ -19,7 +19,6 @@ public:
 	void OnEvent(Event& e) override;
 	bool OnResized(FrameBufferResizeEvent& e);
 private:
-	std::unordered_map<std::string, Ref<Material>> m_MaterialLibrary;
 	std::vector<Ref<RendererObject>> m_Objects;
 	
 	VkDescriptorPool m_DescriptorPool;

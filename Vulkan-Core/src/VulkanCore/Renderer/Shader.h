@@ -2,17 +2,22 @@
 #include <shaderc/shaderc.h>
 #include <vulkan/vulkan.h>
 
+#include <VulkanCore/Renderer/GraphicsPipeline.h>
+
 namespace VulkanCore {
+
+	enum class ShaderType { Fragment, Vertex, Compute };
 
 	class Shader
 	{
 	public:
-		enum class ShaderType { Fragment, Vertex, Compute };
-	public:
 		static VkShaderStageFlagBits ShaderTypeToVkShaderStageFlagBit(ShaderType type);
+		static Ref<Shader> Create(const std::string& filepath);
 	public:
 		Shader(const std::string& filepath);
 		~Shader();
+
+		Ref<GraphicsPipeline> CreateOrGetDefaultPipeline();
 
 		VkShaderModule GetVertexShaderModule() const { return m_VertexShaderModule; }
 		VkShaderModule GetFragmentShaderModule() const { return m_FragmentShaderModule; }
@@ -20,6 +25,7 @@ namespace VulkanCore {
 		const std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() { return m_DescriptorSetLayouts; }
 		const std::vector<VkVertexInputAttributeDescription>& GetVertexInputAttributeDescriptions() { return m_VertexInputAttributeDescriptions; }
 		VkVertexInputBindingDescription GetVertexInputBindingDescription() const { return m_VertexInputBindingDescription; }
+		const std::string& GetName() const { return m_Name; }
 	private:
 		std::string ReadFile(const std::string& filepath);
 		std::unordered_map<shaderc_shader_kind, std::string> PreProcess(const std::string& source);
@@ -52,6 +58,25 @@ namespace VulkanCore {
 		std::vector<VkVertexInputAttributeDescription> m_VertexInputAttributeDescriptions;
 
 		VkPipelineLayout m_PipelineLayout;
+		Ref<GraphicsPipeline> m_DefaultPipeline;
+	};
+
+	class ShaderLibrary
+	{
+	public:
+		ShaderLibrary() = delete;
+
+		static void Add(const std::string& name, const Ref<Shader>& shader);
+		static void Add(const Ref<Shader>& shader);
+		static Ref<Shader> Load(const std::string& filepath);
+		static Ref<Shader> Load(const std::string& name, const std::string& filepath);
+		static Ref<Shader> LoadOrGet(const std::string& filepath);
+
+		static Ref<Shader> Get(const std::string& name);
+
+		static void Deinitialize();
+
+		static bool Exists(const std::string& name);
 	};
 }
 

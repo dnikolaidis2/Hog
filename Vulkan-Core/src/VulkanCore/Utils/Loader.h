@@ -7,8 +7,10 @@
 
 namespace VulkanCore
 {
-	inline static bool LoadObjFile(const std::string& filepath, std::vector<Ref<RendererObject>>& objects, std::unordered_map<std::string, Ref<Material>>& materials)
+	inline static bool LoadObjFile(const std::string& filepath, std::vector<Ref<RendererObject>>& objects)
 	{
+		VKC_PROFILE_FUNCTION()
+
 		//attrib will contain the vertex arrays of the file
 		tinyobj::attrib_t attrib;
 		//shapes contains the info for each separate object in the file
@@ -38,7 +40,7 @@ namespace VulkanCore
 
 		for (size_t s = 0; s < objMaterials.size(); s++)
 		{
-			materials.insert({ objMaterials[s].name, Material::Create(nullptr, nullptr) });
+			MaterialLibrary::Create(objMaterials[s].name, nullptr, nullptr);
 		}
 		
 		objects.resize(objects.size() + shapes.size());
@@ -77,7 +79,7 @@ namespace VulkanCore
 			}
 
 			mesh->Load();
-			objects[s] = RendererObject::Create(std::move(mesh), materials[objMaterials[shapes[s].mesh.material_ids[0]].name]);
+			objects[s] = RendererObject::Create(std::move(mesh), MaterialLibrary::Get(objMaterials[shapes[s].mesh.material_ids[0]].name));
 		}
 
 		return true;
