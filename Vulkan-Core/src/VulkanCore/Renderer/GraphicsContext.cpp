@@ -528,6 +528,8 @@ namespace VulkanCore {
 
 	void GraphicsContext::RecreateSwapChainImpl()
 	{
+		vkDeviceWaitIdle(Device);
+
 		CleanupSwapChain();
 
 		CheckVkResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(GPU->Device, Surface, &GPU->SurfaceCapabilities));

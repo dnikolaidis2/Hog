@@ -50,6 +50,8 @@ namespace VulkanCore {
 		std::vector<VkDescriptorSetLayoutBinding> m_DescriptorSetLayoutBinding;
 		std::vector<VkDescriptorSetLayout> m_DescriptorSetLayouts;
 
+		std::vector<VkPushConstantRange> m_PushConstantRanges;
+
 		VkPipelineLayoutCreateInfo m_PipelineLayoutCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 		};

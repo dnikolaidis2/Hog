@@ -17,3 +17,4 @@
  ☐ Handle minimizing
  ☐ Switch to not creating smart pointers manually but using Create methods
  ☐ GPU profiling
+ ✔ Push constants for mesh model matrix @done (21-12-14 16:41)

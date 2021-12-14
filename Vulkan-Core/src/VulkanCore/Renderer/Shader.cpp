@@ -434,12 +434,12 @@ namespace VulkanCore {
 		VKC_CORE_TRACE("Uniform buffers:");
 		for (const auto& resource : resources.uniform_buffers)
 		{
-			VkDescriptorSetLayoutBinding layoutBinding;
+			VkDescriptorSetLayoutBinding layoutBinding = {};
 
 			const auto& bufferType = compiler.get_type(resource.base_type_id);
 			uint32_t bufferSize;
 			if (bufferType.basetype == spirv_cross::SPIRType::Struct)
-				bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType) / 8;
+				bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
 			else
 				bufferSize = (bufferType.width * bufferType.vecsize) / 8;
 			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
@@ -453,12 +453,11 @@ namespace VulkanCore {
 			layoutBinding.binding = binding;
 			layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			layoutBinding.descriptorCount = 1;
-			layoutBinding.stageFlags = Utils::ShaderStageFlagBitsFromShaderKind(stage).value();
+			layoutBinding.stageFlags |= Utils::ShaderStageFlagBitsFromShaderKind(stage).value();
 			m_DescriptorSetLayoutBinding.push_back(layoutBinding);
 		}
 
 		VKC_CORE_TRACE("Stage Inputs:");
-		
 		for (const auto& resource : resources.stage_inputs)
 		{
 			const auto& bufferType = compiler.get_type(resource.base_type_id);
@@ -536,6 +535,34 @@ namespace VulkanCore {
 			VKC_CORE_TRACE("    Binding = {0}", binding);
 			VKC_CORE_TRACE("    Offset = {0}", offset);
 		}
+
+		VKC_CORE_TRACE("Push Constants:");
+		for (const auto& resource : resources.push_constant_buffers)
+		{
+			const auto& bufferType = compiler.get_type(resource.base_type_id);
+			uint32_t bufferSize;
+			if (bufferType.basetype == spirv_cross::SPIRType::Struct)
+				bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
+			else
+				bufferSize = (bufferType.width * bufferType.vecsize) / 8;
+			uint32_t location = compiler.get_decoration(resource.id, spv::DecorationLocation);
+			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+			uint32_t offset = compiler.get_decoration(resource.id, spv::DecorationOffset);
+
+			VKC_CORE_TRACE("  {0}", resource.name);
+			VKC_CORE_TRACE("    Size = {0}", bufferSize);
+			VKC_CORE_TRACE("    Location = {0}", location);
+			VKC_CORE_TRACE("    Binding = {0}", binding);
+			VKC_CORE_TRACE("    Offset = {0}", offset);
+			VKC_CORE_TRACE("    HasOffset = {0}", compiler.has_decoration(resource.id, spv::DecorationOffset));
+
+			VkPushConstantRange pushConstant = {};
+			pushConstant.offset = 0;
+			pushConstant.size = bufferSize;
+			pushConstant.stageFlags |= Utils::ShaderStageFlagBitsFromShaderKind(stage).value();
+
+			m_PushConstantRanges.push_back(pushConstant);
+		}
 	}
 
 	void Shader::CreateProgram()
@@ -567,6 +594,8 @@ namespace VulkanCore {
 		m_DescriptorSetLayouts.resize(1);
 		CheckVkResult(vkCreateDescriptorSetLayout(context.Device, &layoutInfo, nullptr, &m_DescriptorSetLayouts[0]));
 
+		m_PipelineLayoutCreateInfo.pushConstantRangeCount = (uint32_t)m_PushConstantRanges.size();
+		m_PipelineLayoutCreateInfo.pPushConstantRanges = m_PushConstantRanges.data();
 		m_PipelineLayoutCreateInfo.setLayoutCount = (uint32_t)m_DescriptorSetLayouts.size(); // Optional
 		m_PipelineLayoutCreateInfo.pSetLayouts = m_DescriptorSetLayouts.data(); // Optional
 

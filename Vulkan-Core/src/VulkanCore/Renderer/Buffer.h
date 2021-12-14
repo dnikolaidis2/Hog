@@ -192,12 +192,6 @@ namespace VulkanCore {
 		uint32_t m_Stride = 0;
 	};
 
-	struct UniformBufferObject {
-		glm::mat4 Model;
-		glm::mat4 View;
-		glm::mat4 Projection;
-	};
-
 	struct Vertex
 	{
 		glm::vec3 Position;

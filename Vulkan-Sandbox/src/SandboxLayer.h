@@ -20,12 +20,6 @@ public:
 	bool OnResized(FrameBufferResizeEvent& e);
 private:
 	std::vector<Ref<RendererObject>> m_Objects;
-	
-	VkDescriptorPool m_DescriptorPool;
-	std::vector<VkDescriptorSet> m_DescriptorSets;
 
-	std::vector<Ref<MemoryBuffer>> m_UniformBuffers;
 	EditorCamera m_EditorCamera;
-
-	uint64_t m_FrameNumber = 0;
 };

@@ -67,6 +67,17 @@ namespace VulkanCore {
 		static VmaAllocator GetAllocator() { return Get().Allocator; }
 		static VkDevice GetDevice() { return Get().Device; }
 		static VkExtent2D GetExtent() { return Get().SwapchainExtent; }
+		static VkSwapchainKHR GetSwapchain() { return Get().Swapchain; }
+		static VkQueue GetGraphicsQueue() { return Get().GraphicsQueue; }
+		static int GetCurrentFrame() { return Get().CurrentFrame; }
+		static int GetFrameCount() { return Get().FrameCount; }
+		static void SetCurrentFrame(int frameNumber) { Get().CurrentFrame = frameNumber; }
+		static VkCommandBuffer GetCurrentCommandBuffer() { return Get().CommandBuffers[GetCurrentFrame()]; }
+		static VkFramebuffer GetCurrentFrameBuffer() { return Get().FrameBuffers[GetCurrentFrame()]; }
+		static VkRenderPass GetRenderPass() { return Get().RenderPass; }
+		static VkFence GetCurrentCommandBufferFence() { return Get().CommandBufferFences[GetCurrentFrame()]; }
+		static VkSemaphore GetCurrentAcquireSemaphore() { return Get().AcquireSemaphores[GetCurrentFrame()]; }
+		static VkSemaphore GetCurrentRenderCompleteSemaphore() { return Get().RenderCompleteSemaphores[GetCurrentFrame()]; }
 	public:
 		GraphicsContext(GraphicsContext const&) = delete;
 		void operator=(GraphicsContext const&) = delete;
