@@ -31,8 +31,16 @@ namespace VulkanCore
 
 		Ref<GraphicsPipeline> BoundPipeline = nullptr;
 
+		VkDescriptorSetLayoutBinding GlobalDescriptorSetLayoutBinding =
+		{
+			.binding = 0,
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+		};
+		VkDescriptorSetLayout GlobalDescriptorLayout;
 		VkDescriptorPool DescriptorPool;
-		std::vector<VkDescriptorSet> DescriptorSets;
+		std::vector<VkDescriptorSet> GlobalDescriptorSets;
 
 		RendererStats Statistics;
 
@@ -40,7 +48,7 @@ namespace VulkanCore
 		VkSemaphore CurrentAcquireSemaphore;
 		VkSemaphore CurrentRenderCompleteSemaphore;
 		VkFence CurentCommandBufferFence;
-		VkDescriptorSet* CurrentDescriptorSetPtr;
+		VkDescriptorSet* CurrentGlobalDescriptorSetPtr;
 		uint32_t CurrentImageIndex;
 	};
 
@@ -50,6 +58,21 @@ namespace VulkanCore
 	{
 		s_Data.Device = GraphicsContext::GetDevice();
 		s_Data.MaxFrameCount = GraphicsContext::GetFrameCount();
+
+		{
+			VkDescriptorSetLayoutCreateInfo setInfo = {};
+			setInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			setInfo.pNext = nullptr;
+
+			//we are going to have 1 binding
+			setInfo.bindingCount = 1;
+			//no flags
+			setInfo.flags = 0;
+			//point to the camera buffer binding
+			setInfo.pBindings = &s_Data.GlobalDescriptorSetLayoutBinding;
+
+			CheckVkResult(vkCreateDescriptorSetLayout(s_Data.Device, &setInfo, nullptr, &s_Data.GlobalDescriptorLayout));
+		}
 
 		{
 			s_Data.CameraBuffers.resize(s_Data.MaxFrameCount);
@@ -63,29 +86,29 @@ namespace VulkanCore
 		}
 
 		{
-			VkDescriptorPoolSize poolSize{};
-			poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			poolSize.descriptorCount = (uint32_t)(s_Data.MaxFrameCount);
+			std::vector<VkDescriptorPoolSize> poolSize = {
+				{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10}
+			};
 
 			VkDescriptorPoolCreateInfo poolInfo{};
 			poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-			poolInfo.poolSizeCount = 1;
-			poolInfo.pPoolSizes = &poolSize;
-			poolInfo.maxSets = (uint32_t)(s_Data.MaxFrameCount);
+			poolInfo.poolSizeCount = (uint32_t)poolSize.size();
+			poolInfo.pPoolSizes = poolSize.data();
+			poolInfo.maxSets = 10;
 
 			CheckVkResult(vkCreateDescriptorPool(s_Data.Device, &poolInfo, nullptr, &s_Data.DescriptorPool));
 		}
 
 		{
-			std::vector<VkDescriptorSetLayout> layouts(s_Data.MaxFrameCount, MaterialLibrary::Get("bricks")->GetShader()->GetDescriptorSetLayouts()[0]);
+			std::vector<VkDescriptorSetLayout> layouts(s_Data.MaxFrameCount, s_Data.GlobalDescriptorLayout);
 			VkDescriptorSetAllocateInfo allocInfo{};
 			allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 			allocInfo.descriptorPool = s_Data.DescriptorPool;
 			allocInfo.descriptorSetCount = (uint32_t)layouts.size();
 			allocInfo.pSetLayouts = layouts.data();
 
-			s_Data.DescriptorSets.resize(s_Data.MaxFrameCount);
-			CheckVkResult(vkAllocateDescriptorSets(s_Data.Device, &allocInfo, s_Data.DescriptorSets.data()));
+			s_Data.GlobalDescriptorSets.resize(s_Data.MaxFrameCount);
+			CheckVkResult(vkAllocateDescriptorSets(s_Data.Device, &allocInfo, s_Data.GlobalDescriptorSets.data()));
 
 			for (size_t i = 0; i < s_Data.MaxFrameCount; i++) {
 				VkDescriptorBufferInfo bufferInfo{};
@@ -95,7 +118,7 @@ namespace VulkanCore
 
 				VkWriteDescriptorSet descriptorWrite{};
 				descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				descriptorWrite.dstSet = s_Data.DescriptorSets[i];
+				descriptorWrite.dstSet = s_Data.GlobalDescriptorSets[i];
 				descriptorWrite.dstBinding = 0;
 				descriptorWrite.dstArrayElement = 0;
 				descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -120,7 +143,7 @@ namespace VulkanCore
 		s_Data.CameraUniformBuffers[frameNumber]->SetData(&s_Data.CameraBuffers[frameNumber], sizeof(CameraData));
 
 		s_Data.CurrentCommandBuffer = GraphicsContext::GetCurrentCommandBuffer();
-		s_Data.CurrentDescriptorSetPtr = &(s_Data.DescriptorSets[frameNumber]);
+		s_Data.CurrentGlobalDescriptorSetPtr = &(s_Data.GlobalDescriptorSets[frameNumber]);
 		s_Data.CurentCommandBufferFence = GraphicsContext::GetCurrentCommandBufferFence();
 		s_Data.CurrentAcquireSemaphore = GraphicsContext::GetCurrentAcquireSemaphore();
 		s_Data.CurrentRenderCompleteSemaphore = GraphicsContext::GetCurrentRenderCompleteSemaphore();
@@ -214,6 +237,7 @@ namespace VulkanCore
 		s_Data.BoundPipeline = nullptr;
 		s_Data.CameraUniformBuffers.clear();
 
+		vkDestroyDescriptorSetLayout(s_Data.Device, s_Data.GlobalDescriptorLayout, nullptr);
 		vkDestroyDescriptorPool(s_Data.Device, s_Data.DescriptorPool, nullptr);
 	}
 
@@ -231,10 +255,10 @@ namespace VulkanCore
 		if (pipeline != s_Data.BoundPipeline)
 		{
 			pipeline->Bind(s_Data.CurrentCommandBuffer);
+			vkCmdBindDescriptorSets(s_Data.CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->GetPipelineLayout(), 0, 1, s_Data.CurrentGlobalDescriptorSetPtr, 0, nullptr);
+
 			s_Data.BoundPipeline = pipeline;
 		}
-
-		vkCmdBindDescriptorSets(s_Data.CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->GetPipelineLayout(), 0, 1, s_Data.CurrentDescriptorSetPtr, 0, nullptr);
 
 		object->Draw(s_Data.CurrentCommandBuffer);
 	}

@@ -11,6 +11,8 @@ bin-int/
 **.vcxproj
 **.vcxproj.filters
 **.vcxproj.user
+**.sln.**
+**.opt
 
 # Directories
 Vulkan-Core/vendor/VulkanSDK

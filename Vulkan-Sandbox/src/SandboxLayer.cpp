@@ -23,6 +23,7 @@ void SandboxLayer::OnAttach()
 	context.Initialize();
 
 	LoadObjFile("assets/models/sponza/sponza.obj", m_Objects);
+	// LoadObjFile("assets/models/monkey/monkey_flat.obj", m_Objects);
 
 	// VKC_PROFILE_GPU_INIT_VULKAN(&(context.Device), &(context.PhysicalDevice), &(context.GraphicsQueue), &(context.GraphicsFamilyIndex), 1)
 
