@@ -3,10 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "VulkanCore/Renderer/GraphicsContext.h"
-#include "VulkanCore/Renderer/Shader.h"
-#include "VulkanCore/Utils/RendererUtils.h"
-#include "VulkanCore/Utils/Loader.h"
+#include <VulkanCore/Utils/Loader.h>
 
 static auto& context = GraphicsContext::Get();
 

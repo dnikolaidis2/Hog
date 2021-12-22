@@ -215,13 +215,13 @@ namespace VulkanCore
 		presentInfo.waitSemaphoreCount = 1;
 		presentInfo.pWaitSemaphores = signalSemaphores;
 
-		VkSwapchainKHR swapChains[] = { GraphicsContext::GetSwapchain()};
+		VkSwapchainKHR swapChains[] = { GraphicsContext::GetSwapchain() };
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = swapChains;
 
 		presentInfo.pImageIndices = &s_Data.CurrentImageIndex;
 
-		vkQueuePresentKHR(GraphicsContext::GetGraphicsQueue(), &presentInfo);
+		CheckVkResult(vkQueuePresentKHR(GraphicsContext::GetGraphicsQueue(), &presentInfo));
 
 		int currentFrame = (GraphicsContext::GetCurrentFrame() + 1) % s_Data.MaxFrameCount;
 

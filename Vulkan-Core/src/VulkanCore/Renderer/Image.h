@@ -64,34 +64,31 @@ namespace VulkanCore
 	class Image
 	{
 	public:
-		VkImage Handle;
-		VkImageView View;
-		VkFormat InternalFormat = VK_FORMAT_UNDEFINED;
-		DataType Format;
-		VmaAllocation Allocation;
-		ImageType Type;
-		uint32_t LevelCount = 1;
-		uint32_t Width;
-		uint32_t Height;
-		bool IsSwapChainImage;
-		Image() = default;
-
-		Image(const Image&) = default;
+		static Ref<Image> Create(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat& format);
+		static Ref<Image> CreateSwapChainImage(VkImage& image, ImageType type, VkFormat& format, VkExtent2D& extent, VkImageViewCreateInfo& viewCreateInfo);
+	public:
+		Image(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat& format);
+		Image(VkImage& image, ImageType type, VkFormat& format, VkExtent2D& extent, VkImageViewCreateInfo& viewCreateInfo);
 		~Image();
 
-		Image(VkImage image, ImageType type, VkFormat format, VkExtent2D extent)
-			: Handle(image), Type(type), InternalFormat(format)
-		{
-			Format = VkFormatToDataType(format);
-			Width = extent.width;
-			Height = extent.height;
-		}
-
-		void Create();
+		const VkImageView& GetImageView() const { return m_View; }
+		const VkFormat& GetInternalFormat() const { return m_InternalFormat; }
+	private:
 		void CreateViewForImage();
-		void Destroy();
+	private:
+		VkImage m_Handle;
+		VkImageView m_View;
+		VkFormat m_InternalFormat = VK_FORMAT_UNDEFINED;
+		DataType m_Format;
+		VmaAllocation m_Allocation;
+		ImageType m_Type;
+		uint32_t m_LevelCount = 1;
+		uint32_t m_Width;
+		uint32_t m_Height;
+		bool m_IsSwapChainImage;
+		bool m_Allocated;
 
-		VkImageCreateInfo ImageCreateInfo = {
+		VkImageCreateInfo m_ImageCreateInfo = {
 				.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 				.mipLevels = 1,
 				.arrayLayers = 1,
@@ -99,7 +96,7 @@ namespace VulkanCore
 				.tiling = VK_IMAGE_TILING_OPTIMAL,
 		};
 
-		VkImageViewCreateInfo ViewCreateInfo= {
+		VkImageViewCreateInfo m_ViewCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 			.components = {
 				.r = VK_COMPONENT_SWIZZLE_R,
@@ -114,8 +111,5 @@ namespace VulkanCore
 				.layerCount = 1
 			}
 		};
-	private:
-		bool m_Allocated = false;
-		bool m_Initialized = false;
 	};
 }

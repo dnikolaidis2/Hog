@@ -15,11 +15,11 @@
  ✔ Dynamic pipeline state @done (21-12-10 00:49)
  ✔ Stop recreating renderpass after resize @done (21-12-10 00:30)
  ☐ Handle minimizing
- ☐ Switch to not creating smart pointers manually but using Create methods
+ ✔ Switch to not creating smart pointers manually but using Create methods @done (21-12-22 17:06)
  ☐ GPU profiling
  ✔ Push constants for mesh model matrix @done (21-12-14 16:41)
  ☐ abstract away struct creation/initialization
  ☐ abstract commandbuffers
  ✔ refactor Buffers @done (21-12-22 15:52)
- ☐ refactor Images
+ ✔ refactor Images @done (21-12-22 17:06)
  ✔ Move to gpu only memory for vertex buffers @done (21-12-22 15:52)

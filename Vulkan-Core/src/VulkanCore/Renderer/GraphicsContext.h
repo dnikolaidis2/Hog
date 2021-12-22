@@ -139,7 +139,7 @@ namespace VulkanCore {
 		VkPresentModeKHR PresentMode = VK_PRESENT_MODE_MAX_ENUM_KHR;
 		VkExtent2D SwapchainExtent = { 0 };
 
-		std::vector<Image> SwapchainImages;
+		std::vector<Ref<Image>> SwapchainImages;
 
 		std::vector<VkSemaphore> AcquireSemaphores;
 		std::vector<VkSemaphore> RenderCompleteSemaphores;
@@ -152,7 +152,7 @@ namespace VulkanCore {
 
 		VkFence UploadFence;
 
-		Image DepthImage;
+		Ref<Image> DepthImage;
 
 		VkRenderPass RenderPass = VK_NULL_HANDLE;
 

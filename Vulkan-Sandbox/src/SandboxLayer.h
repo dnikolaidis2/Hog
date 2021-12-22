@@ -1,7 +1,6 @@
 #pragma once
 
 #include "VulkanCore.h"
-#include <vk_mem_alloc.h>
 
 using namespace VulkanCore;
 

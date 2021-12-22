@@ -7,23 +7,24 @@
 
 namespace VulkanCore
 {
-	Image::~Image()
+	Ref<Image> Image::Create(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat& format)
 	{
-		if (m_Initialized)
-		{
-			Destroy();
-		}
+		return CreateRef<Image>(type, width, height, levelCount, format);
 	}
 
-	void Image::Create()
+	Ref<Image> Image::CreateSwapChainImage(VkImage& image, ImageType type, VkFormat& format, VkExtent2D& extent,
+	                                       VkImageViewCreateInfo& viewCreateInfo)
 	{
-		if (InternalFormat != VK_FORMAT_UNDEFINED)
-			Format = VkFormatToDataType(InternalFormat);
+		return CreateRef<Image>(image, type, format, extent, viewCreateInfo);
+	}
 
-		ImageCreateInfo.extent = { Width, Height, 1 };
-		ImageCreateInfo.imageType = ImageTypeToVkImageType(Type);
-		ImageCreateInfo.format = InternalFormat;
-		ImageCreateInfo.usage = ImageTypeToVkImageUsage(Type);
+	Image::Image(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat& format)
+		: m_InternalFormat(format), m_Type(type), m_Format(VkFormatToDataType(m_InternalFormat)), m_Width(width), m_Height(height), m_Allocated(true)
+	{
+		m_ImageCreateInfo.extent = { width, height, 1 };
+		m_ImageCreateInfo.imageType = ImageTypeToVkImageType(type);
+		m_ImageCreateInfo.format = m_InternalFormat;
+		m_ImageCreateInfo.usage = ImageTypeToVkImageUsage(m_Type);
 
 		//for the depth image, we want to allocate it from GPU local memory
 		VmaAllocationCreateInfo imageAllocationInfo = {};
@@ -31,33 +32,34 @@ namespace VulkanCore
 		imageAllocationInfo.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 		//allocate and create the image
-		CheckVkResult(vmaCreateImage(GraphicsContext::GetAllocator(), &ImageCreateInfo,
-			&imageAllocationInfo, &Handle, &Allocation, nullptr));
+		CheckVkResult(vmaCreateImage(GraphicsContext::GetAllocator(), &m_ImageCreateInfo,
+			&imageAllocationInfo, &m_Handle, &m_Allocation, nullptr));
 
 		CreateViewForImage();
+	}
 
-		m_Initialized = true;
-		m_Allocated = true;
+	Image::Image(VkImage& image, ImageType type, VkFormat& format, VkExtent2D& extent,
+		VkImageViewCreateInfo& viewCreateInfo)
+		: m_Handle(image), m_InternalFormat(format), m_Format(VkFormatToDataType(format)), m_Type(type)
+		, m_Width(extent.width), m_Height(extent.height), m_Allocated(false), m_ViewCreateInfo(viewCreateInfo)
+	{
+		CreateViewForImage();
+	}
+
+	Image::~Image()
+	{
+		vkDestroyImageView(GraphicsContext::GetDevice(), m_View, nullptr);
+		if (m_Allocated)
+			vmaDestroyImage(GraphicsContext::GetAllocator(), m_Handle, m_Allocation);
 	}
 
 	void Image::CreateViewForImage()
 	{
-		ViewCreateInfo.image = Handle;
-		ViewCreateInfo.format = InternalFormat;
-		ViewCreateInfo.subresourceRange.aspectMask = ImageTypeToVkAspectFlag(Type);
-		ViewCreateInfo.viewType = ImageTypeToVkImageViewType(Type);
+		m_ViewCreateInfo.image = m_Handle;
+		m_ViewCreateInfo.format = m_InternalFormat;
+		m_ViewCreateInfo.subresourceRange.aspectMask = ImageTypeToVkAspectFlag(m_Type);
+		m_ViewCreateInfo.viewType = ImageTypeToVkImageViewType(m_Type);
 
-		CheckVkResult(vkCreateImageView(GraphicsContext::GetDevice(), &ViewCreateInfo, nullptr, &View));
-
-		m_Initialized = true;
-	}
-
-	void Image::Destroy()
-	{
-		vkDestroyImageView(GraphicsContext::GetDevice(), View, nullptr);
-		if (m_Allocated)
-			vmaDestroyImage(GraphicsContext::GetAllocator(), Handle, Allocation);
-
-		m_Initialized = false;
+		CheckVkResult(vkCreateImageView(GraphicsContext::GetDevice(), &m_ViewCreateInfo, nullptr, &m_View));
 	}
 }
