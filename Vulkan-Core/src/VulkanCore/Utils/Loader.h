@@ -1,15 +1,17 @@
 #pragma once
 
-#include "tiny_obj_loader.h"
-#include <VulkanCore/Renderer/Mesh.h>
-#include <VulkanCore/Renderer/RendererObject.h>
-#include <VulkanCore/Renderer/Material.h>
+#include <tiny_obj_loader.h>
+
+#include "VulkanCore/Renderer/Mesh.h"
+#include "VulkanCore/Renderer/RendererObject.h"
+#include "VulkanCore/Renderer/Material.h"
+#include "VulkanCore/Debug/Instrumentor.h"
 
 namespace VulkanCore
 {
 	inline static bool LoadObjFile(const std::string& filepath, std::vector<Ref<RendererObject>>& objects)
 	{
-		VKC_PROFILE_FUNCTION()
+		VKC_PROFILE_FUNCTION();
 
 		//attrib will contain the vertex arrays of the file
 		tinyobj::attrib_t attrib;
@@ -27,7 +29,7 @@ namespace VulkanCore
 		std::filesystem::current_path(currentPath / path.parent_path());
 
 		//load the OBJ file
-		tinyobj::LoadObj(&attrib, &shapes, &objMaterials, &errors, path.filename().string().c_str());
+		bool ret = tinyobj::LoadObj(&attrib, &shapes, &objMaterials, &errors, path.filename().string().c_str());
 
 		std::filesystem::current_path(currentPath);
 
@@ -35,7 +37,8 @@ namespace VulkanCore
 		//This happens if the file can't be found or is malformed
 		if (!errors.empty()) {
 			VKC_CORE_ERROR(errors);
-			return false;
+			if (!ret)
+				return ret;
 		}
 
 		for (size_t s = 0; s < objMaterials.size(); s++)
@@ -82,6 +85,6 @@ namespace VulkanCore
 			objects[s] = RendererObject::Create(std::move(mesh), MaterialLibrary::Get(objMaterials[shapes[s].mesh.material_ids[0]].name));
 		}
 
-		return true;
+		return ret;
 	}
 }
