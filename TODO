@@ -18,3 +18,8 @@
  ☐ Switch to not creating smart pointers manually but using Create methods
  ☐ GPU profiling
  ✔ Push constants for mesh model matrix @done (21-12-14 16:41)
+ ☐ abstract away struct creation/initialization
+ ☐ abstract commandbuffers
+ ☐ refactor Buffers
+ ☐ refactor Images
+ ☐ Move to gpu only memory for vertex buffers
