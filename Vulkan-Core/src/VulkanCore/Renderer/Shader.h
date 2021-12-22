@@ -70,6 +70,7 @@ namespace VulkanCore {
 
 		static void Add(const std::string& name, const Ref<Shader>& shader);
 		static void Add(const Ref<Shader>& shader);
+		static void LoadDirectory(const std::string& directory);
 		static Ref<Shader> Load(const std::string& filepath);
 		static Ref<Shader> Load(const std::string& name, const std::string& filepath);
 		static Ref<Shader> LoadOrGet(const std::string& filepath);

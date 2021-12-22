@@ -22,6 +22,8 @@ void SandboxLayer::OnAttach()
 
 	context.Initialize();
 
+	ShaderLibrary::LoadDirectory("assets/shaders");
+
 	LoadObjFile("assets/models/sponza/sponza.obj", m_Objects);
 	// LoadObjFile("assets/models/monkey/monkey_flat.obj", m_Objects);
 

@@ -641,6 +641,25 @@ namespace VulkanCore {
 		Add(name, shader);
 	}
 
+	void ShaderLibrary::LoadDirectory(const std::string& directory)
+	{
+		auto path = std::filesystem::path(directory);
+		for (auto const& file : std::filesystem::recursive_directory_iterator(path))
+		{
+			if (file.is_regular_file())
+			{
+				auto& filePath = file.path();
+				if (filePath.has_extension())
+				{
+					if (filePath.extension().string() == ".glsl")
+					{
+						Load(filePath.string());
+					}
+				}
+			}
+		}
+	}
+
 	Ref<Shader> ShaderLibrary::Load(const std::string& filepath)
 	{
 		auto shader = Shader::Create(filepath);
