@@ -17,20 +17,20 @@ namespace VulkanCore
 
 	void Mesh::Load()
 	{
-		m_VertexBuffer.Create(m_Vertices.size() * sizeof(Vertex));
-		m_VertexBuffer.SetData(m_Vertices.data(), m_VertexBuffer.GetSize());
+		m_VertexBuffer = VertexBuffer::Create((uint32_t)(m_Vertices.size() * sizeof(Vertex)));
+		m_VertexBuffer->SetData(m_Vertices.data(), m_VertexBuffer->GetSize());
 	}
 
 	void Mesh::Destroy()
 	{
-		m_VertexBuffer.Destroy();
+		m_VertexBuffer.reset();
 	}
 
 	void Mesh::Draw(VkCommandBuffer commandBuffer)
 	{
 		VKC_PROFILE_FUNCTION()
 
-		VkBuffer vertexBuffers[] = { m_VertexBuffer.GetHandle() };
+		VkBuffer vertexBuffers[] = { m_VertexBuffer->GetHandle() };
 		VkDeviceSize offsets[] = { 0 };
 		
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);

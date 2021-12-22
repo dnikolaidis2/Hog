@@ -20,6 +20,6 @@
  ✔ Push constants for mesh model matrix @done (21-12-14 16:41)
  ☐ abstract away struct creation/initialization
  ☐ abstract commandbuffers
- ☐ refactor Buffers
+ ✔ refactor Buffers @done (21-12-22 15:52)
  ☐ refactor Images
- ☐ Move to gpu only memory for vertex buffers
+ ✔ Move to gpu only memory for vertex buffers @done (21-12-22 15:52)

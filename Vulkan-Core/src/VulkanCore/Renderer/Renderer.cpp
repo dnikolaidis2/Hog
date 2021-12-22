@@ -27,7 +27,7 @@ namespace VulkanCore
 		int MaxFrameCount;
 
 		std::vector<CameraData> CameraBuffers;
-		std::vector<Ref<MemoryBuffer>> CameraUniformBuffers;
+		std::vector<Ref<Buffer>> CameraUniformBuffers;
 
 		Ref<GraphicsPipeline> BoundPipeline = nullptr;
 
@@ -80,8 +80,7 @@ namespace VulkanCore
 
 			for (int i = 0; i < s_Data.MaxFrameCount; ++i)
 			{
-				s_Data.CameraUniformBuffers[i] = CreateRef<MemoryBuffer>();
-				s_Data.CameraUniformBuffers[i]->Create(sizeof(CameraData), MemoryType::UniformBuffer);
+				s_Data.CameraUniformBuffers[i] = CreateRef<Buffer>(MemoryType::UniformBuffer, (uint32_t)sizeof(CameraData));
 			}
 		}
 
@@ -112,7 +111,7 @@ namespace VulkanCore
 
 			for (size_t i = 0; i < s_Data.MaxFrameCount; i++) {
 				VkDescriptorBufferInfo bufferInfo{};
-				bufferInfo.buffer = s_Data.CameraUniformBuffers[i]->Handle;
+				bufferInfo.buffer = s_Data.CameraUniformBuffers[i]->GetHandle();
 				bufferInfo.offset = 0;
 				bufferInfo.range = sizeof(CameraData);
 

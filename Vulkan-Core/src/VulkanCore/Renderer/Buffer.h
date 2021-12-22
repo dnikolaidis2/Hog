@@ -11,15 +11,19 @@ namespace VulkanCore {
 	enum class MemoryType
 	{
 		CPUWritableVertexBuffer,
+		GPUOnlyVertexBuffer,
+		TransferSourceBuffer,
 		CPUWritableIndexBuffer,
 		UniformBuffer,
 	};
 
 	static VmaMemoryUsage MemoryTypeToVmaMemoryUsage(MemoryType type);
 
-	static VkBufferUsageFlagBits MemoryTypeToVkBufferUsageFlagBits(MemoryType type);
+	static VkBufferUsageFlags MemoryTypeToVkBufferUsageFlagBits(MemoryType type);
 	
 	static VkSharingMode MemoryTypeToVkSharingMode(MemoryType type);
+
+	static bool IsTypeGPUOnly(MemoryType type);
 
 	enum class DataType
 	{
@@ -207,69 +211,48 @@ namespace VulkanCore {
 		};
 	};
 
-	class MemoryBuffer
+	class Buffer
 	{
 	public:
-		MemoryBuffer() = default;
-		~MemoryBuffer();
-
-		void Create(uint64_t size, MemoryType type);
-		void SetData(void* data, size_t size);
-		void Destroy();
-		
+		static Ref<Buffer> Create(MemoryType type, uint32_t size);
 	public:
-		VkBuffer Handle;
-		VmaAllocation Allocation;
+		Buffer(MemoryType type, uint32_t size);
+		~Buffer();
 
-		VkBufferCreateInfo BufferCreateInfo = {
+		void SetData(void* data, uint32_t size);
+		void TransferData(uint32_t size, const Ref<Buffer>& src);
+		const VkBuffer& GetHandle() const { return m_Handle; }
+		uint32_t GetSize() const { return m_Size; }
+		MemoryType GetMemoryType() const { return m_Type; }
+	private:
+		VkBuffer m_Handle;
+		VmaAllocation m_Allocation;
+
+		VkBufferCreateInfo m_BufferCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
 		};
 
-		VmaAllocationCreateInfo AllocationCreateInfo = {};
+		VmaAllocationCreateInfo m_AllocationCreateInfo = {};
 
-		MemoryType Type;
-	private:
-		uint64_t m_Size;
-		bool m_Initialized = false;
+		MemoryType m_Type;
+		uint32_t m_Size;
 	};
 
-	class VertexBuffer
+	class VertexBuffer : public Buffer
 	{
 	public:
-		VertexBuffer() = default;
+		static Ref<VertexBuffer> Create(uint32_t size);
+	public:
+		VertexBuffer(uint32_t size);
 		~VertexBuffer() = default;
-
-		void Create(uint64_t size);
-		void Destroy();
-		void SetData(void* data, uint64_t size);
-
-		uint64_t GetSize() const { return m_Size; }
 
 		const BufferLayout& GetLayout() const { return m_Layout; }
 		void SetLayout(const BufferLayout& layout) { m_Layout = layout; }
 
 		VkVertexInputBindingDescription GetInputBindingDescription();
 		std::vector<VkVertexInputAttributeDescription> GetInputAttributeDescriptions();
-
-		VkBuffer GetHandle() const { return m_Buffer.Handle; }
 	private:
 		BufferLayout m_Layout;
-		MemoryBuffer m_Buffer;
-		uint64_t m_Size;
-	};
-
-	class IndexBuffer
-	{
-	public:
-		IndexBuffer() = default;
-		~IndexBuffer() = default;
-
-		void Create(uint64_t size);
-		void SetData(void* data, uint64_t size);
-
-		VkBuffer GetHandle() const { return m_Buffer.Handle; }
-	private:
-		MemoryBuffer m_Buffer;
 	};
 }

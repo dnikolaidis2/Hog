@@ -13,6 +13,8 @@ namespace VulkanCore
 		{
 			case MemoryType::CPUWritableVertexBuffer: return VMA_MEMORY_USAGE_CPU_TO_GPU;
 			case MemoryType::CPUWritableIndexBuffer: return VMA_MEMORY_USAGE_CPU_TO_GPU;
+			case MemoryType::GPUOnlyVertexBuffer: return VMA_MEMORY_USAGE_GPU_ONLY;
+			case MemoryType::TransferSourceBuffer: return VMA_MEMORY_USAGE_CPU_ONLY;
 			case MemoryType::UniformBuffer: return VMA_MEMORY_USAGE_CPU_TO_GPU;
 		}
 
@@ -20,17 +22,19 @@ namespace VulkanCore
 		return (VmaMemoryUsage)0;
 	}
 
-	VkBufferUsageFlagBits MemoryTypeToVkBufferUsageFlagBits(MemoryType type)
+	VkBufferUsageFlags MemoryTypeToVkBufferUsageFlagBits(MemoryType type)
 	{
 		switch (type)
 		{
 			case MemoryType::CPUWritableVertexBuffer: return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 			case MemoryType::CPUWritableIndexBuffer: return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+			case MemoryType::GPUOnlyVertexBuffer: return (VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+			case MemoryType::TransferSourceBuffer: return VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			case MemoryType::UniformBuffer: return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		}
 
 		VKC_CORE_ASSERT(false, "Unknown MemoryType!");
-		return (VkBufferUsageFlagBits)0;
+		return (VkBufferUsageFlags)0;
 	}
 
 	VkSharingMode MemoryTypeToVkSharingMode(MemoryType type)
@@ -38,7 +42,9 @@ namespace VulkanCore
 		switch (type)
 		{
 			case MemoryType::CPUWritableVertexBuffer: return VK_SHARING_MODE_EXCLUSIVE;
+			case MemoryType::GPUOnlyVertexBuffer: return VK_SHARING_MODE_EXCLUSIVE;
 			case MemoryType::CPUWritableIndexBuffer: return VK_SHARING_MODE_EXCLUSIVE;
+			case MemoryType::TransferSourceBuffer: return VK_SHARING_MODE_EXCLUSIVE;
 			case MemoryType::UniformBuffer: return VK_SHARING_MODE_EXCLUSIVE;
 		}
 
@@ -46,65 +52,83 @@ namespace VulkanCore
 		return (VkSharingMode)0;
 	}
 
-	MemoryBuffer::~MemoryBuffer()
+	bool IsTypeGPUOnly(MemoryType type)
 	{
-		if (m_Initialized)
-			Destroy();
+		switch (type)
+		{
+			case MemoryType::GPUOnlyVertexBuffer: return true;
+		}
+
+		return false;
 	}
 
-	void MemoryBuffer::Create(uint64_t size, MemoryType type)
+	Buffer::Buffer(MemoryType type, uint32_t size)
+		:m_Type(type), m_Size(size)
 	{
-		Type = type;
-		m_Size = size;
+		m_BufferCreateInfo.size = size;
+		m_BufferCreateInfo.usage = MemoryTypeToVkBufferUsageFlagBits(type);
+		m_BufferCreateInfo.sharingMode = MemoryTypeToVkSharingMode(type);
 
-		BufferCreateInfo.size = size;
-		BufferCreateInfo.usage = MemoryTypeToVkBufferUsageFlagBits(type);
-		BufferCreateInfo.sharingMode = MemoryTypeToVkSharingMode(type);
-
-		AllocationCreateInfo.usage = MemoryTypeToVmaMemoryUsage(type);
+		m_AllocationCreateInfo.usage = MemoryTypeToVmaMemoryUsage(type);
 
 		//allocate the buffer
-		CheckVkResult(vmaCreateBuffer(GraphicsContext::GetAllocator(), &BufferCreateInfo, &AllocationCreateInfo,
-			&Handle,
-			&Allocation,
+		CheckVkResult(vmaCreateBuffer(GraphicsContext::GetAllocator(), &m_BufferCreateInfo, &m_AllocationCreateInfo,
+			&m_Handle,
+			&m_Allocation,
 			nullptr));
-
-		m_Initialized = true;
 	}
 
-	void MemoryBuffer::SetData(void* data, size_t size)
+	Buffer::~Buffer()
+	{
+		vmaDestroyBuffer(GraphicsContext::GetAllocator(), m_Handle, m_Allocation);
+	}
+
+	Ref<Buffer> Buffer::Create(MemoryType type, uint32_t size)
+	{
+		return CreateRef<Buffer>(type, size);
+	}
+
+	void Buffer::SetData(void* data, uint32_t size)
 	{
 		VKC_ASSERT(size <= m_Size, "Invalid write command. Tried to write more data then can fit buffer.")
 
-		void* dstAdr;
-		vmaMapMemory(GraphicsContext::GetAllocator(), Allocation, &dstAdr);
+		if (!IsTypeGPUOnly(m_Type))
+		{
+			void* dstAdr;
+			vmaMapMemory(GraphicsContext::GetAllocator(), m_Allocation, &dstAdr);
 
-		memcpy(dstAdr, data, size);
+			memcpy(dstAdr, data, size);
 
-		vmaUnmapMemory(GraphicsContext::GetAllocator(), Allocation);
+			vmaUnmapMemory(GraphicsContext::GetAllocator(), m_Allocation);
+		}
+		else
+		{
+			auto buffer = Buffer::Create(MemoryType::TransferSourceBuffer, size);
+			buffer->SetData(data, size);
+			TransferData(size, buffer);
+		}
 	}
 
-	void MemoryBuffer::Destroy()
+	void Buffer::TransferData(uint32_t size, const Ref<Buffer>& src)
 	{
-		vmaDestroyBuffer(GraphicsContext::GetAllocator(), Handle, Allocation);
-		m_Initialized = false;
+		GraphicsContext::ImmediateSubmit([=](VkCommandBuffer commandBuffer)
+			{
+				VkBufferCopy copy = {};
+				copy.dstOffset = 0;
+				copy.srcOffset = 0;
+				copy.size = src->GetSize();
+				vkCmdCopyBuffer(commandBuffer, src->GetHandle(), m_Handle, 1, &copy);
+			});
 	}
 
-	void VertexBuffer::Create(uint64_t size)
+	Ref<VertexBuffer> VertexBuffer::Create(uint32_t size)
 	{
-		// Need to move from to gpu only ram
-		m_Buffer.Create(size, MemoryType::CPUWritableVertexBuffer);
-		m_Size = size;
+		return CreateRef<VertexBuffer>(size);
 	}
 
-	void VertexBuffer::Destroy()
+	VertexBuffer::VertexBuffer(uint32_t size)
+		: Buffer(MemoryType::GPUOnlyVertexBuffer, size)
 	{
-		m_Buffer.Destroy();
-	}
-
-	void VertexBuffer::SetData(void* data, uint64_t size)
-	{
-		m_Buffer.SetData(data, size);
 	}
 
 	VkVertexInputBindingDescription VertexBuffer::GetInputBindingDescription()
@@ -130,16 +154,5 @@ namespace VulkanCore
 		}
 
 		return attributeDescriptions;
-	}
-
-	void IndexBuffer::Create(uint64_t size)
-	{
-		// Need to move from to gpu only ram
-		m_Buffer.Create(size, MemoryType::CPUWritableIndexBuffer);
-	}
-
-	void IndexBuffer::SetData(void* data, uint64_t size)
-	{
-		m_Buffer.SetData(data, size);
 	}
 }

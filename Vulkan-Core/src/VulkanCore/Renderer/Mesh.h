@@ -21,12 +21,12 @@ namespace VulkanCore
 		void SetName(std::string name) { m_Name = name; }
 		std::string GetName() const { return m_Name; }
 
-		VkBuffer GetBufferHandle() const { return m_VertexBuffer.GetHandle(); }
+		VkBuffer GetBufferHandle() const { return m_VertexBuffer->GetHandle(); }
 
 		uint64_t GetSize() const { return (uint64_t)m_Vertices.size(); }
 	private:
 		std::string m_Name = "unamed";
-		VertexBuffer m_VertexBuffer;
+		Ref<VertexBuffer> m_VertexBuffer;
 		std::vector<Vertex> m_Vertices;
 	};
 }
