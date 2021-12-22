@@ -499,11 +499,12 @@ namespace VulkanCore {
 		{
 			vkDestroyFence(Device, fence, nullptr);
 		}
+		vkDestroyFence(Device, UploadFence, nullptr);
 
 		for (size_t i = 0; i < CommandPools.size(); i++) {
 			vkDestroyCommandPool(Device, CommandPools[i], nullptr);
 		}
-		
+		vkDestroyCommandPool(Device, UploadCommandPool, nullptr);
 
 		for (int i = 0; i < FrameCount; ++i)
 		{
@@ -537,6 +538,54 @@ namespace VulkanCore {
 		CreateRenderTargets();
 		CreateFrameBuffers();
 		CreateCommandBuffers();
+	}
+
+	void GraphicsContext::ImmediateSubmitImpl(std::function<void(VkCommandBuffer commandBuffer)>&& function)
+	{
+		//allocate the default command buffer that we will use for the instant commands
+		VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
+		commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+
+		// Don't worry about this
+		commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+		// The command pool we created above
+		commandBufferAllocateInfo.commandPool = UploadCommandPool;
+
+		// We'll have two command buffers.  One will be in flight
+		// while the other is being built.
+		commandBufferAllocateInfo.commandBufferCount = 1;
+
+		VkCommandBuffer commandBuffer;
+		CheckVkResult(vkAllocateCommandBuffers(Device, &commandBufferAllocateInfo, &commandBuffer));
+
+		//begin the command buffer recording. We will use this command buffer exactly once, so we want to let vulkan know that
+		VkCommandBufferBeginInfo beginInfo{};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // Optional
+		beginInfo.pInheritanceInfo = nullptr; // Optional
+
+		CheckVkResult(vkBeginCommandBuffer(commandBuffer, &beginInfo));
+
+		//execute the function
+		function(commandBuffer);
+
+		CheckVkResult(vkEndCommandBuffer(commandBuffer));
+
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer;
+
+		//submit command buffer to the queue and execute it.
+		// _uploadFence will now block until the graphic commands finish execution
+		CheckVkResult(vkQueueSubmit(GraphicsQueue, 1, &submitInfo, UploadFence));
+
+		vkWaitForFences(Device, 1, &UploadFence, true, 9999999999);
+		vkResetFences(Device, 1, &UploadFence);
+
+		//clear the command pool. This will free the command buffer too
+		vkResetCommandPool(Device, UploadCommandPool, 0);
 	}
 
 	void GraphicsContext::CreateInstance()
@@ -918,6 +967,21 @@ namespace VulkanCore {
 
 			CheckVkResult(vkCreateCommandPool(Device, &commandPoolCreateInfo, nullptr, &CommandPools[i]));
 		}
+
+		// Because command buffers can be very flexible, we don't want to be 
+		// doing a lot of allocation while we're trying to render.
+		// For this reason we create a pool to hold allocated command buffers.
+		VkCommandPoolCreateInfo commandPoolCreateInfo = {};
+		commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+
+		// This allows the command buffer to be implicitly reset when vkBeginCommandBuffer is called.
+		// You can also explicitly call vkResetCommandBuffer.  
+		commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+		// We'll be building command buffers to send to the graphics queue
+		commandPoolCreateInfo.queueFamilyIndex = GraphicsFamilyIndex;
+
+		CheckVkResult(vkCreateCommandPool(Device, &commandPoolCreateInfo, nullptr, &UploadCommandPool));
 	}
 
 	void GraphicsContext::CreateCommandBuffers()
@@ -953,6 +1017,13 @@ namespace VulkanCore {
 
 			CheckVkResult(vkCreateFence(Device, &fenceCreateInfo, nullptr, &CommandBufferFences[i]));
 		}
+
+		// We create fences that we can use to wait for a 
+		// given command buffer to be done on the GPU.
+		VkFenceCreateInfo fenceCreateInfo = {};
+		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+		CheckVkResult(vkCreateFence(Device, &fenceCreateInfo, nullptr, &UploadFence));
 	}
 
 	void GraphicsContext::CreateSwapChain()
@@ -1240,6 +1311,7 @@ namespace VulkanCore {
 		{
 			vkDestroyFence(Device, fence, nullptr);
 		}
+		vkDestroyFence(Device, UploadFence, nullptr);
 
 		for (size_t i = 0; i < SwapchainImages.size(); i++) {
 			SwapchainImages[i].Destroy();

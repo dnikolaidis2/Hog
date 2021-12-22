@@ -64,20 +64,22 @@ namespace VulkanCore {
 		static void Initialize() { Get().InitializeImpl(); }
 		static void Deinitialize() { Get().DeinitializeImpl(); }
 		static void RecreateSwapChain() { Get().RecreateSwapChainImpl(); }
-		static VmaAllocator GetAllocator() { return Get().Allocator; }
-		static VkDevice GetDevice() { return Get().Device; }
-		static VkExtent2D GetExtent() { return Get().SwapchainExtent; }
-		static VkSwapchainKHR GetSwapchain() { return Get().Swapchain; }
-		static VkQueue GetGraphicsQueue() { return Get().GraphicsQueue; }
+		static const VmaAllocator& GetAllocator() { return Get().Allocator; }
+		static const VkDevice& GetDevice() { return Get().Device; }
+		static const VkExtent2D& GetExtent() { return Get().SwapchainExtent; }
+		static const VkSwapchainKHR& GetSwapchain() { return Get().Swapchain; }
+		static const VkQueue& GetGraphicsQueue() { return Get().GraphicsQueue; }
 		static int GetCurrentFrame() { return Get().CurrentFrame; }
 		static int GetFrameCount() { return Get().FrameCount; }
 		static void SetCurrentFrame(int frameNumber) { Get().CurrentFrame = frameNumber; }
-		static VkCommandBuffer GetCurrentCommandBuffer() { return Get().CommandBuffers[GetCurrentFrame()]; }
-		static VkFramebuffer GetCurrentFrameBuffer() { return Get().FrameBuffers[GetCurrentFrame()]; }
-		static VkRenderPass GetRenderPass() { return Get().RenderPass; }
-		static VkFence GetCurrentCommandBufferFence() { return Get().CommandBufferFences[GetCurrentFrame()]; }
-		static VkSemaphore GetCurrentAcquireSemaphore() { return Get().AcquireSemaphores[GetCurrentFrame()]; }
-		static VkSemaphore GetCurrentRenderCompleteSemaphore() { return Get().RenderCompleteSemaphores[GetCurrentFrame()]; }
+		static const VkCommandBuffer& GetCurrentCommandBuffer() { return Get().CommandBuffers[GetCurrentFrame()]; }
+		static const VkFramebuffer& GetCurrentFrameBuffer() { return Get().FrameBuffers[GetCurrentFrame()]; }
+		static const VkRenderPass& GetRenderPass() { return Get().RenderPass; }
+		static const VkFence& GetCurrentCommandBufferFence() { return Get().CommandBufferFences[GetCurrentFrame()]; }
+		static const VkSemaphore& GetCurrentAcquireSemaphore() { return Get().AcquireSemaphores[GetCurrentFrame()]; }
+		static const VkSemaphore& GetCurrentRenderCompleteSemaphore() { return Get().RenderCompleteSemaphores[GetCurrentFrame()]; }
+
+		static void ImmediateSubmit(std::function<void(VkCommandBuffer commandBuffer)>&& function) { return Get().ImmediateSubmitImpl(std::move(function)); }
 	public:
 		GraphicsContext(GraphicsContext const&) = delete;
 		void operator=(GraphicsContext const&) = delete;
@@ -87,6 +89,7 @@ namespace VulkanCore {
 		void InitializeImpl();
 		void DeinitializeImpl();
 		void RecreateSwapChainImpl();
+		void ImmediateSubmitImpl(std::function<void(VkCommandBuffer commandBuffer)>&& function);
 
 	public:
 		void CreateInstance();
@@ -142,10 +145,13 @@ namespace VulkanCore {
 		std::vector<VkSemaphore> RenderCompleteSemaphores;
 
 		std::vector<VkCommandPool> CommandPools;
+		VkCommandPool UploadCommandPool;
 
 		std::vector<VkCommandBuffer> CommandBuffers;
 		std::vector<VkFence> CommandBufferFences;
-		
+
+		VkFence UploadFence;
+
 		Image DepthImage;
 
 		VkRenderPass RenderPass = VK_NULL_HANDLE;
