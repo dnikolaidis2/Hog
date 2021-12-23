@@ -563,6 +563,32 @@ namespace VulkanCore {
 
 			m_PushConstantRanges.push_back(pushConstant);
 		}
+
+		VKC_CORE_TRACE("Sampled Images:");
+		for (const auto& resource : resources.sampled_images)
+		{
+			VkDescriptorSetLayoutBinding layoutBinding = {};
+
+			const auto& bufferType = compiler.get_type(resource.base_type_id);
+			uint32_t bufferSize;
+			if (bufferType.basetype == spirv_cross::SPIRType::Struct)
+				bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
+			else
+				bufferSize = (bufferType.width * bufferType.vecsize) / 8;
+			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+			int memberCount = (int)bufferType.member_types.size();
+
+			VKC_CORE_TRACE("  {0}", resource.name);
+			VKC_CORE_TRACE("    Size = {0}", bufferSize);
+			VKC_CORE_TRACE("    Binding = {0}", binding);
+			VKC_CORE_TRACE("    Members = {0}", memberCount);
+
+			layoutBinding.binding = binding;
+			layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			layoutBinding.descriptorCount = 1;
+			layoutBinding.stageFlags |= Utils::ShaderStageFlagBitsFromShaderKind(stage).value();
+			m_DescriptorSetLayoutBinding.push_back(layoutBinding);
+		}
 	}
 
 	void Shader::CreateProgram()
@@ -586,13 +612,16 @@ namespace VulkanCore {
 
 	void Shader::GeneratePipelineLayout()
 	{
-		VkDescriptorSetLayoutCreateInfo layoutInfo{};
-		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		layoutInfo.bindingCount = (uint32_t)m_DescriptorSetLayoutBinding.size();
-		layoutInfo.pBindings = m_DescriptorSetLayoutBinding.data();
+		m_DescriptorSetLayouts.resize(m_DescriptorSetLayoutBinding.size());
+		for (int i = 0; i < m_DescriptorSetLayoutBinding.size(); ++i)
+		{
+			VkDescriptorSetLayoutCreateInfo layoutInfo{};
+			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			layoutInfo.bindingCount = 1;
+			layoutInfo.pBindings = &m_DescriptorSetLayoutBinding[i];
 
-		m_DescriptorSetLayouts.resize(1);
-		CheckVkResult(vkCreateDescriptorSetLayout(context.Device, &layoutInfo, nullptr, &m_DescriptorSetLayouts[0]));
+			CheckVkResult(vkCreateDescriptorSetLayout(context.Device, &layoutInfo, nullptr, &m_DescriptorSetLayouts[i]));
+		}
 
 		m_PipelineLayoutCreateInfo.pushConstantRangeCount = (uint32_t)m_PushConstantRanges.size();
 		m_PipelineLayoutCreateInfo.pPushConstantRanges = m_PushConstantRanges.data();

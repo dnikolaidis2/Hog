@@ -192,7 +192,7 @@ namespace VulkanCore {
 			.textureCompressionBC = VK_TRUE
 		};
 
-		std::vector<const char*> InstanceExtensions;
+		std::vector<const char*> InstanceExtensions = { VK_KHR_MAINTENANCE1_EXTENSION_NAME };
 		std::vector<const char*> DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
 		std::vector<const char*> ValidationLayers = { "VK_LAYER_KHRONOS_validation" };

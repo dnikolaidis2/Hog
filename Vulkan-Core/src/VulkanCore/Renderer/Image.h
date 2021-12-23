@@ -80,6 +80,7 @@ namespace VulkanCore
 
 		const VkImageView& GetImageView() const { return m_View; }
 		const VkFormat& GetInternalFormat() const { return m_InternalFormat; }
+		VkDescriptorSet GetOrCreateDescriptorSet(VkDescriptorPool descriptorPool, VkDescriptorSetLayout* descriptorSetLayoutPtr);
 	private:
 		void CreateViewForImage();
 	private:
@@ -94,6 +95,9 @@ namespace VulkanCore
 		uint32_t m_Height;
 		bool m_IsSwapChainImage;
 		bool m_Allocated;
+
+		VkDescriptorSet m_DescriptorSet = nullptr;
+		VkSampler m_Sampler = nullptr;
 
 		VkImageCreateInfo m_ImageCreateInfo = {
 				.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,

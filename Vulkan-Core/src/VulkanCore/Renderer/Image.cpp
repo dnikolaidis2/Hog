@@ -53,6 +53,9 @@ namespace VulkanCore
 		vkDestroyImageView(GraphicsContext::GetDevice(), m_View, nullptr);
 		if (m_Allocated)
 			vmaDestroyImage(GraphicsContext::GetAllocator(), m_Handle, m_Allocation);
+
+		if (m_Sampler)
+			vkDestroySampler(GraphicsContext::GetDevice(), m_Sampler, nullptr);
 	}
 
 	void Image::SetData(void* data, uint32_t size)
@@ -112,6 +115,53 @@ namespace VulkanCore
 			});
 	}
 
+	VkDescriptorSet Image::GetOrCreateDescriptorSet(VkDescriptorPool descriptorPool,
+		VkDescriptorSetLayout* descriptorSetLayoutPtr)
+	{
+		if (m_DescriptorSet)
+			return m_DescriptorSet;
+
+		//create a sampler for the texture
+		VkSamplerCreateInfo samplerInfo = {};
+
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = VK_FILTER_NEAREST;
+		samplerInfo.minFilter = VK_FILTER_NEAREST;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+		CheckVkResult(vkCreateSampler(GraphicsContext::GetDevice(), &samplerInfo, nullptr, &m_Sampler));
+
+		//allocate the descriptor set for single-texture to use on the material
+		VkDescriptorSetAllocateInfo allocInfo = {};
+		allocInfo.pNext = nullptr;
+		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocInfo.descriptorPool = descriptorPool;
+		allocInfo.descriptorSetCount = 1;
+		allocInfo.pSetLayouts = descriptorSetLayoutPtr;
+
+		CheckVkResult(vkAllocateDescriptorSets(GraphicsContext::GetDevice(), &allocInfo, &m_DescriptorSet));
+
+		//write to the descriptor set so that it points to our empire_diffuse texture
+		VkDescriptorImageInfo imageBufferInfo;
+		imageBufferInfo.sampler = m_Sampler;
+		imageBufferInfo.imageView = m_View;
+		imageBufferInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		VkWriteDescriptorSet writeDescriptorSet = {};
+		writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		writeDescriptorSet.dstBinding = 1;
+		writeDescriptorSet.dstSet = m_DescriptorSet;
+		writeDescriptorSet.descriptorCount = 1;
+		writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		writeDescriptorSet.pImageInfo = &imageBufferInfo;
+
+		vkUpdateDescriptorSets(GraphicsContext::GetDevice(), 1, &writeDescriptorSet, 0, nullptr);
+
+		return m_DescriptorSet;
+	}
+
 	void Image::CreateViewForImage()
 	{
 		m_ViewCreateInfo.image = m_Handle;
@@ -140,6 +190,8 @@ namespace VulkanCore
 		VKC_CORE_ASSERT(!Exists(name), "Image already exists!");
 
 		int width, height, channels;
+
+		stbi_set_flip_vertically_on_load(true);
 
 		stbi_uc* pixels = stbi_load(path.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
 

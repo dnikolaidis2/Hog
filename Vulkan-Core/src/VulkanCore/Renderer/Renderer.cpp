@@ -86,14 +86,15 @@ namespace VulkanCore
 
 		{
 			std::vector<VkDescriptorPoolSize> poolSize = {
-				{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10}
+				{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100},
+				{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100}
 			};
 
 			VkDescriptorPoolCreateInfo poolInfo{};
 			poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 			poolInfo.poolSizeCount = (uint32_t)poolSize.size();
 			poolInfo.pPoolSizes = poolSize.data();
-			poolInfo.maxSets = 10;
+			poolInfo.maxSets = 200;
 
 			CheckVkResult(vkCreateDescriptorPool(s_Data.Device, &poolInfo, nullptr, &s_Data.DescriptorPool));
 		}
@@ -257,6 +258,15 @@ namespace VulkanCore
 			vkCmdBindDescriptorSets(s_Data.CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->GetPipelineLayout(), 0, 1, s_Data.CurrentGlobalDescriptorSetPtr, 0, nullptr);
 
 			s_Data.BoundPipeline = pipeline;
+		}
+
+		auto& diffuse = mat->GetDiffuseTexture();
+		if (diffuse)
+		{
+			auto setLayouts = shader->GetDescriptorSetLayouts()[1];
+			const auto descriptorSet = diffuse->GetOrCreateDescriptorSet(s_Data.DescriptorPool, &setLayouts);
+			vkCmdBindDescriptorSets(s_Data.CurrentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->GetPipelineLayout(), 1, 1,
+				&descriptorSet, 0, nullptr);
 		}
 
 		object->Draw(s_Data.CurrentCommandBuffer);

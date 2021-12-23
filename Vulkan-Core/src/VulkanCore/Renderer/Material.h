@@ -43,6 +43,7 @@ namespace VulkanCore
 
 		const Ref<Shader>& GetShader() const { return m_Shader; }
 		const Ref<GraphicsPipeline>& GetPipeline() const { return m_Pipeline; }
+		const Ref<Image>& GetDiffuseTexture() const { return m_Data.DiffuseTexture; }
 
 		void Bind(VkCommandBuffer commandBuffer, VkDescriptorSet* descriptorSetPtr);
 	private:
