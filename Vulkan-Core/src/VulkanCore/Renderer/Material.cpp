@@ -7,26 +7,12 @@ namespace VulkanCore
 {
 	static auto& context = GraphicsContext::Get();
 
-	Ref<Material> Material::Create(Ref<Shader> shader, Ref<GraphicsPipeline> pipeline)
+	Ref<Material> Material::Create(MaterialData& data)
 	{
 		VKC_PROFILE_FUNCTION()
 
-		Ref<Shader> shaderRef;
-		Ref<GraphicsPipeline> pipelineRef;
-
-		if (shader)
-			shaderRef = shader;
-		else
-			shaderRef = ShaderLibrary::LoadOrGet("assets/shaders/Basic.glsl");
-
-		if (pipeline)
-			pipelineRef = pipeline;
-		else
-		{
-			pipelineRef = shaderRef->CreateOrGetDefaultPipeline();
-		}
-
-		return CreateRef<Material>(shaderRef, pipelineRef);
+		Ref<Shader> shaderRef = ShaderLibrary::LoadOrGet("assets/shaders/Basic.glsl");
+		return CreateRef<Material>(shaderRef, shaderRef->CreateOrGetDefaultPipeline(), data);
 	}
 
 	void Material::Bind(VkCommandBuffer commandBuffer, VkDescriptorSet* descriptorSetPtr)
@@ -42,20 +28,22 @@ namespace VulkanCore
 		s_Materials[name] = material;
 	}
 
-	Ref<Material> MaterialLibrary::Create(const std::string& name, Ref<Shader> shader, Ref<GraphicsPipeline> pipeline)
+	Ref<Material> MaterialLibrary::Create(const std::string& name, MaterialData& data)
 	{
-		Ref<Material> mat = Material::Create(shader, pipeline);
+		Ref<Material> mat = Material::Create(data);
 		s_Materials[name] = mat;
 		return mat;
 	}
 
-	Ref<Material> MaterialLibrary::CreateOrGet(const std::string& name, Ref<Shader> shader,
-		Ref<GraphicsPipeline> pipeline)
+	Ref<Material> MaterialLibrary::CreateOrGet(const std::string& name)
 	{
 		if (Exists(name))
 			return Get(name);
 		else
-			return Create(name, shader, pipeline);
+		{
+			MaterialData data = {};
+			return Create(name, data);
+		}
 	}
 
 	Ref<Material> MaterialLibrary::Get(const std::string& name)

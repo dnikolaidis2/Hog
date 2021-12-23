@@ -164,6 +164,16 @@ namespace VulkanCore
 
 	Ref<Image> TextureLibrary::LoadOrGet(const std::string& filepath)
 	{
+		std::filesystem::path path(filepath);
+		std::string name;
+		if (path.has_filename())
+			name = path.filename().string();
+
+		if (Exists(name))
+			return Get(name);
+		else
+			LoadFromFile(filepath);
+
 		return nullptr;
 	}
 

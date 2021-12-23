@@ -31,8 +31,6 @@ namespace VulkanCore
 		//load the OBJ file
 		bool ret = tinyobj::LoadObj(&attrib, &shapes, &objMaterials, &errors, path.filename().string().c_str());
 
-		std::filesystem::current_path(currentPath);
-
 		//if we have any error, print it to the console, and break the mesh loading.
 		//This happens if the file can't be found or is malformed
 		if (!errors.empty()) {
@@ -43,9 +41,58 @@ namespace VulkanCore
 
 		for (size_t s = 0; s < objMaterials.size(); s++)
 		{
-			MaterialLibrary::Create(objMaterials[s].name, nullptr, nullptr);
+			MaterialData data = {};
+
+			data.AmbientColor = glm::vec3(objMaterials[s].ambient[0], objMaterials[s].ambient[1], objMaterials[s].ambient[2]);
+			data.DiffuseColor = glm::vec3(objMaterials[s].diffuse[0], objMaterials[s].diffuse[1], objMaterials[s].diffuse[2]);
+			data.SpecularColor = glm::vec3(objMaterials[s].specular[0], objMaterials[s].specular[1], objMaterials[s].specular[2]);
+			data.TransmittanceFilter = glm::vec3(objMaterials[s].transmittance[0], objMaterials[s].transmittance[1], objMaterials[s].transmittance[2]);
+			data.EmissiveColor = glm::vec3(objMaterials[s].emission[0], objMaterials[s].emission[1], objMaterials[s].emission[2]);
+			data.Specularity = objMaterials[s].shininess;
+			data.IOR = objMaterials[s].ior;
+			data.Dissolve = objMaterials[s].dissolve;
+			data.IlluminationModel = objMaterials[s].illum;
+
+			if (!objMaterials[s].ambient_texname.empty())
+			{
+				data.AmbientTexture = TextureLibrary::LoadOrGet(objMaterials[s].ambient_texname);
+			}
+
+			if (!objMaterials[s].diffuse_texname.empty())
+			{
+				data.DiffuseTexture = TextureLibrary::LoadOrGet(objMaterials[s].diffuse_texname);
+			}
+
+			if (!objMaterials[s].specular_texname.empty())
+			{
+				data.SpecularTexture = TextureLibrary::LoadOrGet(objMaterials[s].specular_texname);
+			}
+
+			if (!objMaterials[s].specular_highlight_texname.empty())
+			{
+				data.SpecularHighlightTexture = TextureLibrary::LoadOrGet(objMaterials[s].specular_highlight_texname);
+			}
+
+			if (!objMaterials[s].bump_texname.empty())
+			{
+				data.BumpMap = TextureLibrary::LoadOrGet(objMaterials[s].bump_texname);
+			}
+
+			if (!objMaterials[s].displacement_texname.empty())
+			{
+				data.DisplacementMap = TextureLibrary::LoadOrGet(objMaterials[s].displacement_texname);
+			}
+
+			if (!objMaterials[s].alpha_texname.empty())
+			{
+				data.AlphaMap = TextureLibrary::LoadOrGet(objMaterials[s].alpha_texname);
+			}
+
+			MaterialLibrary::Create(objMaterials[s].name, data);
 		}
-		
+
+		std::filesystem::current_path(currentPath);
+
 		objects.resize(objects.size() + shapes.size());
 		// Loop over shapes
 		for (size_t s = 0; s < shapes.size(); s++) {
