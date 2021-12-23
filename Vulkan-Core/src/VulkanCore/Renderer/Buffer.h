@@ -28,7 +28,7 @@ namespace VulkanCore {
 	enum class DataType
 	{
 		None = 0, Float, Float2, Float3, Float4, Mat3, Mat4, Int, Int2, Int3, Int4, Bool,
-		Depth32, Depth32Stencil8, Depth24Stencil8, RGB8
+		Depth32, Depth32Stencil8, Depth24Stencil8, RGBA8, BGRA8
 	};
 
 	inline static VkFormat DataTypeToVkFormat(DataType type)
@@ -49,7 +49,8 @@ namespace VulkanCore {
 			case DataType::Depth32:          return VK_FORMAT_D32_SFLOAT;
 			case DataType::Depth24Stencil8:  return VK_FORMAT_D24_UNORM_S8_UINT;
 			case DataType::Depth32Stencil8:  return VK_FORMAT_D32_SFLOAT_S8_UINT;
-			case DataType::RGB8:             return VK_FORMAT_B8G8R8A8_UNORM;
+			case DataType::BGRA8:            return VK_FORMAT_B8G8R8A8_UNORM;
+			case DataType::RGBA8:            return VK_FORMAT_R8G8B8A8_SRGB;
 		}
 
 		VKC_CORE_ASSERT(false, "Unknown DataType!");
@@ -72,7 +73,8 @@ namespace VulkanCore {
 			case VK_FORMAT_D32_SFLOAT:          return DataType::Depth32;
 			case VK_FORMAT_D24_UNORM_S8_UINT:   return DataType::Depth24Stencil8;
 			case VK_FORMAT_D32_SFLOAT_S8_UINT:  return DataType::Depth32Stencil8;
-			case VK_FORMAT_B8G8R8A8_UNORM:      return DataType::RGB8;
+			case VK_FORMAT_B8G8R8A8_UNORM:      return DataType::BGRA8;
+			case VK_FORMAT_R8G8B8A8_SRGB:         return DataType::RGBA8;
 		}
 
 		VKC_CORE_ASSERT(false, "Unknown VkFormat!");

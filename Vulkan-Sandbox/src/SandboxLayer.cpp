@@ -44,6 +44,7 @@ void SandboxLayer::OnDetach()
 	Renderer::Deinitialize();
 	ShaderLibrary::Deinitialize();
 	MaterialLibrary::Deinitialize();
+	TextureLibrary::Deinitialize();
 
 	m_Objects.clear();
 

@@ -28,6 +28,7 @@
 #include "VulkanCore/Renderer/RendererObject.h"
 #include "VulkanCore/Renderer/EditorCamera.h"
 #include "VulkanCore/Renderer/Renderer.h"
+#include "VulkanCore/Renderer/Image.h"
 
 /*
 #include "VulkanCore/Renderer/Renderer.h"

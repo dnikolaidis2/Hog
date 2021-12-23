@@ -10,7 +10,8 @@ namespace VulkanCore
 	enum class ImageType
 	{
 		Depth,
-		RenderTarget
+		RenderTarget,
+		Texture
 	};
 
 	inline static VkImageType ImageTypeToVkImageType(ImageType type)
@@ -19,6 +20,7 @@ namespace VulkanCore
 		{
 			case ImageType::Depth: return VK_IMAGE_TYPE_2D;
 			case ImageType::RenderTarget: return VK_IMAGE_TYPE_2D;
+			case ImageType::Texture: return VK_IMAGE_TYPE_2D;
 		}
 
 		VKC_CORE_ASSERT(false, "Unknown ImageType!");
@@ -31,6 +33,7 @@ namespace VulkanCore
 		{
 			case ImageType::Depth: return VK_IMAGE_VIEW_TYPE_2D;
 			case ImageType::RenderTarget: return VK_IMAGE_VIEW_TYPE_2D;
+			case ImageType::Texture: return VK_IMAGE_VIEW_TYPE_2D;
 		}
 
 		VKC_CORE_ASSERT(false, "Unknown ImageType!");
@@ -43,6 +46,7 @@ namespace VulkanCore
 		{
 			case ImageType::Depth: return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 			case ImageType::RenderTarget: return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+			case ImageType::Texture: return VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		}
 
 		VKC_CORE_ASSERT(false, "Unknown ImageType!");
@@ -55,6 +59,7 @@ namespace VulkanCore
 		{
 			case ImageType::Depth: return VK_IMAGE_ASPECT_DEPTH_BIT;
 			case ImageType::RenderTarget: return VK_IMAGE_ASPECT_COLOR_BIT;
+			case ImageType::Texture: return VK_IMAGE_ASPECT_COLOR_BIT;
 		}
 
 		VKC_CORE_ASSERT(false, "Unknown ImageType!");
@@ -70,6 +75,8 @@ namespace VulkanCore
 		Image(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat& format);
 		Image(VkImage& image, ImageType type, VkFormat& format, VkExtent2D& extent, VkImageViewCreateInfo& viewCreateInfo);
 		~Image();
+
+		void SetData(void* data, uint32_t size);
 
 		const VkImageView& GetImageView() const { return m_View; }
 		const VkFormat& GetInternalFormat() const { return m_InternalFormat; }
@@ -111,5 +118,21 @@ namespace VulkanCore
 				.layerCount = 1
 			}
 		};
+	};
+
+	class TextureLibrary
+	{
+	public:
+		TextureLibrary() = delete;
+
+		static void Add(const std::string& name, const Ref<Image>& image);
+		static Ref<Image> LoadFromFile(const std::string& filepath);
+		static Ref<Image> LoadOrGet(const std::string& filepath);
+
+		static Ref<Image> Get(const std::string& name);
+
+		static void Deinitialize();
+
+		static bool Exists(const std::string& name);
 	};
 }

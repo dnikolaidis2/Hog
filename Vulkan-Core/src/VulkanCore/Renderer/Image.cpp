@@ -2,6 +2,8 @@
 
 #include "Image.h"
 
+#include <stb_image.h>
+
 #include "VulkanCore/Renderer/GraphicsContext.h"
 #include "VulkanCore/Utils/RendererUtils.h"
 
@@ -53,6 +55,63 @@ namespace VulkanCore
 			vmaDestroyImage(GraphicsContext::GetAllocator(), m_Handle, m_Allocation);
 	}
 
+	void Image::SetData(void* data, uint32_t size)
+	{
+		auto buffer = Buffer::Create(MemoryType::TransferSourceBuffer, size);
+		buffer->SetData(data, size);
+
+		GraphicsContext::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
+			{
+				VkImageSubresourceRange range = {};
+				range.aspectMask = ImageTypeToVkAspectFlag(m_Type);
+				range.baseMipLevel = 0;
+				range.levelCount = m_LevelCount;
+				range.baseArrayLayer = 0;
+				range.layerCount = 1;
+
+				VkImageMemoryBarrier imageBarrierToTransfer = {};
+				imageBarrierToTransfer.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+
+				imageBarrierToTransfer.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				imageBarrierToTransfer.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				imageBarrierToTransfer.image = m_Handle;
+				imageBarrierToTransfer.subresourceRange = range;
+
+				imageBarrierToTransfer.srcAccessMask = 0;
+				imageBarrierToTransfer.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+				//barrier the image into the transfer-receive layout
+				vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+					0, nullptr, 0, nullptr, 1, &imageBarrierToTransfer);
+
+				VkBufferImageCopy copyRegion = {};
+				copyRegion.bufferOffset = 0;
+				copyRegion.bufferRowLength = 0;
+				copyRegion.bufferImageHeight = 0;
+
+				copyRegion.imageSubresource.aspectMask = ImageTypeToVkAspectFlag(m_Type);
+				copyRegion.imageSubresource.mipLevel = 0;
+				copyRegion.imageSubresource.baseArrayLayer = 0;
+				copyRegion.imageSubresource.layerCount = 1;
+				copyRegion.imageExtent = m_ImageCreateInfo.extent;
+
+				//copy the buffer into the image
+				vkCmdCopyBufferToImage(commandBuffer, buffer->GetHandle(), m_Handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+
+				VkImageMemoryBarrier imageBarrierToReadable = imageBarrierToTransfer;
+
+				imageBarrierToReadable.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				imageBarrierToReadable.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+				imageBarrierToReadable.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				imageBarrierToReadable.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+				//barrier the image into the shader readable layout
+				vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+					0, nullptr, 0, nullptr, 1, &imageBarrierToReadable);
+			});
+	}
+
 	void Image::CreateViewForImage()
 	{
 		m_ViewCreateInfo.image = m_Handle;
@@ -61,5 +120,66 @@ namespace VulkanCore
 		m_ViewCreateInfo.viewType = ImageTypeToVkImageViewType(m_Type);
 
 		CheckVkResult(vkCreateImageView(GraphicsContext::GetDevice(), &m_ViewCreateInfo, nullptr, &m_View));
+	}
+
+	static std::unordered_map<std::string, Ref<Image>> s_Images;
+
+	void TextureLibrary::Add(const std::string& name, const Ref<Image>& image)
+	{
+		VKC_CORE_ASSERT(!Exists(name), "Image already exists!");
+		s_Images[name] = image;
+	}
+
+	Ref<Image> TextureLibrary::LoadFromFile(const std::string& filepath)
+	{
+		std::filesystem::path path(filepath);
+		std::string name;
+		if (path.has_filename())
+			name = path.filename().string();
+
+		VKC_CORE_ASSERT(!Exists(name), "Image already exists!");
+
+		int width, height, channels;
+
+		stbi_uc* pixels = stbi_load(path.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
+
+		if (!pixels) {
+			VKC_CORE_ERROR("Failed to load texture file {0}", path);
+			return nullptr;
+		}
+
+		VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
+		uint32_t imageSize = width * height * 4;
+
+		auto image = Image::Create(ImageType::Texture, width, height, 1, format);
+		
+		image->SetData(pixels, imageSize);
+
+		s_Images[name] = image;
+
+		stbi_image_free(pixels);
+
+		return image;
+	}
+
+	Ref<Image> TextureLibrary::LoadOrGet(const std::string& filepath)
+	{
+		return nullptr;
+	}
+
+	Ref<Image> TextureLibrary::Get(const std::string& name)
+	{
+		VKC_CORE_ASSERT(Exists(name), "Image not found!");
+		return s_Images[name];
+	}
+
+	void TextureLibrary::Deinitialize()
+	{
+		s_Images.clear();
+	}
+
+	bool TextureLibrary::Exists(const std::string& name)
+	{
+		return s_Images.find(name) != s_Images.end();
 	}
 }
