@@ -1,5 +1,5 @@
 #pragma once
-/*
+
 #include "VulkanCore/Core/Layer.h"
 
 #include "VulkanCore/Events/ApplicationEvent.h"
@@ -29,4 +29,3 @@ namespace VulkanCore {
 	};
 
 }
-*/

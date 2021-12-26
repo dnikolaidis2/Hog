@@ -1,5 +1,5 @@
 #include "vkcpch.h"
-/*
+
 #include "VulkanCore/ImGui/ImGuiLayer.h"
 
 #include <imgui.h>
@@ -10,6 +10,8 @@
 
 // TEMPORARY
 #include <GLFW/glfw3.h>
+
+#include "VulkanCore/Renderer/GraphicsContext.h"
 
 
 namespace VulkanCore {
@@ -56,12 +58,33 @@ namespace VulkanCore {
 
 		// Setup Platform/Renderer bindings
 		ImGui_ImplGlfw_InitForVulkan(window, true);
-		ImGui_ImplVulkan_Init();
+
+		ImGui_ImplVulkan_InitInfo initInfo = {};
+		initInfo.Instance = GraphicsContext::GetInstance();
+		initInfo.PhysicalDevice = GraphicsContext::GetPhysicalDevice();
+		initInfo.Device = GraphicsContext::GetDevice();
+		initInfo.Queue = GraphicsContext::GetGraphicsQueue();
+		initInfo.DescriptorPool = GraphicsContext::GetImGuiDescriptorPool();
+		initInfo.MinImageCount = GraphicsContext::GetFrameCount();
+		initInfo.ImageCount = GraphicsContext::GetFrameCount();
+		initInfo.MSAASamples = GraphicsContext::GetMSAASamples();
+
+		ImGui_ImplVulkan_Init(&initInfo, GraphicsContext::GetRenderPass());
+
+		GraphicsContext::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
+			{
+				ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
+			});
+
+		ImGui_ImplVulkan_DestroyFontUploadObjects();
+
 	}
 
 	void ImGuiLayer::OnDetach()
 	{
 		VKC_PROFILE_FUNCTION();
+
+		GraphicsContext::DestroyImGuiDescriptorPool();
 
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
@@ -97,7 +120,7 @@ namespace VulkanCore {
 
 		// Rendering
 		ImGui::Render();
-		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData());
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), GraphicsContext::GetCurrentCommandBuffer());
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
@@ -142,4 +165,3 @@ namespace VulkanCore {
 	}
 
 }
-*/

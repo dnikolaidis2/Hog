@@ -3,6 +3,7 @@
 #include "VulkanCore/Core/Application.h"
 #include "VulkanCore/Core/Log.h"
 #include "VulkanCore/Core/Input.h"
+#include "VulkanCore/Renderer/GraphicsContext.h"
 
 #include <GLFW/glfw3.h>
 
@@ -20,13 +21,17 @@ namespace VulkanCore {
 		m_Window = Window::Create(WindowProps(name));
 		m_Window->SetEventCallback(VKC_BIND_EVENT_FN(Application::OnEvent));
 
-		// m_ImGuiLayer = new ImGuiLayer();
-		// PushOverlay(m_ImGuiLayer);
+		GraphicsContext::Initialize();
+
+		m_ImGuiLayer = new ImGuiLayer();
+		PushOverlay(m_ImGuiLayer);
 	}
 
 	Application::~Application()
 	{
 		VKC_PROFILE_FUNCTION();
+
+		GraphicsContext::Deinitialize();
 	}
 
 	void Application::PushLayer(Layer* layer)
@@ -87,14 +92,14 @@ namespace VulkanCore {
 						layer->OnUpdate(timestep);
 				}
 
-				// m_ImGuiLayer->Begin();
+				m_ImGuiLayer->Begin();
 				{
 					VKC_PROFILE_SCOPE("LayerStack OnImGuiRender");
 
 					for (Layer* layer : m_LayerStack)
 						layer->OnImGuiRender();
 				}
-				// m_ImGuiLayer->End();
+				m_ImGuiLayer->End();
 			}
 
 			m_Window->OnUpdate();

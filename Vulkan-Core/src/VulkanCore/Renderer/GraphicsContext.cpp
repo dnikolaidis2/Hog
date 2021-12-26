@@ -540,6 +540,42 @@ namespace VulkanCore {
 		CreateCommandBuffers();
 	}
 
+	void GraphicsContext::GetImGuiDescriptorPoolImpl()
+	{
+		if (ImGuiDescriptorPool) return;
+
+		//1: create descriptor pool for IMGUI
+		// the size of the pool is very oversize, but it's copied from imgui demo itself.
+		VkDescriptorPoolSize pool_sizes[] =
+		{
+			{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+			{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+		};
+
+		VkDescriptorPoolCreateInfo pool_info = {};
+		pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+		pool_info.maxSets = 1000;
+		pool_info.poolSizeCount = (uint32_t)std::size(pool_sizes);
+		pool_info.pPoolSizes = pool_sizes;
+
+		CheckVkResult(vkCreateDescriptorPool(Device, &pool_info, nullptr, &ImGuiDescriptorPool));
+	}
+
+	void GraphicsContext::DestroyImGuiDescriptorPoolImpl()
+	{
+		vkDestroyDescriptorPool(Device, ImGuiDescriptorPool, nullptr);
+	}
+
 	void GraphicsContext::ImmediateSubmitImpl(std::function<void(VkCommandBuffer commandBuffer)>&& function)
 	{
 		//allocate the default command buffer that we will use for the instant commands
@@ -1208,7 +1244,7 @@ namespace VulkanCore {
 		VkAttachmentDescription colorAttachment = {};
 		colorAttachment.format = SwapchainFormat;
 		// Sample count goes from 1 - 64
-		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		colorAttachment.samples = MSAASamples;
 		// I don't care what you do with the image memory when you load it for use.
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		// Just store the image when you go to store it.
@@ -1219,11 +1255,13 @@ namespace VulkanCore {
 		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 		attachments.push_back(colorAttachment);
 
+		
+
 		// For the depth attachment, we'll be using the _viewDepth we just created.
 		VkAttachmentDescription depthAttachment = {};
 		depthAttachment.format = DepthImage->GetInternalFormat();
 		depthAttachment.flags = 0;
-		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthAttachment.samples = MSAASamples;
 		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;

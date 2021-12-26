@@ -64,7 +64,11 @@ namespace VulkanCore {
 		static void Initialize() { Get().InitializeImpl(); }
 		static void Deinitialize() { Get().DeinitializeImpl(); }
 		static void RecreateSwapChain() { Get().RecreateSwapChainImpl(); }
+		static VkDescriptorPool& GetImGuiDescriptorPool() { Get().GetImGuiDescriptorPoolImpl(); return Get().ImGuiDescriptorPool; }
+		static void DestroyImGuiDescriptorPool() { Get().DestroyImGuiDescriptorPoolImpl();}
 		static const VmaAllocator& GetAllocator() { return Get().Allocator; }
+		static const VkInstance& GetInstance() { return Get().Instance; }
+		static const VkPhysicalDevice& GetPhysicalDevice() { return Get().PhysicalDevice; }
 		static const VkDevice& GetDevice() { return Get().Device; }
 		static const VkExtent2D& GetExtent() { return Get().SwapchainExtent; }
 		static const VkSwapchainKHR& GetSwapchain() { return Get().Swapchain; }
@@ -78,6 +82,7 @@ namespace VulkanCore {
 		static const VkFence& GetCurrentCommandBufferFence() { return Get().CommandBufferFences[GetCurrentFrame()]; }
 		static const VkSemaphore& GetCurrentAcquireSemaphore() { return Get().AcquireSemaphores[GetCurrentFrame()]; }
 		static const VkSemaphore& GetCurrentRenderCompleteSemaphore() { return Get().RenderCompleteSemaphores[GetCurrentFrame()]; }
+		static const VkSampleCountFlagBits& GetMSAASamples() { return Get().MSAASamples; }
 
 		static void ImmediateSubmit(std::function<void(VkCommandBuffer commandBuffer)>&& function) { return Get().ImmediateSubmitImpl(std::move(function)); }
 	public:
@@ -89,6 +94,8 @@ namespace VulkanCore {
 		void InitializeImpl();
 		void DeinitializeImpl();
 		void RecreateSwapChainImpl();
+		void GetImGuiDescriptorPoolImpl();
+		void DestroyImGuiDescriptorPoolImpl();
 		void ImmediateSubmitImpl(std::function<void(VkCommandBuffer commandBuffer)>&& function);
 
 	public:
@@ -157,6 +164,10 @@ namespace VulkanCore {
 		VkRenderPass RenderPass = VK_NULL_HANDLE;
 
 		std::vector<VkFramebuffer> FrameBuffers;
+
+		VkSampleCountFlagBits MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+		VkDescriptorPool ImGuiDescriptorPool;
 
 		VkApplicationInfo ApplicationInfo =
 		{
