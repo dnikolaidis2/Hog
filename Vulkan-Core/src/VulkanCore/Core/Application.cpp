@@ -4,6 +4,7 @@
 #include "VulkanCore/Core/Log.h"
 #include "VulkanCore/Core/Input.h"
 #include "VulkanCore/Renderer/GraphicsContext.h"
+#include "VulkanCore/Renderer/Renderer.h"
 
 #include <GLFW/glfw3.h>
 
@@ -22,6 +23,7 @@ namespace VulkanCore {
 		m_Window->SetEventCallback(VKC_BIND_EVENT_FN(Application::OnEvent));
 
 		GraphicsContext::Initialize();
+		Renderer::Initialize();
 
 		m_ImGuiLayer = new ImGuiLayer();
 		PushOverlay(m_ImGuiLayer);
@@ -31,6 +33,7 @@ namespace VulkanCore {
 	{
 		VKC_PROFILE_FUNCTION();
 
+		Renderer::Deinitialize();
 		GraphicsContext::Deinitialize();
 	}
 
@@ -100,6 +103,7 @@ namespace VulkanCore {
 						layer->OnImGuiRender();
 				}
 				m_ImGuiLayer->End();
+				Renderer::EndScene();
 			}
 
 			m_Window->OnUpdate();

@@ -30,8 +30,6 @@ void SandboxLayer::OnAttach()
 			* glm::rotate(glm::mat4{ 1.0f }, glm::radians(180.0f), glm::vec3(1, 0, 0)));
 	}
 
-	Renderer::Inititalize();
-
 	m_EditorCamera = EditorCamera(30.0f, 1.778f, 0.1f, 10000.0f);
 }
 
@@ -39,7 +37,6 @@ void SandboxLayer::OnDetach()
 {
 	VKC_PROFILE_FUNCTION()
 
-	Renderer::Deinitialize();
 	ShaderLibrary::Deinitialize();
 	MaterialLibrary::Deinitialize();
 	TextureLibrary::Deinitialize();
@@ -56,8 +53,6 @@ void SandboxLayer::OnUpdate(Timestep ts)
 	Renderer::BeginScene(m_EditorCamera);
 
 	Renderer::DrawObjects(m_Objects);
-
-	Renderer::EndScene();
 }
 
 void SandboxLayer::OnImGuiRender()

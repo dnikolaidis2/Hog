@@ -54,7 +54,7 @@ namespace VulkanCore
 
 	static RendererState s_Data;
 
-	void Renderer::Inititalize()
+	void Renderer::Initialize()
 	{
 		s_Data.Device = GraphicsContext::GetDevice();
 		s_Data.MaxFrameCount = GraphicsContext::GetFrameCount();

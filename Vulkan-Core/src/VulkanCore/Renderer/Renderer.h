@@ -9,7 +9,7 @@ namespace VulkanCore
 	class Renderer
 	{
 	public:
-		static void Inititalize();
+		static void Initialize();
 		static void Deinitialize();
 
 		static void BeginScene(const EditorCamera& camera);
