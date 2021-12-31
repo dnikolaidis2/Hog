@@ -21,4 +21,6 @@ private:
 	std::vector<Ref<RendererObject>> m_Objects;
 
 	EditorCamera m_EditorCamera;
+
+	Ref<ImGuiLayer> m_ImGuiLayer;
 };

@@ -35,14 +35,17 @@ namespace VulkanCore {
 
 		void OnEvent(Event& e);
 
-		void PushLayer(Layer* layer);
-		void PushOverlay(Layer* layer);
+		void PushLayer(Ref<Layer> layer);
+		void PushOverlay(Ref<Layer> layer);
+		void PopLayer(Ref<Layer> layer);
+		void PopOverlay(Ref<Layer> layer);
 
 		Window& GetWindow() { return *m_Window; }
 
 		void Close();
 
-		ImGuiLayer* GetImGuiLayer() { return m_ImGuiLayer; }
+		void SetImGuiLayer(Ref<ImGuiLayer> layer) { m_ImGuiLayer = layer; PushOverlay(layer); }
+		Ref<ImGuiLayer> GetImGuiLayer() { return m_ImGuiLayer; }
 
 		static Application& Get() { return *s_Instance; }
 
@@ -54,10 +57,10 @@ namespace VulkanCore {
 	private:
 		ApplicationCommandLineArgs m_CommandLineArgs;
 		Scope<Window> m_Window;
-		ImGuiLayer* m_ImGuiLayer;
 		bool m_Running = true;
 		bool m_Minimized = false;
 		LayerStack m_LayerStack;
+		Ref<ImGuiLayer> m_ImGuiLayer;
 		float m_LastFrameTime = 0.0f;
 	private:
 		static Application* s_Instance;

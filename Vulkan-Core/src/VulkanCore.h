@@ -16,6 +16,8 @@
 #include "VulkanCore/Core/MouseCodes.h"
 #include "VulkanCore/Renderer/OrthographicCameraController.h"
 
+#include <VulkanCore/Utils/Loader.h>
+
 #include "VulkanCore/ImGui/ImGuiLayer.h"
 
 // ---Renderer------------------------

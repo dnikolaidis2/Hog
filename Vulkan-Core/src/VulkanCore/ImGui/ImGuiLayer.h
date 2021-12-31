@@ -14,6 +14,7 @@ namespace VulkanCore {
 		ImGuiLayer();
 		~ImGuiLayer() = default;
 
+		virtual void OnUpdate(Timestep ts) override;
 		virtual void OnAttach() override;
 		virtual void OnDetach() override;
 		virtual void OnEvent(Event& e) override;

@@ -64,6 +64,7 @@ namespace VulkanCore {
 		static void Initialize() { Get().InitializeImpl(); }
 		static void Deinitialize() { Get().DeinitializeImpl(); }
 		static void RecreateSwapChain() { Get().RecreateSwapChainImpl(); }
+		static void WaitIdle() { Get().WaitIdleImpl(); }
 		static VkDescriptorPool& GetImGuiDescriptorPool() { Get().GetImGuiDescriptorPoolImpl(); return Get().ImGuiDescriptorPool; }
 		static void DestroyImGuiDescriptorPool() { Get().DestroyImGuiDescriptorPoolImpl();}
 		static const VmaAllocator& GetAllocator() { return Get().Allocator; }
@@ -94,6 +95,7 @@ namespace VulkanCore {
 		void InitializeImpl();
 		void DeinitializeImpl();
 		void RecreateSwapChainImpl();
+		void WaitIdleImpl();
 		void GetImGuiDescriptorPoolImpl();
 		void DestroyImGuiDescriptorPoolImpl();
 		void ImmediateSubmitImpl(std::function<void(VkCommandBuffer commandBuffer)>&& function);

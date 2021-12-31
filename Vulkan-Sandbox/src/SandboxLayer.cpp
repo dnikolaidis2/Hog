@@ -2,7 +2,6 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <VulkanCore/Utils/Loader.h>
 #include <imgui/imgui.h>
 
 static auto& context = GraphicsContext::Get();
@@ -16,6 +15,12 @@ SandboxLayer::SandboxLayer()
 void SandboxLayer::OnAttach()
 {
 	VKC_PROFILE_FUNCTION()
+
+	GraphicsContext::Initialize();
+	Renderer::Initialize();
+
+	m_ImGuiLayer = CreateRef<ImGuiLayer>();
+	Application::Get().SetImGuiLayer(m_ImGuiLayer);
 
 	ShaderLibrary::LoadDirectory("assets/shaders");
 
@@ -37,11 +42,17 @@ void SandboxLayer::OnDetach()
 {
 	VKC_PROFILE_FUNCTION()
 
+	GraphicsContext::WaitIdle();
+
+	Application::Get().PopOverlay(m_ImGuiLayer);
+	Renderer::Deinitialize();
 	ShaderLibrary::Deinitialize();
 	MaterialLibrary::Deinitialize();
 	TextureLibrary::Deinitialize();
 
 	m_Objects.clear();
+
+	GraphicsContext::Deinitialize();
 }
 
 void SandboxLayer::OnUpdate(Timestep ts)

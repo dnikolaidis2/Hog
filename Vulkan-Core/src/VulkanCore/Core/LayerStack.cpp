@@ -5,25 +5,24 @@ namespace VulkanCore {
 
 	LayerStack::~LayerStack()
 	{
-		for (Layer* layer : m_Layers)
+		for (int i = 0; i < m_Layers.size(); ++i)
 		{
-			layer->OnDetach();
-			delete layer;
+			m_Layers[i]->OnDetach();
 		}
 	}
 
-	void LayerStack::PushLayer(Layer* layer)
+	void LayerStack::PushLayer(Ref<Layer> layer)
 	{
 		m_Layers.emplace(m_Layers.begin() + m_LayerInsertIndex, layer);
 		m_LayerInsertIndex++;
 	}
 
-	void LayerStack::PushOverlay(Layer* overlay)
+	void LayerStack::PushOverlay(Ref<Layer> overlay)
 	{
 		m_Layers.emplace_back(overlay);
 	}
 
-	void LayerStack::PopLayer(Layer* layer)
+	void LayerStack::PopLayer(Ref<Layer> layer)
 	{
 		auto it = std::find(m_Layers.begin(), m_Layers.begin() + m_LayerInsertIndex, layer);
 		if (it != m_Layers.begin() + m_LayerInsertIndex)
@@ -34,7 +33,7 @@ namespace VulkanCore {
 		}
 	}
 
-	void LayerStack::PopOverlay(Layer* overlay)
+	void LayerStack::PopOverlay(Ref<Layer> overlay)
 	{
 		auto it = std::find(m_Layers.begin() + m_LayerInsertIndex, m_Layers.end(), overlay);
 		if (it != m_Layers.end())

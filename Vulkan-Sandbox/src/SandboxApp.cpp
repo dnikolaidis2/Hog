@@ -10,7 +10,7 @@ public:
 	Sandbox(VulkanCore::ApplicationCommandLineArgs args)
 		: Application("Vulkan Sandbox", args)
 	{
-		PushLayer(new SandboxLayer());
+		PushLayer(CreateRef<SandboxLayer>());
 	}
 
 	~Sandbox()

@@ -21,23 +21,14 @@ namespace VulkanCore {
 		s_Instance = this;
 		m_Window = Window::Create(WindowProps(name));
 		m_Window->SetEventCallback(VKC_BIND_EVENT_FN(Application::OnEvent));
-
-		GraphicsContext::Initialize();
-		Renderer::Initialize();
-
-		m_ImGuiLayer = new ImGuiLayer();
-		PushOverlay(m_ImGuiLayer);
 	}
 
 	Application::~Application()
 	{
 		VKC_PROFILE_FUNCTION();
-
-		Renderer::Deinitialize();
-		GraphicsContext::Deinitialize();
 	}
 
-	void Application::PushLayer(Layer* layer)
+	void Application::PushLayer(Ref<Layer> layer)
 	{
 		VKC_PROFILE_FUNCTION();
 
@@ -45,12 +36,26 @@ namespace VulkanCore {
 		layer->OnAttach();
 	}
 
-	void Application::PushOverlay(Layer* layer)
+	void Application::PushOverlay(Ref<Layer> layer)
 	{
 		VKC_PROFILE_FUNCTION();
 
 		m_LayerStack.PushOverlay(layer);
 		layer->OnAttach();
+	}
+
+	void Application::PopLayer(Ref<Layer> layer)
+	{
+		VKC_PROFILE_FUNCTION();
+
+		m_LayerStack.PopLayer(layer);
+	}
+
+	void Application::PopOverlay(Ref<Layer> layer)
+	{
+		VKC_PROFILE_FUNCTION();
+
+		m_LayerStack.PopOverlay(layer);
 	}
 
 	void Application::Close()
@@ -88,26 +93,30 @@ namespace VulkanCore {
 
 			if (!m_Minimized)
 			{
+				if (m_ImGuiLayer)
+				{
+					m_ImGuiLayer->Begin();
+					{
+						VKC_PROFILE_SCOPE("LayerStack OnImGuiRender");
+
+						for (Ref<Layer> layer : m_LayerStack)
+							layer->OnImGuiRender();
+					}
+					m_ImGuiLayer->End();
+				}
+
 				{
 					VKC_PROFILE_SCOPE("LayerStack OnUpdate");
 
-					for (Layer* layer : m_LayerStack)
+					for (Ref<Layer> layer : m_LayerStack)
 						layer->OnUpdate(timestep);
 				}
-
-				m_ImGuiLayer->Begin();
-				{
-					VKC_PROFILE_SCOPE("LayerStack OnImGuiRender");
-
-					for (Layer* layer : m_LayerStack)
-						layer->OnImGuiRender();
-				}
-				m_ImGuiLayer->End();
-				Renderer::EndScene();
 			}
 
 			m_Window->OnUpdate();
 		}
+
+		m_ImGuiLayer.reset();
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& e)

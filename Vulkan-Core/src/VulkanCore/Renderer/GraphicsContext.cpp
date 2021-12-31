@@ -540,6 +540,11 @@ namespace VulkanCore {
 		CreateCommandBuffers();
 	}
 
+	void GraphicsContext::WaitIdleImpl()
+	{
+		vkDeviceWaitIdle(Device);
+	}
+
 	void GraphicsContext::GetImGuiDescriptorPoolImpl()
 	{
 		if (ImGuiDescriptorPool) return;

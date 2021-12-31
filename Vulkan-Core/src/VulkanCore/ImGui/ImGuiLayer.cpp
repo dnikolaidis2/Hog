@@ -12,6 +12,7 @@
 #include <GLFW/glfw3.h>
 
 #include "VulkanCore/Renderer/GraphicsContext.h"
+#include "VulkanCore/Renderer/Renderer.h"
 
 
 namespace VulkanCore {
@@ -19,6 +20,13 @@ namespace VulkanCore {
 	ImGuiLayer::ImGuiLayer()
 		: Layer("ImGuiLayer")
 	{
+	}
+
+	void ImGuiLayer::OnUpdate(Timestep ts)
+	{
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), GraphicsContext::GetCurrentCommandBuffer());
+
+		Renderer::EndScene();
 	}
 
 	void ImGuiLayer::OnAttach()
@@ -31,8 +39,8 @@ namespace VulkanCore {
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
 		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+		//io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+		// io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
 		//io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoTaskBarIcons;
 		//io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
 
@@ -120,7 +128,6 @@ namespace VulkanCore {
 
 		// Rendering
 		ImGui::Render();
-		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), GraphicsContext::GetCurrentCommandBuffer());
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
