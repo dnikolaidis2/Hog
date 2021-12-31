@@ -13,6 +13,7 @@
 
 #include "VulkanCore/Renderer/GraphicsContext.h"
 #include "VulkanCore/Renderer/Renderer.h"
+#include "VulkanCore/Utils/RendererUtils.h"
 
 
 namespace VulkanCore {
@@ -76,6 +77,7 @@ namespace VulkanCore {
 		initInfo.MinImageCount = GraphicsContext::GetFrameCount();
 		initInfo.ImageCount = GraphicsContext::GetFrameCount();
 		initInfo.MSAASamples = GraphicsContext::GetMSAASamples();
+		initInfo.CheckVkResultFn = CheckVkResult;
 
 		ImGui_ImplVulkan_Init(&initInfo, GraphicsContext::GetRenderPass());
 

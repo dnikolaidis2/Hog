@@ -5,7 +5,6 @@ newmtl leaf
 	Ns 10.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1
@@ -21,7 +20,6 @@ newmtl vase_round
 	Ns 10.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1
@@ -36,7 +34,6 @@ newmtl Material__57
 	Ns 10.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1 
@@ -51,7 +48,6 @@ newmtl Material__298
 	Ns 10.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1 
@@ -67,7 +63,6 @@ newmtl bricks
 	Ns 10.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 0.5880 0.5880 0.5880
@@ -83,7 +78,6 @@ newmtl arch
 	Ns 40.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1 
@@ -97,7 +91,6 @@ newmtl ceiling
 	Ns 10.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1 
@@ -111,7 +104,6 @@ newmtl column_a
 	Ns 10.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1 
@@ -126,7 +118,6 @@ newmtl floor
 	Ns 70.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1
@@ -141,7 +132,6 @@ newmtl column_c
 	Ns 10.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1
@@ -156,7 +146,6 @@ newmtl details
 	Ns 10.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1
@@ -170,7 +159,6 @@ newmtl column_b
 	Ns 10.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1
@@ -185,7 +173,6 @@ newmtl Material__47
 	Ns 10.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1
@@ -197,7 +184,6 @@ newmtl flagpole
 	Ns 10.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1
@@ -211,7 +197,6 @@ newmtl fabric_e
 	Ns 0.1000
 	Ni 1.000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1
@@ -225,7 +210,6 @@ newmtl fabric_d
 	Ns 0.1000
 	Ni 1.000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1
@@ -239,7 +223,6 @@ newmtl fabric_a
 	Ns 0.1000
 	Ni 1.000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1
@@ -253,7 +236,6 @@ newmtl fabric_g
 	Ns 0.1000
 	Ni 1.0000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1
@@ -267,7 +249,6 @@ newmtl fabric_c
 	Ns 0.1000
 	Ni 1.0000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1
@@ -281,7 +262,6 @@ newmtl fabric_f
 	Ns 0.1000
 	Ni 1.0000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1
@@ -295,7 +275,6 @@ newmtl chain
 	Ns 50.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1 
@@ -311,7 +290,6 @@ newmtl vase_hanging
 	Ns 50.0
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1 
@@ -326,7 +304,6 @@ newmtl vase
 	Ns 10.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1
@@ -341,7 +318,6 @@ newmtl Material__25
 	Ns 10.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1 
@@ -356,7 +332,6 @@ newmtl roof
 	Ns 10.0000
 	Ni 1.5000
 	d 1.0000
-	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
 	Ka 1 1 1

@@ -219,7 +219,7 @@ namespace VulkanCore {
 		static Ref<Buffer> Create(MemoryType type, uint32_t size);
 	public:
 		Buffer(MemoryType type, uint32_t size);
-		~Buffer();
+		virtual ~Buffer();
 
 		void SetData(void* data, uint32_t size);
 		void TransferData(uint32_t size, const Ref<Buffer>& src);

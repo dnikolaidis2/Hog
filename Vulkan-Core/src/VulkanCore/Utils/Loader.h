@@ -122,7 +122,7 @@ namespace VulkanCore
 					tinyobj::real_t ty = attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
 
 
-					verties.push_back({ {vx, vy, vz}, {nx, ny, nz},{tx, ty}, {nx, ny, nz} });
+					verties.push_back({ {vx, vy, vz}, {nx, ny, nz}, {tx, ty}, {nx, ny, nz} });
 				}
 
 				indexOffset += fv;

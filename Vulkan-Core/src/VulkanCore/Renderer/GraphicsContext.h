@@ -65,25 +65,25 @@ namespace VulkanCore {
 		static void Deinitialize() { Get().DeinitializeImpl(); }
 		static void RecreateSwapChain() { Get().RecreateSwapChainImpl(); }
 		static void WaitIdle() { Get().WaitIdleImpl(); }
-		static VkDescriptorPool& GetImGuiDescriptorPool() { Get().GetImGuiDescriptorPoolImpl(); return Get().ImGuiDescriptorPool; }
+		static VkDescriptorPool GetImGuiDescriptorPool() { Get().GetImGuiDescriptorPoolImpl(); return Get().ImGuiDescriptorPool; }
 		static void DestroyImGuiDescriptorPool() { Get().DestroyImGuiDescriptorPoolImpl();}
-		static const VmaAllocator& GetAllocator() { return Get().Allocator; }
-		static const VkInstance& GetInstance() { return Get().Instance; }
-		static const VkPhysicalDevice& GetPhysicalDevice() { return Get().PhysicalDevice; }
-		static const VkDevice& GetDevice() { return Get().Device; }
-		static const VkExtent2D& GetExtent() { return Get().SwapchainExtent; }
-		static const VkSwapchainKHR& GetSwapchain() { return Get().Swapchain; }
-		static const VkQueue& GetGraphicsQueue() { return Get().GraphicsQueue; }
+		static VmaAllocator GetAllocator() { return Get().Allocator; }
+		static VkInstance GetInstance() { return Get().Instance; }
+		static VkPhysicalDevice GetPhysicalDevice() { return Get().PhysicalDevice; }
+		static VkDevice GetDevice() { return Get().Device; }
+		static VkExtent2D GetExtent() { return Get().SwapchainExtent; }
+		static VkSwapchainKHR GetSwapchain() { return Get().Swapchain; }
+		static VkQueue GetGraphicsQueue() { return Get().GraphicsQueue; }
 		static int GetCurrentFrame() { return Get().CurrentFrame; }
 		static int GetFrameCount() { return Get().FrameCount; }
 		static void SetCurrentFrame(int frameNumber) { Get().CurrentFrame = frameNumber; }
-		static const VkCommandBuffer& GetCurrentCommandBuffer() { return Get().CommandBuffers[GetCurrentFrame()]; }
-		static const VkFramebuffer& GetCurrentFrameBuffer() { return Get().FrameBuffers[GetCurrentFrame()]; }
-		static const VkRenderPass& GetRenderPass() { return Get().RenderPass; }
-		static const VkFence& GetCurrentCommandBufferFence() { return Get().CommandBufferFences[GetCurrentFrame()]; }
-		static const VkSemaphore& GetCurrentAcquireSemaphore() { return Get().AcquireSemaphores[GetCurrentFrame()]; }
-		static const VkSemaphore& GetCurrentRenderCompleteSemaphore() { return Get().RenderCompleteSemaphores[GetCurrentFrame()]; }
-		static const VkSampleCountFlagBits& GetMSAASamples() { return Get().MSAASamples; }
+		static VkCommandBuffer GetCurrentCommandBuffer() { return Get().CommandBuffers[GetCurrentFrame()]; }
+		static VkFramebuffer GetCurrentFrameBuffer() { return Get().FrameBuffers[GetCurrentFrame()]; }
+		static VkRenderPass GetRenderPass() { return Get().RenderPass; }
+		static VkFence GetCurrentCommandBufferFence() { return Get().CommandBufferFences[GetCurrentFrame()]; }
+		static VkSemaphore GetCurrentAcquireSemaphore() { return Get().AcquireSemaphores[GetCurrentFrame()]; }
+		static VkSemaphore GetCurrentRenderCompleteSemaphore() { return Get().RenderCompleteSemaphores[GetCurrentFrame()]; }
+		static VkSampleCountFlagBits GetMSAASamples() { return Get().MSAASamples; }
 
 		static void ImmediateSubmit(std::function<void(VkCommandBuffer commandBuffer)>&& function) { return Get().ImmediateSubmitImpl(std::move(function)); }
 	public:
