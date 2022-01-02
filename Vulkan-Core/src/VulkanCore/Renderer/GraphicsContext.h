@@ -202,7 +202,8 @@ namespace VulkanCore {
 			.depthBiasClamp = VK_TRUE,
 			.fillModeNonSolid = VK_TRUE,
 			.depthBounds = VK_TRUE,
-			.textureCompressionBC = VK_TRUE
+			.textureCompressionBC = VK_TRUE,
+			.shaderSampledImageArrayDynamicIndexing = VK_TRUE
 		};
 
 		std::vector<const char*> InstanceExtensions = { VK_KHR_MAINTENANCE1_EXTENSION_NAME };

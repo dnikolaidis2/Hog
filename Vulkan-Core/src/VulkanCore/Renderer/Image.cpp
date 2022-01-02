@@ -115,11 +115,10 @@ namespace VulkanCore
 			});
 	}
 
-	VkDescriptorSet Image::GetOrCreateDescriptorSet(VkDescriptorPool descriptorPool,
-		VkDescriptorSetLayout* descriptorSetLayoutPtr)
+	VkSampler Image::GetOrCreateSampler()
 	{
-		if (m_DescriptorSet)
-			return m_DescriptorSet;
+		if (m_Sampler)
+			return m_Sampler;
 
 		//create a sampler for the texture
 		VkSamplerCreateInfo samplerInfo = {};
@@ -133,33 +132,7 @@ namespace VulkanCore
 
 		CheckVkResult(vkCreateSampler(GraphicsContext::GetDevice(), &samplerInfo, nullptr, &m_Sampler));
 
-		//allocate the descriptor set for single-texture to use on the material
-		VkDescriptorSetAllocateInfo allocInfo = {};
-		allocInfo.pNext = nullptr;
-		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = descriptorPool;
-		allocInfo.descriptorSetCount = 1;
-		allocInfo.pSetLayouts = descriptorSetLayoutPtr;
-
-		CheckVkResult(vkAllocateDescriptorSets(GraphicsContext::GetDevice(), &allocInfo, &m_DescriptorSet));
-
-		//write to the descriptor set so that it points to our empire_diffuse texture
-		VkDescriptorImageInfo imageBufferInfo;
-		imageBufferInfo.sampler = m_Sampler;
-		imageBufferInfo.imageView = m_View;
-		imageBufferInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-		VkWriteDescriptorSet writeDescriptorSet = {};
-		writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		writeDescriptorSet.dstBinding = 1;
-		writeDescriptorSet.dstSet = m_DescriptorSet;
-		writeDescriptorSet.descriptorCount = 1;
-		writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		writeDescriptorSet.pImageInfo = &imageBufferInfo;
-
-		vkUpdateDescriptorSets(GraphicsContext::GetDevice(), 1, &writeDescriptorSet, 0, nullptr);
-
-		return m_DescriptorSet;
+		return m_Sampler;
 	}
 
 	void Image::CreateViewForImage()
@@ -177,6 +150,7 @@ namespace VulkanCore
 	void TextureLibrary::Add(const std::string& name, const Ref<Image>& image)
 	{
 		VKC_CORE_ASSERT(!Exists(name), "Image already exists!");
+		image->SetGPUIndex((int32_t)s_Images.size());
 		s_Images[name] = image;
 	}
 
@@ -207,7 +181,7 @@ namespace VulkanCore
 		
 		image->SetData(pixels, imageSize);
 
-		s_Images[name] = image;
+		Add(name, image);
 
 		stbi_image_free(pixels);
 
@@ -233,6 +207,31 @@ namespace VulkanCore
 	{
 		VKC_CORE_ASSERT(Exists(name), "Image not found!");
 		return s_Images[name];
+	}
+
+	std::array<Ref<Image>, TEXTURE_ARRAY_SIZE> TextureLibrary::GetLibraryArray()
+	{
+		std::array<Ref<Image>, TEXTURE_ARRAY_SIZE> arr;
+
+		for (const auto &[name, image]  : s_Images)
+		{
+			arr[image->GetGPUIndex()] = image;
+		}
+
+		return arr;
+	}
+
+	void TextureLibrary::Initialize()
+	{
+		VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
+		uint32_t imageSize = 1 * 1 * 4;
+		unsigned char pixels[] = {0, 0, 0, 0};
+
+		auto image = Image::Create(ImageType::Texture, 1, 1, 1, format);
+
+		image->SetData(pixels, imageSize);
+
+		Add("empty", image);
 	}
 
 	void TextureLibrary::Deinitialize()

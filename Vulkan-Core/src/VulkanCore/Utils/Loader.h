@@ -105,6 +105,8 @@ namespace VulkanCore
 				//hardcode loading to triangles
 				int fv = 3;
 
+				Ref<Material> mat = MaterialLibrary::Get(objMaterials[shapes[s].mesh.material_ids[f]].name);
+
 				// Loop over vertices in the face.
 				for (size_t v = 0; v < fv; v++) {
 					// access to vertex
@@ -121,8 +123,7 @@ namespace VulkanCore
 					tinyobj::real_t tx = attrib.texcoords[2 * size_t(idx.texcoord_index) + 0];
 					tinyobj::real_t ty = attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
 
-
-					verties.push_back({ {vx, vy, vz}, {nx, ny, nz}, {tx, ty}, {nx, ny, nz} });
+					verties.push_back({ {vx, vy, vz}, {nx, ny, nz}, {tx, ty}, mat->GetGPUIndex()});
 				}
 
 				indexOffset += fv;

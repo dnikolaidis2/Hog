@@ -22,7 +22,7 @@ namespace VulkanCore {
 		VkShaderModule GetVertexShaderModule() const { return m_VertexShaderModule; }
 		VkShaderModule GetFragmentShaderModule() const { return m_FragmentShaderModule; }
 		VkPipelineLayout GetPipelineLayout() const { return m_PipelineLayout; }
-		const std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() { return m_DescriptorSetLayouts; }
+		const std::array<VkDescriptorSetLayout, 4>& GetDescriptorSetLayouts() const { return m_DescriptorSetLayouts; }
 		const std::vector<VkVertexInputAttributeDescription>& GetVertexInputAttributeDescriptions() { return m_VertexInputAttributeDescriptions; }
 		VkVertexInputBindingDescription GetVertexInputBindingDescription() const { return m_VertexInputBindingDescription; }
 		const std::string& GetName() const { return m_Name; }
@@ -47,8 +47,8 @@ namespace VulkanCore {
 		VkShaderModule m_VertexShaderModule;
 		VkShaderModule m_FragmentShaderModule;
 
-		std::vector<VkDescriptorSetLayoutBinding> m_DescriptorSetLayoutBinding;
-		std::vector<VkDescriptorSetLayout> m_DescriptorSetLayouts;
+		std::array<std::vector<VkDescriptorSetLayoutBinding>, 4> m_DescriptorSetLayoutBinding;
+		std::array<VkDescriptorSetLayout, 4> m_DescriptorSetLayouts;
 
 		std::vector<VkPushConstantRange> m_PushConstantRanges;
 

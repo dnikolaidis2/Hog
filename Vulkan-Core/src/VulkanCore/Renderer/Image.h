@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 
 #include "Buffer.h"
+#include "Constants.h"
 #include "vk_mem_alloc.h"
 
 namespace VulkanCore
@@ -78,9 +79,11 @@ namespace VulkanCore
 
 		void SetData(void* data, uint32_t size);
 
-		const VkImageView& GetImageView() const { return m_View; }
-		const VkFormat& GetInternalFormat() const { return m_InternalFormat; }
-		VkDescriptorSet GetOrCreateDescriptorSet(VkDescriptorPool descriptorPool, VkDescriptorSetLayout* descriptorSetLayoutPtr);
+		VkImageView GetImageView() const { return m_View; }
+		VkFormat GetInternalFormat() const { return m_InternalFormat; }
+		VkSampler GetOrCreateSampler();
+		void SetGPUIndex(int32_t ind) { m_GPUIndex = ind; }
+		int32_t GetGPUIndex() const { return m_GPUIndex; }
 	private:
 		void CreateViewForImage();
 	private:
@@ -95,6 +98,7 @@ namespace VulkanCore
 		uint32_t m_Height;
 		bool m_IsSwapChainImage;
 		bool m_Allocated;
+		int32_t m_GPUIndex  = -1;
 
 		VkDescriptorSet m_DescriptorSet = nullptr;
 		VkSampler m_Sampler = nullptr;
@@ -135,6 +139,9 @@ namespace VulkanCore
 
 		static Ref<Image> Get(const std::string& name);
 
+		static std::array<Ref<Image>, TEXTURE_ARRAY_SIZE> GetLibraryArray();
+
+		static void Initialize();
 		static void Deinitialize();
 
 		static bool Exists(const std::string& name);

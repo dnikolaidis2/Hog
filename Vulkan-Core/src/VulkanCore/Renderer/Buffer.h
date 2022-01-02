@@ -203,13 +203,13 @@ namespace VulkanCore {
 		glm::vec3 Position;
 		glm::vec3 Normal;
 		glm::vec2 TexCoords;
-		glm::vec3 Color;
+		int32_t MaterialIndex;
 
 		inline static const BufferLayout Layout = {
 			{DataType::Float3, "a_Position"},
 			{DataType::Float3, "a_Normal"},
 			{DataType::Float2, "a_TexCoords"},
-			{DataType::Float3, "a_Color"},
+			{DataType::Int, "a_MaterialIndex"},
 		};
 	};
 

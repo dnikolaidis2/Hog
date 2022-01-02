@@ -17,12 +17,12 @@ void SandboxLayer::OnAttach()
 	VKC_PROFILE_FUNCTION()
 
 	GraphicsContext::Initialize();
+	ShaderLibrary::LoadDirectory("assets/shaders");
 	Renderer::Initialize();
+	TextureLibrary::Initialize();
 
 	m_ImGuiLayer = CreateRef<ImGuiLayer>();
 	Application::Get().SetImGuiLayer(m_ImGuiLayer);
-
-	ShaderLibrary::LoadDirectory("assets/shaders");
 
 	LoadObjFile("assets/models/sponza/sponza.obj", m_Objects);
 	// LoadObjFile("assets/models/monkey/monkey_flat.obj", m_Objects);

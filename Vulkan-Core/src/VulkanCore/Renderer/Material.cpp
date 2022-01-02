@@ -25,13 +25,14 @@ namespace VulkanCore
 	void MaterialLibrary::Add(const std::string& name, const Ref<Material>& material)
 	{
 		VKC_CORE_ASSERT(!Exists(name), "Shader already exists!");
+		material->SetGPUIndex((int32_t)s_Materials.size());
 		s_Materials[name] = material;
 	}
 
 	Ref<Material> MaterialLibrary::Create(const std::string& name, MaterialData& data)
 	{
 		Ref<Material> mat = Material::Create(data);
-		s_Materials[name] = mat;
+		Add(name, mat);
 		return mat;
 	}
 
@@ -50,6 +51,17 @@ namespace VulkanCore
 	{
 		VKC_CORE_ASSERT(Exists(name), "Material not found!");
 		return s_Materials[name];
+	}
+
+	std::array<MaterialGPUData, MATERIAL_ARRAY_SIZE> MaterialLibrary::GetGPUArray()
+	{
+		std::array<MaterialGPUData, MATERIAL_ARRAY_SIZE> arr;
+		for (const auto &[name, mat] : s_Materials)
+		{
+			arr[mat->GetGPUIndex()] = MaterialGPUData(mat->GetMaterialData());
+		}
+
+		return arr;
 	}
 
 	void MaterialLibrary::Deinitialize()

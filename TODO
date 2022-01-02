@@ -24,3 +24,4 @@
  ✔ refactor Images @done (21-12-22 17:06)
  ✔ Move to gpu only memory for vertex buffers @done (21-12-22 15:52)
  ☐ use nodiscrad for getters
+ ✔ common definitions for c++ and glsl for constants @done (22-01-02 21:39)
