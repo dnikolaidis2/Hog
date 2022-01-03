@@ -33,26 +33,26 @@ namespace VulkanCore
 	struct MaterialGPUData
 	{
 		glm::vec3 AmbientColor = glm::vec3(0.0f);
-		int32_t AmbientTexture = -1;
+		int32_t AmbientTexture = 0;
 
 		glm::vec3 DiffuseColor = glm::vec3(0.0f);
-		int32_t DiffuseTexture = -1;
+		int32_t DiffuseTexture = 2;
 
 		glm::vec3 SpecularColor = glm::vec3(0.0f);
-		int32_t SpecularTexture = -1;
+		int32_t SpecularTexture = 0;
 
-		int32_t SpecularHighlightTexture = -1;
+		int32_t SpecularHighlightTexture = 0;
 		float Specularity = 0.0f;
 		float IOR = 0.0f;
 		float Dissolve = 0.0f;
 
 		glm::vec3 EmissiveColor = glm::vec3(0.0f);
-		int32_t AlphaMap = -1;
+		int32_t AlphaMap = 1;
 
 		glm::vec3 TransmittanceFilter = glm::vec3(0.0f);
-		int32_t BumpMap = -1;
+		int32_t BumpMap = 0;
 
-		int32_t DisplacementMap = -1;
+		int32_t DisplacementMap = 0;
 		int32_t IlluminationModel = 0;
 		uint8_t Padding[8];
 

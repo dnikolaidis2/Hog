@@ -71,10 +71,13 @@ namespace VulkanCore
 		VkPipelineColorBlendAttachmentState ColorBlendAttachmentState = {
 			.blendEnable = VK_FALSE,
 			.srcColorBlendFactor = VK_BLEND_FACTOR_ONE, // Optional
+			//.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR, // Optional
 			.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO, // Optional
+			//.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR, // Optional
 			.colorBlendOp = VK_BLEND_OP_ADD, // Optional
 			.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE, // Optional
 			.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO, // Optional
+			//.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, // Optional
 			.alphaBlendOp = VK_BLEND_OP_ADD, // Optional
 			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
 		};

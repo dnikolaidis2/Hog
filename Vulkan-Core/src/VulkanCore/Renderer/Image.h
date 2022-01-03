@@ -98,7 +98,7 @@ namespace VulkanCore
 		uint32_t m_Height;
 		bool m_IsSwapChainImage;
 		bool m_Allocated;
-		int32_t m_GPUIndex  = -1;
+		int32_t m_GPUIndex  = 0;
 
 		VkDescriptorSet m_DescriptorSet = nullptr;
 		VkSampler m_Sampler = nullptr;

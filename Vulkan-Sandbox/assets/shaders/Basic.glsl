@@ -58,23 +58,19 @@ layout(location = 1) in flat int v_MaterialIndex;
 
 layout(location = 0) out vec4 o_Color;
 
-layout(std140, set = 0, binding = 1) uniform MaterialDataStub 
+layout(std140, set = 0, binding = 1) uniform MaterialDataStub
 {
-    MaterialData u_MaterialData[MATERIAL_ARRAY_SIZE];
+    MaterialData u_Materials[MATERIAL_ARRAY_SIZE];
 };
 
 layout(set = 0, binding = 2) uniform sampler2D u_Textures[TEXTURE_ARRAY_SIZE];
 
 void main() {
-    if (u_MaterialData[v_MaterialIndex].DiffuseTextureIndex != -1)
-    {
-        o_Color = vec4(
-            texture(u_Textures[u_MaterialData[v_MaterialIndex].DiffuseTextureIndex],
-            v_TexCoord).xyz,
-            1.0);
-    }
-    else
-    {
-        o_Color = vec4(0.733, 0.047, 0.047, 1.0);
-    }
+    MaterialData mat = u_Materials[v_MaterialIndex];
+    bool alpha = (texture(u_Textures[mat.AlphaMapIndex], v_TexCoord).x > 0.0);
+    if (!alpha) discard;
+    
+    vec4 texColor = vec4(mat.DiffuseColor, 1.0);
+    texColor *= texture(u_Textures[mat.DiffuseTextureIndex], v_TexCoord);
+    o_Color = texColor;
 }

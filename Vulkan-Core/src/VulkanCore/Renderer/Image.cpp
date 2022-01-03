@@ -198,7 +198,7 @@ namespace VulkanCore
 		if (Exists(name))
 			return Get(name);
 		else
-			LoadFromFile(filepath);
+			return LoadFromFile(filepath);
 
 		return nullptr;
 	}
@@ -225,13 +225,33 @@ namespace VulkanCore
 	{
 		VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
 		uint32_t imageSize = 1 * 1 * 4;
-		unsigned char pixels[] = {0, 0, 0, 0};
+		unsigned char pixels0[] = { 0, 0, 0, 0 };
 
 		auto image = Image::Create(ImageType::Texture, 1, 1, 1, format);
 
-		image->SetData(pixels, imageSize);
+		image->SetData(pixels0, imageSize);
 
-		Add("empty", image);
+		Add("ones", image);
+
+		format = VK_FORMAT_R8G8B8A8_SRGB;
+		imageSize = 1 * 1 * 4;
+		unsigned char pixels1[] = { UCHAR_MAX, UCHAR_MAX, UCHAR_MAX, UCHAR_MAX };
+
+		image = Image::Create(ImageType::Texture, 1, 1, 1, format);
+
+		image->SetData(pixels1, imageSize);
+
+		Add("zeros", image);
+
+		format = VK_FORMAT_R8G8B8A8_SRGB;
+		imageSize = 1 * 1 * 4;
+		unsigned char pixels2[] = { 55, 250, 198, UCHAR_MAX };
+
+		image = Image::Create(ImageType::Texture, 1, 1, 1, format);
+
+		image->SetData(pixels2, imageSize);
+
+		Add("error", image);
 	}
 
 	void TextureLibrary::Deinitialize()
