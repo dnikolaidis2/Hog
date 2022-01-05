@@ -376,7 +376,7 @@ namespace VulkanCore {
 		// If Vulkan returned an unknown format, then just force what we want.
 		if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED) 
 		{
-			result.format = VK_FORMAT_B8G8R8A8_UNORM;
+			result.format = VK_FORMAT_B8G8R8A8_SRGB;
 			result.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 			return result;
 		}
@@ -385,7 +385,7 @@ namespace VulkanCore {
 		for (int i = 0; i < formats.size(); ++i) 
 		{
 			VkSurfaceFormatKHR& fmt = formats[i];
-			if (fmt.format == VK_FORMAT_B8G8R8A8_UNORM && fmt.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) 
+			if (fmt.format == VK_FORMAT_B8G8R8A8_SRGB && fmt.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) 
 			{
 				return fmt;
 			}
@@ -492,6 +492,7 @@ namespace VulkanCore {
 		}
 
 		DepthImage.reset();
+		ColorImage.reset();
 
 		vkDestroySwapchainKHR(Device, Swapchain, nullptr);
 
@@ -896,6 +897,7 @@ namespace VulkanCore {
 				PresentFamilyIndex = (uint32_t)presentIdx;
 				PhysicalDevice = gpu->Device;
 				GPU = gpu;
+				MSAASamples = GetMaxMSAASampleCount();
 				return;
 			}
 		}
@@ -1234,7 +1236,9 @@ namespace VulkanCore {
 		// So now that the context contains the selected format we can simply
 		// create the internal one.
 
-		DepthImage = Image::Create(ImageType::Depth, GPU->SurfaceCapabilities.currentExtent.width, GPU->SurfaceCapabilities.currentExtent.height, 1, internalFormat);
+		DepthImage = Image::Create(ImageType::Depth, GPU->SurfaceCapabilities.currentExtent.width, GPU->SurfaceCapabilities.currentExtent.height, 1, internalFormat, MSAASamples);
+		
+		ColorImage = Image::Create(ImageType::SampledColorAttachment, GPU->SurfaceCapabilities.currentExtent.width, GPU->SurfaceCapabilities.currentExtent.height, 1, SwapchainFormat, MSAASamples);
 	}
 
 	void GraphicsContext::CreateRenderPass()
@@ -1257,7 +1261,7 @@ namespace VulkanCore {
 		// I don't care what the initial layout of the image is.
 		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		// It better be ready to present to the user when we're done with the renderpass.
-		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		attachments.push_back(colorAttachment);
 
 		
@@ -1274,6 +1278,17 @@ namespace VulkanCore {
 		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		attachments.push_back(depthAttachment);
+		
+		VkAttachmentDescription colorAttachmentResolve = {};
+		colorAttachmentResolve.format = SwapchainFormat;
+		colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+		colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		attachments.push_back(colorAttachmentResolve);
 
 		// Now we enumerate the attachments for a subpass.  We have to have at least one subpass.
 		VkAttachmentReference colorRef = {};
@@ -1284,12 +1299,25 @@ namespace VulkanCore {
 		depthRef.attachment = 1;
 		depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+		VkAttachmentReference colorAttachmentRef{};
+		colorAttachmentRef.attachment = 2;
+		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
 		// Basically is this graphics or compute
 		VkSubpassDescription subpass = {};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorRef;
 		subpass.pDepthStencilAttachment = &depthRef;
+		subpass.pResolveAttachments = &colorAttachmentRef;
+
+		VkSubpassDependency dependency{};
+		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependency.dstSubpass = 0;
+		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		dependency.srcAccessMask = 0;
+		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
 		VkRenderPassCreateInfo renderPassCreateInfo = {};
 		renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -1297,7 +1325,8 @@ namespace VulkanCore {
 		renderPassCreateInfo.pAttachments = attachments.data();
 		renderPassCreateInfo.subpassCount = 1;
 		renderPassCreateInfo.pSubpasses = &subpass;
-		renderPassCreateInfo.dependencyCount = 0;
+		renderPassCreateInfo.dependencyCount = 1;
+		renderPassCreateInfo.pDependencies = &dependency;
 
 		CheckVkResult(vkCreateRenderPass(Device, &renderPassCreateInfo, nullptr, &RenderPass));
 	}
@@ -1307,10 +1336,11 @@ namespace VulkanCore {
 		VKC_PROFILE_FUNCTION();
 		FrameBuffers.resize(FrameCount);
 
-		VkImageView attachments[2];
+		VkImageView attachments[3];
 
 		// Depth attachment is the same
 		// We never show the depth buffer, so we only ever need one.
+		attachments[0] = ColorImage->GetImageView();
 		attachments[1] = DepthImage->GetImageView();
 
 		// VkFrameBuffer is what maps attachments to a renderpass.  That's really all it is.
@@ -1319,7 +1349,7 @@ namespace VulkanCore {
 		// The renderpass we just created.
 		frameBufferCreateInfo.renderPass = RenderPass;
 		// The color and depth attachments
-		frameBufferCreateInfo.attachmentCount = 2;
+		frameBufferCreateInfo.attachmentCount = 3;
 		frameBufferCreateInfo.pAttachments = attachments;
 		// Current render size
 		frameBufferCreateInfo.width = SwapchainExtent.width;
@@ -1329,7 +1359,7 @@ namespace VulkanCore {
 		// Because we're double buffering, we need to create the same number of framebuffers.
 		// The main difference again is that both of them use the same depth image view.
 		for (int i = 0; i < FrameCount; ++i) {
-			attachments[0] = SwapchainImages[i]->GetImageView();
+			attachments[2] = SwapchainImages[i]->GetImageView();
 			CheckVkResult(vkCreateFramebuffer(Device, &frameBufferCreateInfo, NULL, &FrameBuffers[i]));
 		}
 	}
@@ -1356,5 +1386,20 @@ namespace VulkanCore {
 		}
 
 		DepthImage.reset();
+		ColorImage.reset();
+	}
+
+	VkSampleCountFlagBits GraphicsContext::GetMaxMSAASampleCount()
+	{
+		VkSampleCountFlags counts = GPU->DeviceProperties.limits.framebufferColorSampleCounts & GPU->DeviceProperties.limits.framebufferDepthSampleCounts;
+
+		if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
+		if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
+		if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
+		if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
+		if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
+		if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
+
+		return VK_SAMPLE_COUNT_1_BIT;
 	}
 }

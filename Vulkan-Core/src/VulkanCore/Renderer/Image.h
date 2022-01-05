@@ -12,6 +12,7 @@ namespace VulkanCore
 	{
 		Depth,
 		RenderTarget,
+		SampledColorAttachment,
 		Texture
 	};
 
@@ -21,6 +22,7 @@ namespace VulkanCore
 		{
 			case ImageType::Depth: return VK_IMAGE_TYPE_2D;
 			case ImageType::RenderTarget: return VK_IMAGE_TYPE_2D;
+			case ImageType::SampledColorAttachment: return VK_IMAGE_TYPE_2D;
 			case ImageType::Texture: return VK_IMAGE_TYPE_2D;
 		}
 
@@ -34,6 +36,7 @@ namespace VulkanCore
 		{
 			case ImageType::Depth: return VK_IMAGE_VIEW_TYPE_2D;
 			case ImageType::RenderTarget: return VK_IMAGE_VIEW_TYPE_2D;
+			case ImageType::SampledColorAttachment: return VK_IMAGE_VIEW_TYPE_2D;
 			case ImageType::Texture: return VK_IMAGE_VIEW_TYPE_2D;
 		}
 
@@ -47,6 +50,7 @@ namespace VulkanCore
 		{
 			case ImageType::Depth: return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 			case ImageType::RenderTarget: return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+			case ImageType::SampledColorAttachment: return VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 			case ImageType::Texture: return VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		}
 
@@ -60,6 +64,7 @@ namespace VulkanCore
 		{
 			case ImageType::Depth: return VK_IMAGE_ASPECT_DEPTH_BIT;
 			case ImageType::RenderTarget: return VK_IMAGE_ASPECT_COLOR_BIT;
+			case ImageType::SampledColorAttachment: return VK_IMAGE_ASPECT_COLOR_BIT;
 			case ImageType::Texture: return VK_IMAGE_ASPECT_COLOR_BIT;
 		}
 
@@ -70,11 +75,11 @@ namespace VulkanCore
 	class Image
 	{
 	public:
-		static Ref<Image> Create(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat& format);
-		static Ref<Image> CreateSwapChainImage(VkImage& image, ImageType type, VkFormat& format, VkExtent2D& extent, VkImageViewCreateInfo& viewCreateInfo);
+		static Ref<Image> Create(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
+		static Ref<Image> CreateSwapChainImage(VkImage image, ImageType type, VkFormat format, VkExtent2D extent, VkImageViewCreateInfo viewCreateInfo);
 	public:
-		Image(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat& format);
-		Image(VkImage& image, ImageType type, VkFormat& format, VkExtent2D& extent, VkImageViewCreateInfo& viewCreateInfo);
+		Image(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
+		Image(VkImage image, ImageType type, VkFormat format, VkExtent2D extent, VkImageViewCreateInfo viewCreateInfo);
 		~Image();
 
 		void SetData(void* data, uint32_t size);
@@ -107,7 +112,6 @@ namespace VulkanCore
 				.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 				.mipLevels = 1,
 				.arrayLayers = 1,
-				.samples = VK_SAMPLE_COUNT_1_BIT,
 				.tiling = VK_IMAGE_TILING_OPTIMAL,
 		};
 

@@ -62,6 +62,10 @@ namespace VulkanCore
 			{
 				data.DiffuseTexture = TextureLibrary::LoadOrGet(objMaterials[s].diffuse_texname);
 			}
+			else
+			{
+				data.DiffuseTexture = TextureLibrary::Get("ones");
+			}
 
 			if (!objMaterials[s].specular_texname.empty())
 			{

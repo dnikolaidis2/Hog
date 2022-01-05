@@ -17,6 +17,7 @@ namespace VulkanCore
 		Scissor.extent = swapchainExtent;
 
 		GraphicsPipelineCreateInfo.renderPass = renderPass;
+		MultisamplingStateCreateInfo.rasterizationSamples = GraphicsContext::GetMSAASamples();
 	}
 
 	GraphicsPipeline::~GraphicsPipeline()

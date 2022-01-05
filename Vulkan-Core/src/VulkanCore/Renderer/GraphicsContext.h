@@ -84,6 +84,7 @@ namespace VulkanCore {
 		static VkSemaphore GetCurrentAcquireSemaphore() { return Get().AcquireSemaphores[GetCurrentFrame()]; }
 		static VkSemaphore GetCurrentRenderCompleteSemaphore() { return Get().RenderCompleteSemaphores[GetCurrentFrame()]; }
 		static VkSampleCountFlagBits GetMSAASamples() { return Get().MSAASamples; }
+		static GPUInfo* GetGPUInfo() { return Get().GPU; }
 
 		static void ImmediateSubmit(std::function<void(VkCommandBuffer commandBuffer)>&& function) { return Get().ImmediateSubmitImpl(std::move(function)); }
 	public:
@@ -118,6 +119,8 @@ namespace VulkanCore {
 		void CreateFrameBuffers();
 
 		void CleanupSwapChain();
+	private:
+		VkSampleCountFlagBits GetMaxMSAASampleCount();
 	public:
 		bool Initialized = false;
 		int const FrameCount = 2;
@@ -162,6 +165,7 @@ namespace VulkanCore {
 		VkFence UploadFence;
 
 		Ref<Image> DepthImage;
+		Ref<Image> ColorImage;
 
 		VkRenderPass RenderPass = VK_NULL_HANDLE;
 
@@ -198,15 +202,17 @@ namespace VulkanCore {
 		VkPhysicalDeviceFeatures DeviceFeatures =
 		{
 			.imageCubeArray = VK_TRUE,
+			.sampleRateShading = VK_TRUE,
 			.depthClamp = VK_TRUE,
 			.depthBiasClamp = VK_TRUE,
 			.fillModeNonSolid = VK_TRUE,
 			.depthBounds = VK_TRUE,
+			.samplerAnisotropy = VK_TRUE,
 			.textureCompressionBC = VK_TRUE,
-			.shaderSampledImageArrayDynamicIndexing = VK_TRUE
+			.shaderSampledImageArrayDynamicIndexing = VK_TRUE,
 		};
 
-		std::vector<const char*> InstanceExtensions = { VK_KHR_MAINTENANCE1_EXTENSION_NAME };
+		std::vector<const char*> InstanceExtensions = {  };
 		std::vector<const char*> DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
 		std::vector<const char*> ValidationLayers = { "VK_LAYER_KHRONOS_validation" };

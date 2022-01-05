@@ -73,7 +73,7 @@ namespace VulkanCore {
 			case VK_FORMAT_D32_SFLOAT:          return DataType::Depth32;
 			case VK_FORMAT_D24_UNORM_S8_UINT:   return DataType::Depth24Stencil8;
 			case VK_FORMAT_D32_SFLOAT_S8_UINT:  return DataType::Depth32Stencil8;
-			case VK_FORMAT_B8G8R8A8_UNORM:      return DataType::BGRA8;
+			case VK_FORMAT_B8G8R8A8_SRGB:      return DataType::BGRA8;
 			case VK_FORMAT_R8G8B8A8_SRGB:         return DataType::RGBA8;
 		}
 

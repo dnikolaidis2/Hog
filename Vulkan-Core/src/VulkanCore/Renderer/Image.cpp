@@ -9,24 +9,25 @@
 
 namespace VulkanCore
 {
-	Ref<Image> Image::Create(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat& format)
+	Ref<Image> Image::Create(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples)
 	{
-		return CreateRef<Image>(type, width, height, levelCount, format);
+		return CreateRef<Image>(type, width, height, levelCount, format, samples);
 	}
 
-	Ref<Image> Image::CreateSwapChainImage(VkImage& image, ImageType type, VkFormat& format, VkExtent2D& extent,
-	                                       VkImageViewCreateInfo& viewCreateInfo)
+	Ref<Image> Image::CreateSwapChainImage(VkImage image, ImageType type, VkFormat format, VkExtent2D extent,
+	                                       VkImageViewCreateInfo viewCreateInfo)
 	{
 		return CreateRef<Image>(image, type, format, extent, viewCreateInfo);
 	}
 
-	Image::Image(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat& format)
+	Image::Image(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples)
 		: m_InternalFormat(format), m_Type(type), m_Format(VkFormatToDataType(m_InternalFormat)), m_Width(width), m_Height(height), m_Allocated(true)
 	{
 		m_ImageCreateInfo.extent = { width, height, 1 };
 		m_ImageCreateInfo.imageType = ImageTypeToVkImageType(type);
 		m_ImageCreateInfo.format = m_InternalFormat;
 		m_ImageCreateInfo.usage = ImageTypeToVkImageUsage(m_Type);
+		m_ImageCreateInfo.samples = samples;
 
 		//for the depth image, we want to allocate it from GPU local memory
 		VmaAllocationCreateInfo imageAllocationInfo = {};
@@ -40,8 +41,8 @@ namespace VulkanCore
 		CreateViewForImage();
 	}
 
-	Image::Image(VkImage& image, ImageType type, VkFormat& format, VkExtent2D& extent,
-		VkImageViewCreateInfo& viewCreateInfo)
+	Image::Image(VkImage image, ImageType type, VkFormat format, VkExtent2D extent,
+		VkImageViewCreateInfo viewCreateInfo)
 		: m_Handle(image), m_InternalFormat(format), m_Format(VkFormatToDataType(format)), m_Type(type)
 		, m_Width(extent.width), m_Height(extent.height), m_Allocated(false), m_ViewCreateInfo(viewCreateInfo)
 	{
@@ -129,6 +130,8 @@ namespace VulkanCore
 		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.anisotropyEnable = VK_TRUE;
+		samplerInfo.maxAnisotropy = GraphicsContext::GetGPUInfo()->DeviceProperties.limits.maxSamplerAnisotropy;
 
 		CheckVkResult(vkCreateSampler(GraphicsContext::GetDevice(), &samplerInfo, nullptr, &m_Sampler));
 
@@ -171,7 +174,7 @@ namespace VulkanCore
 
 		if (!pixels) {
 			VKC_CORE_ERROR("Failed to load texture file {0}", path);
-			return nullptr;
+			return Get("error");
 		}
 
 		VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
@@ -199,8 +202,6 @@ namespace VulkanCore
 			return Get(name);
 		else
 			return LoadFromFile(filepath);
-
-		return nullptr;
 	}
 
 	Ref<Image> TextureLibrary::Get(const std::string& name)

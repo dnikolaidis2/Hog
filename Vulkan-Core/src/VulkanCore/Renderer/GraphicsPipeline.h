@@ -85,12 +85,8 @@ namespace VulkanCore
 		VkPipelineMultisampleStateCreateInfo MultisamplingStateCreateInfo =
 		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-			.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
-			.sampleShadingEnable = VK_FALSE,
-			.minSampleShading = 1.0f, // Optional
-			.pSampleMask = nullptr, // Optional
-			.alphaToCoverageEnable = VK_FALSE, // Optional
-			.alphaToOneEnable = VK_FALSE, // Optional
+			.sampleShadingEnable = VK_TRUE,
+			.minSampleShading = .2f, // Optional
 		};
 
 		VkPipelineColorBlendStateCreateInfo ColorBlendStateCreateInfo = {
