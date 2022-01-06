@@ -204,7 +204,6 @@ namespace VulkanCore {
 	}
 }
 
-#define VKC_PROFILE 0
 #if VKC_PROFILE
 	// Resolve which function signature macro will be used. Note that this only
 	// is resolved when the (pre)compiler starts, so the syntax highlighting
@@ -249,9 +248,9 @@ namespace VulkanCore {
 		#define VKC_PROFILE_FUNCTION() OPTICK_EVENT()
 		#define VKC_PROFILE_START_FRAME(name) OPTICK_FRAME(name)
 
-		#define VKC_PROFILE_GPU_INIT_VULKAN(devices, physical_devices, cnd_queues, cnd_queues_family, num_cmd_queus) \
-			OPTICK_GPU_INIT_VULKAN(devices, physical_devices, cnd_queues, cnd_queues_family, num_cmd_queus)
-		#define VKC_PROFILE_GPU_CONTEXT(command_list) OPTICK_GPU_CONTEXT(command_list)
+		#define VKC_PROFILE_GPU_INIT_VULKAN(devices, physical_devices, cnd_queues, cnd_queues_family, num_cmd_queus, functions) \
+			OPTICK_GPU_INIT_VULKAN(devices, physical_devices, cnd_queues, cnd_queues_family, num_cmd_queus, functions)
+		#define VKC_PROFILE_GPU_CONTEXT(...) OPTICK_GPU_CONTEXT(__VA_ARGS__)
 		#define VKC_PROFILE_GPU_EVENT(name) OPTICK_GPU_EVENT(name)
 		#define VKC_PROFILE_GPU_FLIP(swap_chain) OPTICK_GPU_FLIP(swap_chain)
 	#endif

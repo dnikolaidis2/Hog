@@ -42,14 +42,16 @@ project "Vulkan-Core"
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.tinyobjloader}",
 		"%{IncludeDir.VulkanSDK}",
-		"%{IncludeDir.optick}"
+		"%{IncludeDir.optick}",
+		-- "%{IncludeDir.optick}/optick.h",
+		-- "%{IncludeDir.optick}/optick.config.h",
 	}
 
 	links
 	{
 		"GLFW",
 		"yaml-cpp",
-		"ImGui",
+		"ImGui"
 	}
 
 	filter "system:windows"
@@ -67,7 +69,6 @@ project "Vulkan-Core"
 
 		links
 		{
-			"%{Library.optick_Debug}",
 			"%{Library.ShaderC_Debug}",
 			"%{Library.SPIRV_Cross_Debug}",
 			"%{Library.SPIRV_Cross_GLSL_Debug}"
@@ -80,7 +81,6 @@ project "Vulkan-Core"
 
 		links
 		{
-			"%{Library.optick_Release}",
 			"%{Library.ShaderC_Release}",
 			"%{Library.SPIRV_Cross_Release}",
 			"%{Library.SPIRV_Cross_GLSL_Release}"
@@ -93,7 +93,19 @@ project "Vulkan-Core"
 
 		links
 		{
-			"%{Library.optick_Release}",
+			"%{Library.ShaderC_Release}",
+			"%{Library.SPIRV_Cross_Release}",
+			"%{Library.SPIRV_Cross_GLSL_Release}"
+		}
+
+	filter "configurations:Profile"
+		defines "VKC_PROFILE"
+		runtime "Release"
+		optimize "on"
+
+		links
+		{
+			"OptickCore",
 			"%{Library.ShaderC_Release}",
 			"%{Library.SPIRV_Cross_Release}",
 			"%{Library.SPIRV_Cross_GLSL_Release}"

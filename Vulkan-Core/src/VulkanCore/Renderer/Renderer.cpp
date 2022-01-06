@@ -217,6 +217,8 @@ namespace VulkanCore
 
 		CheckVkResult(vkBeginCommandBuffer(s_Data.CurrentCommandBuffer, &beginInfo));
 
+		VKC_PROFILE_GPU_CONTEXT(s_Data.CurrentCommandBuffer);
+
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.renderPass = GraphicsContext::GetRenderPass();
@@ -276,6 +278,8 @@ namespace VulkanCore
 		presentInfo.pSwapchains = swapChains;
 
 		presentInfo.pImageIndices = &s_Data.CurrentImageIndex;
+
+		VKC_PROFILE_GPU_FLIP(GraphicsContext::GetSwapchain());
 
 		CheckVkResult(vkQueuePresentKHR(GraphicsContext::GetGraphicsQueue(), &presentInfo));
 

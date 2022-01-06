@@ -9,7 +9,8 @@ workspace "Vulkan-Sandbox"
 	{
 		"Debug",
 		"Release",
-		"Dist"
+		"Dist",
+		"Profile",
 	}
 
 	solution_items
@@ -29,6 +30,7 @@ group "Dependencies"
 	include "Vulkan-Core/vendor/GLFW"
 	include "Vulkan-Core/vendor/imgui"
 	include "Vulkan-Core/vendor/yaml-cpp"
+	include "Vulkan-Core/vendor/optick/premake5.core.lua"
 group ""
 
 include "Vulkan-Core"

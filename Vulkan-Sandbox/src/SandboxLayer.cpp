@@ -16,7 +16,14 @@ void SandboxLayer::OnAttach()
 {
 	VKC_PROFILE_FUNCTION()
 
+#if VKC_PROFILE
+	context.EnableValidationLayers = false;
+#endif
+
 	GraphicsContext::Initialize();
+
+	VKC_PROFILE_GPU_INIT_VULKAN(&(context.Device), &(context.PhysicalDevice), &(context.GraphicsQueue), &(context.GraphicsFamilyIndex), 1, nullptr);
+
 	ShaderLibrary::LoadDirectory("assets/shaders");
 	Renderer::Initialize();
 	TextureLibrary::Initialize();
@@ -26,8 +33,6 @@ void SandboxLayer::OnAttach()
 
 	LoadObjFile("assets/models/sponza/sponza.obj", m_Objects);
 	// LoadObjFile("assets/models/monkey/monkey_flat.obj", m_Objects);
-
-	// VKC_PROFILE_GPU_INIT_VULKAN(&(context.Device), &(context.PhysicalDevice), &(context.GraphicsQueue), &(context.GraphicsFamilyIndex), 1)
 
 	for (auto & obj : m_Objects)
 	{

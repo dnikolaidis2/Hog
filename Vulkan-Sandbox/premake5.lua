@@ -48,8 +48,7 @@ project "Vulkan-Sandbox"
 		
 		postbuildcommands
 		{
-			"{COPYDIR} \"%{LibraryDir.VulkanSDK_DebugDLL}\" \"%{cfg.targetdir}\"",
-			"{COPY} \"%{Library.optick_DebugDLL}\" \"%{cfg.targetdir}\""
+			"{COPYDIR} \"%{LibraryDir.VulkanSDK_DebugDLL}\" \"%{cfg.targetdir}\""
 		}
 
 	filter "configurations:Release"
@@ -61,3 +60,13 @@ project "Vulkan-Sandbox"
 		defines "VKC_DIST"
 		runtime "Release"
 		optimize "on"
+
+	filter "configurations:Profile"
+		defines "VKC_PROFILE"
+		runtime "Release"
+		optimize "on"
+		
+		postbuildcommands
+		{
+			"{COPY} \"%{Library.optickDLL}\" \"%{cfg.targetdir}\""
+		}

@@ -13,3 +13,6 @@
 [submodule "Vulkan-Core/vendor/yaml-cpp"]
 	path = Vulkan-Core/vendor/yaml-cpp
 	url = https://github.com/thecherno/yaml-cpp
+[submodule "Vulkan-Core/vendor/optick"]
+	path = Vulkan-Core/vendor/optick
+	url = git@github.com:dnikolaidis2/optick.git
