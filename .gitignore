@@ -18,3 +18,5 @@ bin-int/
 Vulkan-Core/vendor/VulkanSDK
 Vulkan-Sandbox/assets/cache
 scripts/__pycache__
+
+**/.idea/**

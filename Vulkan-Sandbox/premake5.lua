@@ -48,7 +48,7 @@ project "Vulkan-Sandbox"
 		
 		postbuildcommands
 		{
-			"{COPYDIR} \"%{LibraryDir.VulkanSDK_DebugDLL}\" \"%{cfg.targetdir}\""
+			"{COPY} \"%{SharedLibrary.shaderc_Debug}\" \"%{cfg.targetdir}\""
 		}
 
 	filter "configurations:Release"
@@ -56,10 +56,20 @@ project "Vulkan-Sandbox"
 		runtime "Release"
 		optimize "on"
 
+		postbuildcommands
+		{
+			"{COPY} \"%{SharedLibrary.shaderc_Release}\" \"%{cfg.targetdir}\"",
+		}
+
 	filter "configurations:Dist"
 		defines "VKC_DIST"
 		runtime "Release"
 		optimize "on"
+		
+		postbuildcommands
+		{
+			"{COPY} \"%{SharedLibrary.shaderc_Release}\" \"%{cfg.targetdir}\"",
+		}
 
 	filter "configurations:Profile"
 		defines "VKC_PROFILE"
@@ -68,5 +78,6 @@ project "Vulkan-Sandbox"
 		
 		postbuildcommands
 		{
-			"{COPY} \"%{Library.optickDLL}\" \"%{cfg.targetdir}\""
+			"{COPY} \"%{SharedLibrary.optick}\" \"%{cfg.targetdir}\"",
+			"{COPY} \"%{SharedLibrary.shaderc_Release}\" \"%{cfg.targetdir}\""
 		}
