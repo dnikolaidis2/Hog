@@ -112,13 +112,13 @@ namespace VulkanCore
 	void Buffer::TransferData(uint32_t size, const Ref<Buffer>& src)
 	{
 		GraphicsContext::ImmediateSubmit([=](VkCommandBuffer commandBuffer)
-			{
-				VkBufferCopy copy = {};
-				copy.dstOffset = 0;
-				copy.srcOffset = 0;
-				copy.size = src->GetSize();
-				vkCmdCopyBuffer(commandBuffer, src->GetHandle(), m_Handle, 1, &copy);
-			});
+		{
+			VkBufferCopy copy = {};
+			copy.dstOffset = 0;
+			copy.srcOffset = 0;
+			copy.size = src->GetSize();
+			vkCmdCopyBuffer(commandBuffer, src->GetHandle(), m_Handle, 1, &copy);
+		});
 	}
 
 	Ref<VertexBuffer> VertexBuffer::Create(uint32_t size)

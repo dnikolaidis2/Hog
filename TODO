@@ -26,4 +26,4 @@
  ☐ use nodiscrad for getters
  ✔ common definitions for c++ and glsl for constants @done (22-01-02 21:39)
  ☐ Look into https://github.com/KhronosGroup/SPIRV-Reflect
- 
+ ✔ Mip mapping @done (22-01-13 12:32)

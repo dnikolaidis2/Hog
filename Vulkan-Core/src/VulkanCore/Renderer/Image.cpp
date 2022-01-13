@@ -21,13 +21,14 @@ namespace VulkanCore
 	}
 
 	Image::Image(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples)
-		: m_InternalFormat(format), m_Type(type), m_Format(VkFormatToDataType(m_InternalFormat)), m_Width(width), m_Height(height), m_Allocated(true)
+		: m_InternalFormat(format), m_Type(type), m_Format(VkFormatToDataType(m_InternalFormat)), m_Width(width), m_Height(height), m_Allocated(true), m_LevelCount(levelCount)
 	{
 		m_ImageCreateInfo.extent = { width, height, 1 };
 		m_ImageCreateInfo.imageType = ImageTypeToVkImageType(type);
 		m_ImageCreateInfo.format = m_InternalFormat;
 		m_ImageCreateInfo.usage = ImageTypeToVkImageUsage(m_Type);
 		m_ImageCreateInfo.samples = samples;
+		m_ImageCreateInfo.mipLevels = levelCount;
 
 		//for the depth image, we want to allocate it from GPU local memory
 		VmaAllocationCreateInfo imageAllocationInfo = {};
@@ -65,55 +66,109 @@ namespace VulkanCore
 		buffer->SetData(data, size);
 
 		GraphicsContext::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
-			{
-				VkImageSubresourceRange range = {};
-				range.aspectMask = ImageTypeToVkAspectFlag(m_Type);
-				range.baseMipLevel = 0;
-				range.levelCount = m_LevelCount;
-				range.baseArrayLayer = 0;
-				range.layerCount = 1;
+		{
+			VkImageMemoryBarrier barrier = {};
+			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 
-				VkImageMemoryBarrier imageBarrierToTransfer = {};
-				imageBarrierToTransfer.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-				imageBarrierToTransfer.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-				imageBarrierToTransfer.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-				imageBarrierToTransfer.image = m_Handle;
-				imageBarrierToTransfer.subresourceRange = range;
+			barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.image = m_Handle;
+			barrier.subresourceRange.aspectMask = ImageTypeToVkAspectFlag(m_Type);
+			barrier.subresourceRange.baseMipLevel = 0;
+			barrier.subresourceRange.levelCount = m_LevelCount;
+			barrier.subresourceRange.layerCount = 1;
+			barrier.subresourceRange.baseArrayLayer = 0;
 
-				imageBarrierToTransfer.srcAccessMask = 0;
-				imageBarrierToTransfer.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-				//barrier the image into the transfer-receive layout
-				vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-					0, nullptr, 0, nullptr, 1, &imageBarrierToTransfer);
+			//barrier the image into the transfer-receive layout
+			vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+				0, nullptr, 0, nullptr, 1, &barrier);
 
-				VkBufferImageCopy copyRegion = {};
-				copyRegion.bufferOffset = 0;
-				copyRegion.bufferRowLength = 0;
-				copyRegion.bufferImageHeight = 0;
+			VkBufferImageCopy copyRegion = {};
+			copyRegion.bufferOffset = 0;
+			copyRegion.bufferRowLength = 0;
+			copyRegion.bufferImageHeight = 0;
 
-				copyRegion.imageSubresource.aspectMask = ImageTypeToVkAspectFlag(m_Type);
-				copyRegion.imageSubresource.mipLevel = 0;
-				copyRegion.imageSubresource.baseArrayLayer = 0;
-				copyRegion.imageSubresource.layerCount = 1;
-				copyRegion.imageExtent = m_ImageCreateInfo.extent;
+			copyRegion.imageSubresource.aspectMask = ImageTypeToVkAspectFlag(m_Type);
+			copyRegion.imageSubresource.mipLevel = 0;
+			copyRegion.imageSubresource.baseArrayLayer = 0;
+			copyRegion.imageSubresource.layerCount = 1;
+			copyRegion.imageExtent = m_ImageCreateInfo.extent;
 
-				//copy the buffer into the image
-				vkCmdCopyBufferToImage(commandBuffer, buffer->GetHandle(), m_Handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+			//copy the buffer into the image
+			vkCmdCopyBufferToImage(commandBuffer, buffer->GetHandle(), m_Handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
-				VkImageMemoryBarrier imageBarrierToReadable = imageBarrierToTransfer;
+			//mip map generation
 
-				imageBarrierToReadable.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-				imageBarrierToReadable.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			int32_t mipWidth = m_Width;
+			int32_t mipHeight = m_Height;
 
-				imageBarrierToReadable.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-				imageBarrierToReadable.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			for (uint32_t i = 1; i < m_LevelCount; i++) {
+				barrier.subresourceRange.levelCount = 1;
+				barrier.subresourceRange.baseMipLevel = i - 1;
+				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
-				//barrier the image into the shader readable layout
-				vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
-					0, nullptr, 0, nullptr, 1, &imageBarrierToReadable);
-			});
+				vkCmdPipelineBarrier(commandBuffer,
+					VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+					0, nullptr,
+					0, nullptr,
+					1, &barrier);
+
+				VkImageBlit blit{};
+				blit.srcOffsets[0] = { 0, 0, 0 };
+				blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };
+				blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				blit.srcSubresource.mipLevel = i - 1;
+				blit.srcSubresource.baseArrayLayer = 0;
+				blit.srcSubresource.layerCount = 1;
+				blit.dstOffsets[0] = { 0, 0, 0 };
+				blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
+				blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				blit.dstSubresource.mipLevel = i;
+				blit.dstSubresource.baseArrayLayer = 0;
+				blit.dstSubresource.layerCount = 1;
+
+				vkCmdBlitImage(commandBuffer,
+					m_Handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					m_Handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					1, &blit,
+					VK_FILTER_LINEAR);
+
+				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+				barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+				vkCmdPipelineBarrier(commandBuffer,
+					VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+					0, nullptr,
+					0, nullptr,
+					1, &barrier);
+
+				if (mipWidth > 1) mipWidth /= 2;
+				if (mipHeight > 1) mipHeight /= 2;
+			}
+
+			barrier.subresourceRange.baseMipLevel = m_LevelCount - 1;
+
+			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+			//barrier the image into the shader readable layout
+			vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+				0, nullptr, 0, nullptr, 1, &barrier);
+		});
 	}
 
 	VkSampler Image::GetOrCreateSampler()
@@ -130,6 +185,13 @@ namespace VulkanCore
 		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		if (m_LevelCount > 1)
+		{
+			samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			samplerInfo.minLod = 0.0f; // Optional
+			samplerInfo.maxLod = static_cast<float>(m_LevelCount);
+			samplerInfo.mipLodBias = 0.0f; // Optional
+		}
 		samplerInfo.anisotropyEnable = VK_TRUE;
 		samplerInfo.maxAnisotropy = GraphicsContext::GetGPUInfo()->DeviceProperties.limits.maxSamplerAnisotropy;
 
@@ -144,6 +206,7 @@ namespace VulkanCore
 		m_ViewCreateInfo.format = m_InternalFormat;
 		m_ViewCreateInfo.subresourceRange.aspectMask = ImageTypeToVkAspectFlag(m_Type);
 		m_ViewCreateInfo.viewType = ImageTypeToVkImageViewType(m_Type);
+		m_ViewCreateInfo.subresourceRange.levelCount = m_LevelCount;
 
 		CheckVkResult(vkCreateImageView(GraphicsContext::GetDevice(), &m_ViewCreateInfo, nullptr, &m_View));
 	}
@@ -180,7 +243,9 @@ namespace VulkanCore
 		VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
 		uint32_t imageSize = width * height * 4;
 
-		auto image = Image::Create(ImageType::Texture, width, height, 1, format);
+		uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
+
+		auto image = Image::Create(ImageType::Texture, width, height, mipLevels, format);
 		
 		image->SetData(pixels, imageSize);
 

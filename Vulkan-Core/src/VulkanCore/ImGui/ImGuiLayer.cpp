@@ -82,9 +82,9 @@ namespace VulkanCore {
 		ImGui_ImplVulkan_Init(&initInfo, GraphicsContext::GetRenderPass());
 
 		GraphicsContext::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
-			{
-				ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
-			});
+		{
+			ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
+		});
 
 		ImGui_ImplVulkan_DestroyFontUploadObjects();
 
