@@ -3,7 +3,7 @@ include "Dependencies.lua"
 
 workspace "Vulkan-Sandbox"
 	architecture "x86_64"
-	startproject "Vulkan-Sandbox"
+	startproject "Thesis"
 
 	configurations
 	{
@@ -35,3 +35,4 @@ group ""
 
 include "Vulkan-Core"
 include "Vulkan-Sandbox"
+include "Thesis"
