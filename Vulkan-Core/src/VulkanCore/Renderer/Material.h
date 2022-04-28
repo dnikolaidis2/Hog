@@ -11,16 +11,21 @@ namespace VulkanCore
 {
 	struct MaterialData
 	{
-		float Specularity = 0.0f;
 		float IOR = 0.0f;
 		float Dissolve = 0.0f;
 		int32_t IlluminationModel = 0;
 		glm::vec3 TransmittanceFilter = glm::vec3(0.0f);
+
+		float AmbientStrength = 0.0f;
 		glm::vec3 AmbientColor = glm::vec3(0.0f);
 		glm::vec3 DiffuseColor = glm::vec3(0.0f);
+
+		float Specularity = 0.0f;
 		glm::vec3 SpecularColor = glm::vec3(0.0f);
+
+		float EmissiveStrength = 0.0f;
 		glm::vec3 EmissiveColor = glm::vec3(0.0f);
-		
+
 		Ref<Image> AmbientTexture;
 		Ref<Image> DiffuseTexture;
 		Ref<Image> SpecularTexture;
@@ -36,7 +41,7 @@ namespace VulkanCore
 		int32_t AmbientTexture = 0;
 
 		glm::vec3 DiffuseColor = glm::vec3(0.0f);
-		int32_t DiffuseTexture = 2;
+		int32_t DiffuseTexture = -1;
 
 		glm::vec3 SpecularColor = glm::vec3(0.0f);
 		int32_t SpecularTexture = 0;
@@ -54,7 +59,9 @@ namespace VulkanCore
 
 		int32_t DisplacementMap = 0;
 		int32_t IlluminationModel = 0;
-		uint8_t Padding[8];
+
+		float EmissiveStrength = 0.0f;
+		float AmbientStrength = 0.0f;
 
 		MaterialGPUData() = default;
 		MaterialGPUData(const MaterialData& data)
@@ -66,9 +73,11 @@ namespace VulkanCore
 				AmbientColor(data.AmbientColor),
 				DiffuseColor(data.DiffuseColor),
 				SpecularColor(data.SpecularColor),
-				EmissiveColor(data.EmissiveColor)
+				EmissiveColor(data.EmissiveColor),
+				EmissiveStrength(data.EmissiveStrength),
+				AmbientStrength(data.AmbientStrength)
 		{
-			if (data.AmbientTexture) 
+			if (data.AmbientTexture)
 				AmbientTexture = data.AmbientTexture->GetGPUIndex();
 			if (data.DiffuseTexture) 
 				DiffuseTexture = data.DiffuseTexture->GetGPUIndex();
@@ -89,11 +98,11 @@ namespace VulkanCore
 	class Material
 	{
 	public:
-		static Ref<Material> Create(MaterialData& data);
+		static Ref<Material> Create(const std::string& name, MaterialData& data);
 	public:
 
-		Material(const Ref<Shader>& shader, const Ref<GraphicsPipeline>& pipeline, MaterialData& data)
-			: m_Shader(shader), m_Pipeline(pipeline), m_Data(data)
+		Material(const std::string& name, const Ref<Shader>& shader, const Ref<GraphicsPipeline>& pipeline, MaterialData& data)
+			: m_Shader(shader), m_Pipeline(pipeline), m_Data(data), m_Name(name)
 		{}
 
 		~Material() = default;
@@ -101,7 +110,7 @@ namespace VulkanCore
 		const Ref<Shader>& GetShader() const { return m_Shader; }
 		const Ref<GraphicsPipeline>& GetPipeline() const { return m_Pipeline; }
 		const Ref<Image>& GetDiffuseTexture() const { return m_Data.DiffuseTexture; }
-		const MaterialData& GetMaterialData() const { return m_Data; }
+		MaterialData& GetMaterialData() { return m_Data; }
 		void SetGPUIndex(int32_t ind) { m_GPUIndex = ind; }
 		int32_t GetGPUIndex() { return m_GPUIndex; }
 

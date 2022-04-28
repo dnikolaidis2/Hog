@@ -7,12 +7,12 @@ namespace VulkanCore
 {
 	static auto& context = GraphicsContext::Get();
 
-	Ref<Material> Material::Create(MaterialData& data)
+	Ref<Material> Material::Create(const std::string& name, MaterialData& data)
 	{
 		VKC_PROFILE_FUNCTION()
 
 		Ref<Shader> shaderRef = ShaderLibrary::LoadOrGet("assets/shaders/Basic.glsl");
-		return CreateRef<Material>(shaderRef, shaderRef->CreateOrGetDefaultPipeline(), data);
+		return CreateRef<Material>(name, shaderRef, shaderRef->CreateOrGetDefaultPipeline(), data);
 	}
 
 	void Material::Bind(VkCommandBuffer commandBuffer, VkDescriptorSet* descriptorSetPtr)
@@ -31,7 +31,7 @@ namespace VulkanCore
 
 	Ref<Material> MaterialLibrary::Create(const std::string& name, MaterialData& data)
 	{
-		Ref<Material> mat = Material::Create(data);
+		Ref<Material> mat = Material::Create(name, data);
 		Add(name, mat);
 		return mat;
 	}
