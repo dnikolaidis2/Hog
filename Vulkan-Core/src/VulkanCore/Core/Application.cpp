@@ -88,7 +88,7 @@ namespace VulkanCore {
 			VKC_PROFILE_START_FRAME("MainThread");
 
 			float time = (float)glfwGetTime();
-			Timestep timestep = time - m_LastFrameTime;
+			m_Timestep = time - m_LastFrameTime;
 			m_LastFrameTime = time;
 
 			if (!m_Minimized)
@@ -109,7 +109,7 @@ namespace VulkanCore {
 					VKC_PROFILE_SCOPE("LayerStack OnUpdate");
 
 					for (Ref<Layer> layer : m_LayerStack)
-						layer->OnUpdate(timestep);
+						layer->OnUpdate(m_Timestep);
 				}
 			}
 
