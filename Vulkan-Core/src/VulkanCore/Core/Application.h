@@ -50,6 +50,7 @@ namespace VulkanCore {
 		static Application& Get() { return *s_Instance; }
 
 		ApplicationCommandLineArgs GetCommandLineArgs() const { return m_CommandLineArgs; }
+		Timestep GetTimestep() const { return m_Timestep; }
 	private:
 		void Run();
 		bool OnWindowClose(WindowCloseEvent& e);
@@ -62,6 +63,7 @@ namespace VulkanCore {
 		LayerStack m_LayerStack;
 		Ref<ImGuiLayer> m_ImGuiLayer;
 		float m_LastFrameTime = 0.0f;
+		Timestep m_Timestep;
 	private:
 		static Application* s_Instance;
 		friend int ::main(int argc, char** argv);
