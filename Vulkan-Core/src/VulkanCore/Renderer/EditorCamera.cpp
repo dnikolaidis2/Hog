@@ -76,33 +76,33 @@ namespace VulkanCore {
 
 		if (Input::IsKeyPressed(Key::LeftShift))
 		{
-			xSpeed *= 2;
-			ySpeed *= 2;
+			xSpeed *= 4;
+			ySpeed *= 4;
 		}
 
 		if (Input::IsKeyPressed(Key::W))
 		{
-			m_FocalPoint += GetForwardDirection() * 1.0f * xSpeed * m_Distance;
+			m_FocalPoint += GetForwardDirection() * 1.0f * (float)ts * xSpeed * m_Distance;
 		}
 		if (Input::IsKeyPressed(Key::S))
 		{
-			m_FocalPoint += -GetForwardDirection() * 1.0f * xSpeed * m_Distance;
+			m_FocalPoint += -GetForwardDirection() * 1.0f * (float)ts * xSpeed * m_Distance;
 		}
 		if (Input::IsKeyPressed(Key::A))
 		{
-			m_FocalPoint += -GetRightDirection() * 1.0f * xSpeed * m_Distance;
+			m_FocalPoint += -GetRightDirection() * 1.0f * (float)ts * xSpeed * m_Distance;
 		}
 		if (Input::IsKeyPressed(Key::D))
 		{
-			m_FocalPoint += GetRightDirection() * 1.0f * xSpeed * m_Distance;
+			m_FocalPoint += GetRightDirection() * 1.0f * (float)ts * xSpeed * m_Distance;
 		}
 		if (Input::IsKeyPressed(Key::Q))
 		{
-			m_FocalPoint += GetUpDirection() * 1.0f * ySpeed * m_Distance;
+			m_FocalPoint += GetUpDirection() * 1.0f * (float)ts * ySpeed * m_Distance;
 		}
 		if (Input::IsKeyPressed(Key::E))
 		{
-			m_FocalPoint += -GetUpDirection() * 1.0f * ySpeed * m_Distance;
+			m_FocalPoint += -GetUpDirection() * 1.0f * (float)ts * ySpeed * m_Distance;
 		}
 
 		UpdateView();
