@@ -16,11 +16,6 @@ namespace VulkanCore
 		glm::mat4 Model;
 	};
 
-	struct RendererStats
-	{
-		uint64_t FrameCount = 0;
-	};
-
 	struct RendererState
 	{
 		VkDevice Device;
@@ -28,6 +23,8 @@ namespace VulkanCore
 
 		std::vector<CameraData> CameraBuffers;
 		std::vector<Ref<Buffer>> CameraUniformBuffers;
+		std::vector<Renderer::GlobalShaderData> GlobalShaderDataBuffers;
+		std::vector<Ref<Buffer>> GlobalShaderDataUniformBuffers;
 		std::vector<std::array<MaterialGPUData, MATERIAL_ARRAY_SIZE>> MaterialBuffers;
 		std::vector<Ref<Buffer>> MaterialUniformBuffers;
 		std::array<VkDescriptorImageInfo, TEXTURE_ARRAY_SIZE> TextureDescriptorImageInfos;
@@ -45,7 +42,7 @@ namespace VulkanCore
 		VkDescriptorPool DescriptorPool;
 		std::vector<VkDescriptorSet> GlobalDescriptorSets;
 
-		RendererStats Statistics;
+		Renderer::RendererStats Statistics;
 
 		VkCommandBuffer CurrentCommandBuffer;
 		VkSemaphore CurrentAcquireSemaphore;
@@ -71,6 +68,16 @@ namespace VulkanCore
 			for (int i = 0; i < s_Data.MaxFrameCount; ++i)
 			{
 				s_Data.CameraUniformBuffers[i] = CreateRef<Buffer>(MemoryType::UniformBuffer, (uint32_t)sizeof(CameraData));
+			}
+		}
+
+		{
+			s_Data.GlobalShaderDataBuffers.resize(s_Data.MaxFrameCount);
+			s_Data.GlobalShaderDataUniformBuffers.resize(s_Data.MaxFrameCount);
+
+			for (int i = 0; i < s_Data.MaxFrameCount; ++i)
+			{
+				s_Data.GlobalShaderDataUniformBuffers[i] = CreateRef<Buffer>(MemoryType::UniformBuffer, (uint32_t)sizeof(Renderer::GlobalShaderData));
 			}
 		}
 
@@ -133,9 +140,9 @@ namespace VulkanCore
 
 				{
 					VkDescriptorBufferInfo bufferInfo{};
-					bufferInfo.buffer = s_Data.MaterialUniformBuffers[i]->GetHandle();
+					bufferInfo.buffer = s_Data.GlobalShaderDataUniformBuffers[i]->GetHandle();
 					bufferInfo.offset = 0;
-					bufferInfo.range = sizeof(MaterialGPUData) * MATERIAL_ARRAY_SIZE;
+					bufferInfo.range = sizeof(GlobalShaderData);
 
 					VkWriteDescriptorSet descriptorWrite{};
 					descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -150,11 +157,31 @@ namespace VulkanCore
 
 					vkUpdateDescriptorSets(s_Data.Device, 1, &descriptorWrite, 0, nullptr);
 				}
+
+				{
+					VkDescriptorBufferInfo bufferInfo{};
+					bufferInfo.buffer = s_Data.MaterialUniformBuffers[i]->GetHandle();
+					bufferInfo.offset = 0;
+					bufferInfo.range = sizeof(MaterialGPUData) * MATERIAL_ARRAY_SIZE;
+
+					VkWriteDescriptorSet descriptorWrite{};
+					descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					descriptorWrite.dstSet = s_Data.GlobalDescriptorSets[i];
+					descriptorWrite.dstBinding = 2;
+					descriptorWrite.dstArrayElement = 0;
+					descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+					descriptorWrite.descriptorCount = 1;
+					descriptorWrite.pBufferInfo = &bufferInfo;
+					descriptorWrite.pImageInfo = nullptr; // Optional
+					descriptorWrite.pTexelBufferView = nullptr; // Optional
+
+					vkUpdateDescriptorSets(s_Data.Device, 1, &descriptorWrite, 0, nullptr);
+				}
 			}
 		}
 	}
 
-	void Renderer::BeginScene(const EditorCamera& camera)
+	void Renderer::BeginScene(const EditorCamera& camera, GlobalShaderData& globalShaderData)
 	{
 		VKC_PROFILE_FUNCTION();
 
@@ -163,6 +190,9 @@ namespace VulkanCore
 		auto frameNumber = GraphicsContext::GetCurrentFrame();
 		s_Data.CameraBuffers[frameNumber].ViewProjection = camera.GetViewProjection();
 		s_Data.CameraUniformBuffers[frameNumber]->SetData(&s_Data.CameraBuffers[frameNumber], sizeof(CameraData));
+
+		s_Data.GlobalShaderDataBuffers[frameNumber] = globalShaderData;
+		s_Data.GlobalShaderDataUniformBuffers[frameNumber]->SetData(&s_Data.GlobalShaderDataBuffers[frameNumber], sizeof(GlobalShaderData));
 
 		s_Data.MaterialBuffers[frameNumber] = MaterialLibrary::GetGPUArray();
 		s_Data.MaterialUniformBuffers[frameNumber]->SetData(s_Data.MaterialBuffers[frameNumber].data(), sizeof(MaterialGPUData) * MATERIAL_ARRAY_SIZE);
@@ -198,7 +228,7 @@ namespace VulkanCore
 
 			VkWriteDescriptorSet writeDescriptorSet = {};
 			writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			writeDescriptorSet.dstBinding = 2;
+			writeDescriptorSet.dstBinding = 3;
 			writeDescriptorSet.dstArrayElement = 0;
 			writeDescriptorSet.dstSet = s_Data.GlobalDescriptorSets[frameNumber];
 			writeDescriptorSet.descriptorCount = TEXTURE_ARRAY_SIZE;
@@ -295,6 +325,7 @@ namespace VulkanCore
 
 		s_Data.BoundPipeline = nullptr;
 		s_Data.CameraUniformBuffers.clear();
+		s_Data.GlobalShaderDataUniformBuffers.clear();
 		s_Data.MaterialUniformBuffers.clear();
 
 		vkDestroyDescriptorSetLayout(s_Data.Device, s_Data.GlobalDescriptorLayout, nullptr);
@@ -330,5 +361,10 @@ namespace VulkanCore
 		{
 			DrawObject(obj);
 		}
+	}
+
+	Renderer::RendererStats Renderer::GetStats()
+	{
+		return s_Data.Statistics;
 	}
 }
