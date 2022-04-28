@@ -347,7 +347,7 @@ namespace Hog {
 
 		const bool optimize = true;
 		if (optimize)
-			options.SetOptimizationLevel(shaderc_optimization_level_performance);
+			options.SetOptimizationLevel(shaderc_optimization_level_zero);
 
 		std::filesystem::path cacheDirectory = Utils::GetCacheDirectory();
 		auto cacheDB = Utils::LoadShaderCacheDB();
@@ -442,8 +442,6 @@ namespace Hog {
 		HG_CORE_TRACE("Uniform buffers:");
 		for (const auto& resource : resources.uniform_buffers)
 		{
-			VkDescriptorSetLayoutBinding layoutBinding = {};
-
 			const auto& bufferType = compiler.get_type(resource.base_type_id);
 			uint32_t bufferSize;
 			if (bufferType.basetype == spirv_cross::SPIRType::Struct)
@@ -460,11 +458,17 @@ namespace Hog {
 			HG_CORE_TRACE("    Members = {0}", memberCount);
 			HG_CORE_TRACE("    Set = {0}", set);
 
+			if (m_DescriptorSetLayoutBinding[set].size() < binding + 1)
+			{
+				m_DescriptorSetLayoutBinding[set].resize(binding + 1);
+			}
+
+			VkDescriptorSetLayoutBinding& layoutBinding = m_DescriptorSetLayoutBinding[set][binding];
+
 			layoutBinding.binding = binding;
 			layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			layoutBinding.descriptorCount = 1;
 			layoutBinding.stageFlags |= Utils::ShaderStageFlagBitsFromShaderKind(stage).value();
-			m_DescriptorSetLayoutBinding[set].push_back(layoutBinding);
 		}
 
 		HG_CORE_TRACE("Stage Inputs:");
