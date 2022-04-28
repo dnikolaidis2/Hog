@@ -2,7 +2,7 @@
 **/bin/
 bin-int/
 
-# Hazel files
+# Hog files
 *.log
 
 # Visual Studio files and folder
@@ -15,8 +15,8 @@ bin-int/
 **.opt
 
 # Directories
-Vulkan-Core/vendor/VulkanSDK
-Vulkan-Sandbox/assets/cache
+Hog-Core/vendor/VulkanSDK
+Sandbox/assets/cache
 scripts/__pycache__
 
 **/.idea/**

@@ -1,7 +1,7 @@
 include "./vendor/premake/premake_customization/solution_items.lua"
 include "Dependencies.lua"
 
-workspace "Vulkan-Sandbox"
+workspace "Hog"
 	architecture "x86_64"
 	startproject "Thesis"
 
@@ -27,12 +27,12 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 group "Dependencies"
 	include "vendor/premake"
-	include "Vulkan-Core/vendor/GLFW"
-	include "Vulkan-Core/vendor/imgui"
-	include "Vulkan-Core/vendor/yaml-cpp"
-	include "Vulkan-Core/vendor/optick/premake5.core.lua"
+	include "Hog-Core/vendor/GLFW"
+	include "Hog-Core/vendor/imgui"
+	include "Hog-Core/vendor/yaml-cpp"
+	include "Hog-Core/vendor/optick/premake5.core.lua"
 group ""
 
-include "Vulkan-Core"
-include "Vulkan-Sandbox"
+include "Hog-Core"
+include "Sandbox"
 include "Thesis"

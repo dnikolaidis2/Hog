@@ -12,7 +12,7 @@ from urllib.request import urlopen
 class VulkanConfiguration:
     requiredVulkanVersion = "1.3.211.0"
     newVulkanInstallerVersion = "1.3.211.0"
-    vulkanDirectory = "./Vulkan-Core/vendor/VulkanSDK"
+    vulkanDirectory = "./Hog-Core/vendor/VulkanSDK"
     dependenciesFile = "Dependencies.lua"
 
     @classmethod
@@ -102,9 +102,9 @@ class VulkanConfiguration:
                 with open(cls.dependenciesFile, 'w+', encoding='utf-8') as file:
                     for line in dependencies:
                         if line.startswith("LibraryDir[\"VulkanSDK_Debug\"]"):
-                            line = "LibraryDir[\"VulkanSDK_Debug\"] = \"%{wks.location}/Vulkan-Core/vendor/VulkanSDK/Lib\"\n"
+                            line = "LibraryDir[\"VulkanSDK_Debug\"] = \"%{wks.location}/Hog-Core/vendor/VulkanSDK/Lib\"\n"
                         if line.startswith("LibraryDir[\"VulkanSDK_DebugDLL\"]"):
-                            line = "LibraryDir[\"VulkanSDK_DebugDLL\"] = \"%{wks.location}/Vulkan-Core/vendor/VulkanSDK/Bin\"\n"
+                            line = "LibraryDir[\"VulkanSDK_DebugDLL\"] = \"%{wks.location}/Hog-Core/vendor/VulkanSDK/Bin\"\n"
 
                         file.write(line)
             else:

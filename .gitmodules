@@ -1,20 +1,20 @@
-[submodule "Vulkan-Core/vendor/glfw"]
-	path = Vulkan-Core/vendor/glfw
+[submodule "Hog-Core/vendor/glfw"]
+	path = Hog-Core/vendor/glfw
 	url = https://github.com/TheCherno/glfw
-[submodule "Vulkan-Core/vendor/spdlog"]
-	path = Vulkan-Core/vendor/spdlog
+[submodule "Hog-Core/vendor/spdlog"]
+	path = Hog-Core/vendor/spdlog
 	url = https://github.com/gabime/spdlog
-[submodule "Vulkan-Core/vendor/glm"]
-	path = Vulkan-Core/vendor/glm
+[submodule "Hog-Core/vendor/glm"]
+	path = Hog-Core/vendor/glm
 	url = https://github.com/g-truc/glm
-[submodule "Vulkan-Core/vendor/imgui"]
-	path = Vulkan-Core/vendor/imgui
+[submodule "Hog-Core/vendor/imgui"]
+	path = Hog-Core/vendor/imgui
 	url = https://github.com/TheCherno/imgui
-[submodule "Vulkan-Core/vendor/yaml-cpp"]
-	path = Vulkan-Core/vendor/yaml-cpp
+[submodule "Hog-Core/vendor/yaml-cpp"]
+	path = Hog-Core/vendor/yaml-cpp
 	url = https://github.com/thecherno/yaml-cpp
-[submodule "Vulkan-Core/vendor/optick"]
-	path = Vulkan-Core/vendor/optick
+[submodule "Hog-Core/vendor/optick"]
+	path = Hog-Core/vendor/optick
 	url = git@github.com:dnikolaidis2/optick.git
 [submodule "Thesis.git"]
 	path = Thesis
