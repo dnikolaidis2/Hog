@@ -39,6 +39,7 @@ namespace VulkanCore
 				return ret;
 		}
 
+		std::vector<Ref<Material>> mat(objMaterials.size());
 		for (size_t s = 0; s < objMaterials.size(); s++)
 		{
 			MaterialData data = {};
@@ -64,7 +65,7 @@ namespace VulkanCore
 			}
 			else
 			{
-				data.DiffuseTexture = TextureLibrary::Get("ones");
+				data.DiffuseTexture = nullptr;
 			}
 
 			if (!objMaterials[s].specular_texname.empty())
@@ -92,12 +93,21 @@ namespace VulkanCore
 				data.AlphaMap = TextureLibrary::LoadOrGet(objMaterials[s].alpha_texname);
 			}
 
-			MaterialLibrary::Create(objMaterials[s].name, data);
+			if (MaterialLibrary::Exists(objMaterials[s].name))
+			{
+				std::string matName = objMaterials[s].name + ".001";
+				mat[s] = MaterialLibrary::Create(matName, data);
+			}
+			else
+			{
+				mat[s] = MaterialLibrary::Create(objMaterials[s].name, data);
+			}
 		}
 
 		std::filesystem::current_path(currentPath);
 
-		objects.resize(objects.size() + shapes.size());
+		size_t initialSize = objects.size();
+		objects.resize(initialSize + shapes.size());
 		// Loop over shapes
 		for (size_t s = 0; s < shapes.size(); s++) {
 			auto mesh = Mesh::Create();
@@ -108,8 +118,6 @@ namespace VulkanCore
 				auto& verties = mesh->GetVertices();
 				//hardcode loading to triangles
 				int fv = 3;
-
-				Ref<Material> mat = MaterialLibrary::Get(objMaterials[shapes[s].mesh.material_ids[f]].name);
 
 				// Loop over vertices in the face.
 				for (size_t v = 0; v < fv; v++) {
@@ -134,14 +142,14 @@ namespace VulkanCore
 					tinyobj::real_t tx = attrib.texcoords[2 * size_t(idx.texcoord_index) + 0];
 					tinyobj::real_t ty = attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
 
-					verties.push_back({ {vx, vy, vz}, {nx, ny, nz}, {tx, ty}, mat->GetGPUIndex()});
+					verties.push_back({ {vx, vy, vz}, {nx, ny, nz}, {tx, ty}, mat[shapes[s].mesh.material_ids[f]]->GetGPUIndex()});
 				}
 
 				indexOffset += fv;
 			}
 
 			mesh->Load();
-			objects[s] = RendererObject::Create(std::move(mesh), MaterialLibrary::Get(objMaterials[shapes[s].mesh.material_ids[0]].name));
+			objects[initialSize + s] = RendererObject::Create(std::move(mesh), mat[shapes[s].mesh.material_ids[0]]);
 		}
 
 		return ret;
