@@ -27,6 +27,7 @@ project "Sandbox"
 		"%{IncludeDir.GLFW}",
 		"%{IncludeDir.vma}",
 		"%{IncludeDir.tinyobjloader}",
+		"%{IncludeDir.cgltf}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.optick}"
 	}

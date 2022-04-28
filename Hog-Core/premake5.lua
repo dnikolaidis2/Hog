@@ -22,6 +22,8 @@ project "Hog-Core"
 		"vendor/tinyobjloader/**.cpp",
 		"vendor/glm/glm/**.hpp",
 		"vendor/glm/glm/**.inl",
+		"vendor/cgltf/**.h",
+		"vendor/cgltf/**.cpp"
 	}
 
 	defines
@@ -38,6 +40,7 @@ project "Hog-Core"
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
+		"%{IncludeDir.cgltf}",
 		"%{IncludeDir.vma}",
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.tinyobjloader}",
