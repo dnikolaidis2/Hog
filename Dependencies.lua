@@ -8,6 +8,7 @@ SourceDir["optick"] = "%{wks.location}/Hog-Core/vendor/optick/src"
 
 IncludeDir = {}
 IncludeDir["stb_image"] = "%{wks.location}/Hog-Core/vendor/stb_image"
+IncludeDir["cgltf"] = "%{wks.location}/Hog-Core/vendor/cgltf"
 IncludeDir["vma"] = "%{wks.location}/Hog-Core/vendor/vma"
 IncludeDir["yaml_cpp"] = "%{wks.location}/Hog-Core/vendor/yaml-cpp/include"
 IncludeDir["tinyobjloader"] = "%{wks.location}/Hog-Core/vendor/tinyobjloader"
