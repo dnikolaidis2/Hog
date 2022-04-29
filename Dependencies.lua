@@ -1,30 +1,30 @@
 
--- Vulkan-Core Dependencies
+-- Hog-Core Dependencies
 
 VULKAN_SDK = os.getenv("VULKAN_SDK")
 
 SourceDir = {}
-SourceDir["optick"] = "%{wks.location}/Vulkan-Core/vendor/optick/src"
+SourceDir["optick"] = "%{wks.location}/Hog-Core/vendor/optick/src"
 
 IncludeDir = {}
-IncludeDir["stb_image"] = "%{wks.location}/Vulkan-Core/vendor/stb_image"
-IncludeDir["vma"] = "%{wks.location}/Vulkan-Core/vendor/vma"
-IncludeDir["yaml_cpp"] = "%{wks.location}/Vulkan-Core/vendor/yaml-cpp/include"
-IncludeDir["tinyobjloader"] = "%{wks.location}/Vulkan-Core/vendor/tinyobjloader"
-IncludeDir["GLFW"] = "%{wks.location}/Vulkan-Core/vendor/GLFW/include"
-IncludeDir["ImGui"] = "%{wks.location}/Vulkan-Core/vendor/ImGui"
-IncludeDir["glm"] = "%{wks.location}/Vulkan-Core/vendor/glm"
-IncludeDir["shaderc"] = "%{wks.location}/Vulkan-Core/vendor/shaderc/include"
-IncludeDir["SPIRV_Cross"] = "%{wks.location}/Vulkan-Core/vendor/SPIRV-Cross"
+IncludeDir["stb_image"] = "%{wks.location}/Hog-Core/vendor/stb_image"
+IncludeDir["vma"] = "%{wks.location}/Hog-Core/vendor/vma"
+IncludeDir["yaml_cpp"] = "%{wks.location}/Hog-Core/vendor/yaml-cpp/include"
+IncludeDir["tinyobjloader"] = "%{wks.location}/Hog-Core/vendor/tinyobjloader"
+IncludeDir["GLFW"] = "%{wks.location}/Hog-Core/vendor/GLFW/include"
+IncludeDir["ImGui"] = "%{wks.location}/Hog-Core/vendor/ImGui"
+IncludeDir["glm"] = "%{wks.location}/Hog-Core/vendor/glm"
+IncludeDir["shaderc"] = "%{wks.location}/Hog-Core/vendor/shaderc/include"
+IncludeDir["SPIRV_Cross"] = "%{wks.location}/Hog-Core/vendor/SPIRV-Cross"
 IncludeDir["VulkanSDK"] = "%{VULKAN_SDK}/Include"
-IncludeDir["optick"] = "%{wks.location}/Vulkan-Core/vendor/optick/src"
+IncludeDir["optick"] = "%{wks.location}/Hog-Core/vendor/optick/src"
 
 LibraryDir = {}
 
 LibraryDir["VulkanSDK"] = "%{VULKAN_SDK}/Lib"
 LibraryDir["VulkanSDK_Debug"] = "%{VULKAN_SDK}/Lib"
 LibraryDir["VulkanSDK_DebugDLL"] = "%{VULKAN_SDK}/Bin"
-LibraryDir["optick"] = "%{wks.location}/Vulkan-Core/vendor/optick"
+LibraryDir["optick"] = "%{wks.location}/Hog-Core/vendor/optick"
 
 Library = {}
 Library["optick"] = "%{LibraryDir.optick}/OptickCore.lib"
