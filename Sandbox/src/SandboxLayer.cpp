@@ -66,7 +66,8 @@ void SandboxLayer::OnUpdate(Timestep ts)
 
 	m_EditorCamera.OnUpdate(ts);
 
-	Renderer::BeginScene(m_EditorCamera);
+	Renderer::GlobalShaderData data;
+	Renderer::BeginScene(m_EditorCamera, data);
 
 	Renderer::DrawObjects(m_Objects);
 }
