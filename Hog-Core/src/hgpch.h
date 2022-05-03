@@ -16,6 +16,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "vulkan/vulkan.h"
+
 #include "Hog/Core/Base.h"
 
 #include "Hog/Core/Log.h"
