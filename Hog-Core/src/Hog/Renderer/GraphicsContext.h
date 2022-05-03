@@ -182,7 +182,7 @@ namespace Hog {
 			.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
 			.pEngineName = "Hog",
 			.engineVersion = VK_MAKE_VERSION(1, 0, 0),
-			.apiVersion = VK_MAKE_VERSION(1, 2, VK_HEADER_VERSION)
+			.apiVersion = VK_MAKE_VERSION(1, 3, VK_HEADER_VERSION)
 		};
 
 		VkDebugUtilsMessengerCreateInfoEXT DebugMessengerCreateInfo =
