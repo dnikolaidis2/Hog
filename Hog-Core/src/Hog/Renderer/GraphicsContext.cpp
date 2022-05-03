@@ -2,8 +2,11 @@
 #include "GraphicsContext.h"
 
 #include "vk_mem_alloc.h"
+#include "Hog/Core/CVars.h"
 #include "Hog/Core/Application.h"
 #include "Hog/Utils/RendererUtils.h"
+
+AutoCVar_Int CVar_MSAA("renderer.enableMSAA", "Enables MSAA for renderer", 0, CVarFlags::EditReadOnly);
 
 namespace Hog {
 
@@ -899,7 +902,10 @@ namespace Hog {
 				PresentFamilyIndex = (uint32_t)presentIdx;
 				PhysicalDevice = gpu->Device;
 				GPU = gpu;
-				MSAASamples = GetMaxMSAASampleCount();
+				if (CVar_MSAA.Get())
+				{
+					MSAASamples = GetMaxMSAASampleCount();
+				}
 				return;
 			}
 		}
@@ -1239,8 +1245,15 @@ namespace Hog {
 		// create the internal one.
 
 		DepthImage = Image::Create(ImageType::Depth, GPU->SurfaceCapabilities.currentExtent.width, GPU->SurfaceCapabilities.currentExtent.height, 1, internalFormat, MSAASamples);
-		
-		ColorImage = Image::Create(ImageType::SampledColorAttachment, GPU->SurfaceCapabilities.currentExtent.width, GPU->SurfaceCapabilities.currentExtent.height, 1, SwapchainFormat, MSAASamples);
+		if (CVar_MSAA.Get())
+		{
+			ColorImage = Image::Create(ImageType::SampledColorAttachment,
+				GPU->SurfaceCapabilities.currentExtent.width,
+				GPU->SurfaceCapabilities.currentExtent.height,
+				1,
+				SwapchainFormat,
+				MSAASamples);
+		}
 	}
 
 	void GraphicsContext::CreateRenderPass()
@@ -1263,7 +1276,10 @@ namespace Hog {
 		// I don't care what the initial layout of the image is.
 		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		// It better be ready to present to the user when we're done with the renderpass.
-		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		if (CVar_MSAA.Get()) 
+			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		else 
+			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 		attachments.push_back(colorAttachment);
 
 		
@@ -1280,17 +1296,20 @@ namespace Hog {
 		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		attachments.push_back(depthAttachment);
-		
-		VkAttachmentDescription colorAttachmentResolve = {};
-		colorAttachmentResolve.format = SwapchainFormat;
-		colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
-		colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		attachments.push_back(colorAttachmentResolve);
+
+		if (CVar_MSAA.Get())
+		{
+			VkAttachmentDescription colorAttachmentResolve = {};
+			colorAttachmentResolve.format = SwapchainFormat;
+			colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+			colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			attachments.push_back(colorAttachmentResolve);
+		}
 
 		// Now we enumerate the attachments for a subpass.  We have to have at least one subpass.
 		VkAttachmentReference colorRef = {};
@@ -1301,25 +1320,21 @@ namespace Hog {
 		depthRef.attachment = 1;
 		depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-		VkAttachmentReference colorAttachmentRef{};
-		colorAttachmentRef.attachment = 2;
-		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
 		// Basically is this graphics or compute
 		VkSubpassDescription subpass = {};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorRef;
 		subpass.pDepthStencilAttachment = &depthRef;
-		subpass.pResolveAttachments = &colorAttachmentRef;
 
-		VkSubpassDependency dependency{};
-		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependency.dstSubpass = 0;
-		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.srcAccessMask = 0;
-		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		if (MSAASamples != VK_SAMPLE_COUNT_1_BIT)
+		{
+			VkAttachmentReference colorAttachmentRef{};
+			colorAttachmentRef.attachment = 2;
+			colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			subpass.pResolveAttachments = &colorAttachmentRef;
+		}
 
 		VkRenderPassCreateInfo renderPassCreateInfo = {};
 		renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -1327,8 +1342,21 @@ namespace Hog {
 		renderPassCreateInfo.pAttachments = attachments.data();
 		renderPassCreateInfo.subpassCount = 1;
 		renderPassCreateInfo.pSubpasses = &subpass;
-		renderPassCreateInfo.dependencyCount = 1;
-		renderPassCreateInfo.pDependencies = &dependency;
+		renderPassCreateInfo.dependencyCount = 0;
+
+		if (CVar_MSAA.Get())
+		{
+			VkSubpassDependency dependency{};
+			dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+			dependency.dstSubpass = 0;
+			dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+			dependency.srcAccessMask = 0;
+			dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+			dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+			renderPassCreateInfo.dependencyCount = 1;
+			renderPassCreateInfo.pDependencies = &dependency;
+		}
 
 		CheckVkResult(vkCreateRenderPass(Device, &renderPassCreateInfo, nullptr, &RenderPass));
 	}
@@ -1338,11 +1366,24 @@ namespace Hog {
 		HG_PROFILE_FUNCTION();
 		FrameBuffers.resize(FrameCount);
 
-		VkImageView attachments[3];
+		
+		std::vector<VkImageView> attachments;
 
 		// Depth attachment is the same
 		// We never show the depth buffer, so we only ever need one.
-		attachments[0] = ColorImage->GetImageView();
+		int swapChainImageIndex;
+		if (CVar_MSAA.Get())
+		{
+			attachments.resize(3);
+			attachments[0] = ColorImage->GetImageView();
+			swapChainImageIndex = 2;
+		}
+		else
+		{
+			attachments.resize(2);
+			swapChainImageIndex = 0;
+		}
+		
 		attachments[1] = DepthImage->GetImageView();
 
 		// VkFrameBuffer is what maps attachments to a renderpass.  That's really all it is.
@@ -1351,8 +1392,8 @@ namespace Hog {
 		// The renderpass we just created.
 		frameBufferCreateInfo.renderPass = RenderPass;
 		// The color and depth attachments
-		frameBufferCreateInfo.attachmentCount = 3;
-		frameBufferCreateInfo.pAttachments = attachments;
+		frameBufferCreateInfo.attachmentCount = (uint32_t)attachments.size();
+		frameBufferCreateInfo.pAttachments = attachments.data();
 		// Current render size
 		frameBufferCreateInfo.width = SwapchainExtent.width;
 		frameBufferCreateInfo.height = SwapchainExtent.height;
@@ -1361,7 +1402,7 @@ namespace Hog {
 		// Because we're double buffering, we need to create the same number of framebuffers.
 		// The main difference again is that both of them use the same depth image view.
 		for (int i = 0; i < FrameCount; ++i) {
-			attachments[2] = SwapchainImages[i]->GetImageView();
+			attachments[swapChainImageIndex] = SwapchainImages[i]->GetImageView();
 			CheckVkResult(vkCreateFramebuffer(Device, &frameBufferCreateInfo, NULL, &FrameBuffers[i]));
 		}
 	}
