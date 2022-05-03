@@ -248,6 +248,7 @@ namespace Hog
 		CheckVkResult(vkBeginCommandBuffer(s_Data.CurrentCommandBuffer, &beginInfo));
 
 		HG_PROFILE_GPU_CONTEXT(s_Data.CurrentCommandBuffer);
+		HG_PROFILE_GPU_EVENT("Begin Scene");
 
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;

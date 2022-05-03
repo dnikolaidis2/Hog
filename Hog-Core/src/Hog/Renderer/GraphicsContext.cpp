@@ -608,6 +608,8 @@ namespace Hog {
 		beginInfo.pInheritanceInfo = nullptr; // Optional
 
 		CheckVkResult(vkBeginCommandBuffer(commandBuffer, &beginInfo));
+		HG_PROFILE_GPU_CONTEXT(commandBuffer);
+		HG_PROFILE_GPU_EVENT("Immediate Submit");
 
 		//execute the function
 		function(commandBuffer);
