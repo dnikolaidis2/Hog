@@ -19,6 +19,7 @@
 #include <Hog/Utils/Loader.h>
 
 #include "Hog/ImGui/ImGuiLayer.h"
+#include "Hog/Core/CVars.h"
 
 // ---Renderer------------------------
 #include "Hog/Renderer/GraphicsContext.h"
