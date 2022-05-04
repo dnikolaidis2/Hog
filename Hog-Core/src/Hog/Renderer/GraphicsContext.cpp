@@ -7,6 +7,7 @@
 #include "Hog/Utils/RendererUtils.h"
 
 AutoCVar_Int CVar_MSAA("renderer.enableMSAA", "Enables MSAA for renderer", 0, CVarFlags::EditReadOnly);
+AutoCVar_Int CVar_ValidationLayers("renderer.enableValidationLayers", "Enables Vulkan validation layers", 1, CVarFlags::EditReadOnly);
 
 namespace Hog {
 
@@ -459,6 +460,11 @@ namespace Hog {
 	void GraphicsContext::InitializeImpl()
 	{
 		HG_PROFILE_FUNCTION();
+		
+#if HG_PROFILE
+		CVar_ValidationLayers.Set(0);
+#endif
+
 		CreateInstance();
 		SetupDebugMessenger();
 		Application::Get().GetWindow().CreateSurface(Instance, nullptr, &(Surface));
@@ -521,7 +527,7 @@ namespace Hog {
 		vkDestroyDevice(Device, nullptr);
 		vkDestroySurfaceKHR(Instance, Surface, nullptr);
 
-		if (EnableValidationLayers)
+		if (CVar_ValidationLayers.Get())
 		{
 			DestroyDebugUtilsMessengerEXT(Instance, DebugMessenger, nullptr);
 		}
@@ -643,7 +649,7 @@ namespace Hog {
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		createInfo.pApplicationInfo = &(ApplicationInfo);
 
-		if (EnableValidationLayers) {
+		if (CVar_ValidationLayers.Get()) {
 			InstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		}
 
@@ -669,7 +675,7 @@ namespace Hog {
 			HG_ASSERT(exists, "Extension not supported");
 		}
 
-		if (EnableValidationLayers)
+		if (CVar_ValidationLayers.Get())
 		{
 			uint32_t layerCount;
 			vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -716,7 +722,7 @@ namespace Hog {
 	void GraphicsContext::SetupDebugMessenger()
 	{
 		HG_PROFILE_FUNCTION();
-		if (!EnableValidationLayers) return;
+		if (!CVar_ValidationLayers.Get()) return;
 		
 		CheckVkResult(CreateDebugUtilsMessengerEXT(Instance, &DebugMessengerCreateInfo, nullptr, &DebugMessenger));
 	}
@@ -953,7 +959,7 @@ namespace Hog {
 		info.ppEnabledExtensionNames = DeviceExtensions.data();
 
 		// If validation layers are enabled supply them here.
-		if (EnableValidationLayers) {
+		if (CVar_ValidationLayers.Get()) {
 			info.enabledLayerCount = (uint32_t)ValidationLayers.size();
 			info.ppEnabledLayerNames = ValidationLayers.data();
 		}

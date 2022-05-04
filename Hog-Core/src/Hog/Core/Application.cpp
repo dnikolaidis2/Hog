@@ -2,11 +2,12 @@
 
 #include "Hog/Core/Application.h"
 #include "Hog/Core/Log.h"
-#include "Hog/Core/Input.h"
-#include "Hog/Renderer/GraphicsContext.h"
 #include "Hog/Renderer/Renderer.h"
+#include "Hog/Core/CVars.h"
 
 #include <GLFW/glfw3.h>
+
+AutoCVar_Int CVar_ImGui("application.enableImGui", "Enables ImGui ui layer", 1, CVarFlags::EditReadOnly);
 
 namespace Hog {
 
@@ -16,6 +17,10 @@ namespace Hog {
 		: m_CommandLineArgs(args)
 	{
 		HG_PROFILE_FUNCTION();
+		
+#if HG_PROFILE
+		CVar_ImGui.Set(0);
+#endif
 
 		HG_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;

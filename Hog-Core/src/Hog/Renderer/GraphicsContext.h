@@ -126,8 +126,6 @@ namespace Hog {
 		int const FrameCount = 2;
 		int CurrentFrame = 0;
 
-		bool EnableValidationLayers = true;
-
 		VkInstance Instance = VK_NULL_HANDLE;
 		VkDebugUtilsMessengerEXT DebugMessenger = VK_NULL_HANDLE;
 
