@@ -2,6 +2,7 @@
 #include "Shader.h"
 
 #include "Hog/Core/Timer.h"
+#include "Hog/Core/CVars.h"
 #include "Hog/Utils/RendererUtils.h"
 #include "Hog/Renderer/GraphicsContext.h"
 
@@ -16,6 +17,9 @@
 #include "Constants.h"
 
 static auto& context = Hog::GraphicsContext::Get();
+
+AutoCVar_String CVar_ShaderCacheDBFile("shader.cacheDBFile", "Shader cache database file", "assets/cache/shader/vulkan/.db", CVarFlags::Noedit);
+AutoCVar_String CVar_ShaderCachePath("shader.cachePath", "Shader cache folder path", "assets/cache/shader/vulkan", CVarFlags::Noedit);
 
 namespace Hog {
 	namespace Utils {
@@ -115,15 +119,9 @@ namespace Hog {
 			return std::nullopt;
 		}
 
-		static const char* GetCacheDirectory()
-		{
-			// TODO: make sure the assets directory is valid
-			return "assets/cache/shader/vulkan";
-		}
-
 		static void CreateCacheDirectoryIfNeeded()
 		{
-			std::string cacheDirectory = GetCacheDirectory();
+			const std::string cacheDirectory(CVar_ShaderCachePath.Get());
 			if (!std::filesystem::exists(cacheDirectory))
 				std::filesystem::create_directories(cacheDirectory);
 		}
@@ -158,16 +156,11 @@ namespace Hog {
 			HG_CORE_ASSERT(false);
 			return (shaderc_shader_kind)0;
 		}
-
-		static const char* GetShaderCacheDB()
-		{
-			return "assets/cache/shader/vulkan/.db";
-		}
-
+		
 		static std::unordered_map<std::string, std::unordered_map<shaderc_shader_kind, std::size_t>> LoadShaderCacheDB()
 		{
 			std::unordered_map<std::string, std::unordered_map<shaderc_shader_kind, std::size_t>> db;
-			std::filesystem::path path = GetShaderCacheDB();
+			std::filesystem::path path(CVar_ShaderCacheDBFile.Get());
 
 			if (!std::filesystem::exists(path))
 				return db;
@@ -187,7 +180,7 @@ namespace Hog {
 			{
 				for (auto shader : shaders)
 				{
-					std::string name = shader.first.as<std::string>();
+					const std::string name = shader.first.as<std::string>();
 					std::unordered_map<shaderc_shader_kind, std::size_t> stageHashes;
 					auto stages = data["Cache Database"][name.c_str()];
 					if (stages)
@@ -227,7 +220,7 @@ namespace Hog {
 			out << YAML::EndMap;
 			out << YAML::EndMap;
 
-			std::ofstream fout(GetShaderCacheDB());
+			std::ofstream fout(CVar_ShaderCacheDBFile.Get());
 			fout << out.c_str();
 		}
 	}
@@ -349,7 +342,7 @@ namespace Hog {
 		if (optimize)
 			options.SetOptimizationLevel(shaderc_optimization_level_zero);
 
-		std::filesystem::path cacheDirectory = Utils::GetCacheDirectory();
+		std::filesystem::path cacheDirectory(CVar_ShaderCachePath.Get());
 		auto cacheDB = Utils::LoadShaderCacheDB();
 
 		auto& shaderData = m_VulkanSPIRV;
