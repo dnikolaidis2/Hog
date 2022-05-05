@@ -480,7 +480,7 @@ namespace Hog {
 		CreateRenderPass();
 		CreateFrameBuffers();
 
-		Initialized = true;
+		m_Initialized = true;
 	}
 
 	void GraphicsContext::DeinitializeImpl()
@@ -534,7 +534,7 @@ namespace Hog {
 
 		DestroyInstance();
 
-		Initialized = false;
+		m_Initialized = false;
 	}
 
 	void GraphicsContext::RecreateSwapChainImpl()

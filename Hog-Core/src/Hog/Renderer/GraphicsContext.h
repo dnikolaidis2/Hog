@@ -59,7 +59,7 @@ namespace Hog {
 			return instance;
 		}
 
-		~GraphicsContext() { if (Initialized == true) Get().Deinitialize(); }
+		~GraphicsContext() { if (m_Initialized == true) Get().Deinitialize(); }
 
 		static void Initialize() { Get().InitializeImpl(); }
 		static void Deinitialize() { Get().DeinitializeImpl(); }
@@ -119,10 +119,14 @@ namespace Hog {
 		void CreateFrameBuffers();
 
 		void CleanupSwapChain();
+
 	private:
 		VkSampleCountFlagBits GetMaxMSAASampleCount();
+
+	private:
+		bool m_Initialized = false;
+
 	public:
-		bool Initialized = false;
 		int const FrameCount = 2;
 		int CurrentFrame = 0;
 
