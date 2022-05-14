@@ -101,14 +101,13 @@ namespace Hog
 		static Ref<Material> Create(const std::string& name, MaterialData& data);
 	public:
 
-		Material(const std::string& name, const Ref<Shader>& shader, const Ref<GraphicsPipeline>& pipeline, MaterialData& data)
-			: m_Shader(shader), m_Pipeline(pipeline), m_Data(data), m_Name(name)
+		Material(const std::string& name, const Ref<Shader>& shader, MaterialData& data)
+			: m_Shader(shader), m_Data(data), m_Name(name)
 		{}
 
 		~Material() = default;
 
 		const Ref<Shader>& GetShader() const { return m_Shader; }
-		const Ref<GraphicsPipeline>& GetPipeline() const { return m_Pipeline; }
 		const Ref<Image>& GetDiffuseTexture() const { return m_Data.DiffuseTexture; }
 		MaterialData& GetMaterialData() { return m_Data; }
 		void SetGPUIndex(int32_t ind) { m_GPUIndex = ind; }
@@ -118,7 +117,6 @@ namespace Hog
 	private:
 		std::string m_Name;
 		Ref<Shader> m_Shader;
-		Ref<GraphicsPipeline> m_Pipeline;
 		MaterialData m_Data;
 		int32_t m_GPUIndex = -1;
 	};

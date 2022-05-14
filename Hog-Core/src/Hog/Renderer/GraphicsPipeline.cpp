@@ -71,7 +71,7 @@ namespace Hog
 	{
 		VkPipelineShaderStageCreateInfo info = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-			.stage = Shader::ShaderTypeToVkShaderStageFlagBit(type),
+			.stage = Utils::ShaderTypeToShaderStageFlag(type),
 			.module = shaderModule,
 			.pName = main,
 		};

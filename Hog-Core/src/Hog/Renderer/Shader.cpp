@@ -3,10 +3,9 @@
 
 #include "Hog/Core/Timer.h"
 #include "Hog/Core/CVars.h"
+#include "Hog/Utils/Filesystem.h"
 #include "Hog/Utils/RendererUtils.h"
 #include "Hog/Renderer/GraphicsContext.h"
-
-#include <fstream>
 
 #include <shaderc/shaderc.hpp>
 #include <spirv_cross/spirv_cross.hpp>
@@ -18,8 +17,13 @@
 
 static auto& context = Hog::GraphicsContext::Get();
 
-AutoCVar_String CVar_ShaderCacheDBFile("shader.cacheDBFile", "Shader cache database file", "assets/cache/shader/vulkan/.db", CVarFlags::Noedit);
-AutoCVar_String CVar_ShaderCachePath("shader.cachePath", "Shader cache folder path", "assets/cache/shader/vulkan", CVarFlags::Noedit);
+AutoCVar_String CVar_ShaderCacheDBFile("shader.cacheDBFile", "Shader cache database filename", ".db", CVarFlags::EditReadOnly);
+AutoCVar_String CVar_ShaderCacheDir("shader.cachePath", "Shader cache directory", "assets/cache/shader/vulkan", CVarFlags::EditReadOnly);
+AutoCVar_String CVar_ShaderSourceDir("shader.sourceDir", "Shader source directory", "assets/shaders/", CVarFlags::EditReadOnly);
+AutoCVar_String CVar_ShaderCompiledFileExtension("shader.compiledFileExtension", "Shader compiled file extension", ".spv", CVarFlags::EditReadOnly);
+AutoCVar_Int	CVar_ShaderOptimizationLevel("shader.optimizationLevel",
+	"Shader compilation optimization level. 0 zero optimization, 1 optimize for size, 2 optimize for performance",
+	0, CVarFlags::None);
 
 namespace Hog {
 	namespace Utils {
@@ -96,531 +100,444 @@ namespace Hog {
 			return VK_FORMAT_UNDEFINED;
 		}
 
-		static std::optional<VkShaderStageFlagBits> ShaderStageFlagBitsFromShaderKind(shaderc_shader_kind kind)
+		static VkShaderStageFlagBits ShaderStageFlagFromShaderKind(shaderc_shader_kind kind)
 		{
 			switch(kind)
 			{
-				case shaderc_glsl_vertex_shader:	return VK_SHADER_STAGE_VERTEX_BIT;
-				case shaderc_glsl_fragment_shader:	return VK_SHADER_STAGE_FRAGMENT_BIT;
+				case shaderc_glsl_vertex_shader:		return VK_SHADER_STAGE_VERTEX_BIT;
+				case shaderc_glsl_fragment_shader:		return VK_SHADER_STAGE_FRAGMENT_BIT;
+				case shaderc_glsl_compute_shader:		return VK_SHADER_STAGE_COMPUTE_BIT;
+				case shaderc_glsl_anyhit_shader:		return VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+				case shaderc_glsl_raygen_shader:		return VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+				case shaderc_glsl_intersection_shader:	return VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+				case shaderc_glsl_miss_shader:			return VK_SHADER_STAGE_MISS_BIT_KHR;
+				case shaderc_glsl_closesthit_shader:	return VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+				case shaderc_glsl_mesh_shader:			return VK_SHADER_STAGE_MESH_BIT_NV;
 			}
 
 			HG_CORE_ASSERT(false, "Unknown shader type!");
-			return std::nullopt;
+			return (VkShaderStageFlagBits)0;
 		}
 
-		static std::optional<shaderc_shader_kind> ShaderTypeFromString(const std::string& type)
+		VkShaderStageFlagBits ShaderTypeToShaderStageFlag(ShaderType type)
 		{
-			if (type == "vertex")
-				return shaderc_glsl_vertex_shader;
-			if (type == "fragment" || type == "pixel")
-				return shaderc_glsl_fragment_shader;
+			switch (type)
+			{
+				case ShaderType::Vertex: 		return VK_SHADER_STAGE_VERTEX_BIT;
+				case ShaderType::Fragment: 		return VK_SHADER_STAGE_FRAGMENT_BIT;
+				case ShaderType::Compute: 		return VK_SHADER_STAGE_COMPUTE_BIT;
+				case ShaderType::AnyHit: 		return VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+				case ShaderType::RayGeneration: return VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+				case ShaderType::Intersection: 	return VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+				case ShaderType::Miss: 			return VK_SHADER_STAGE_MISS_BIT_KHR;
+				case ShaderType::ClosestHit: 	return VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+				case ShaderType::Mesh: 			return VK_SHADER_STAGE_MESH_BIT_NV;
+			}
+
+			return (VkShaderStageFlagBits)0;
+		}
+
+		static shaderc_shader_kind ShaderTypeToShaderKind(ShaderType type)
+		{
+			switch (type)
+			{
+				case ShaderType::Vertex: 		return shaderc_glsl_vertex_shader;
+				case ShaderType::Fragment: 		return shaderc_glsl_fragment_shader;
+				case ShaderType::Compute: 		return shaderc_glsl_compute_shader;
+				case ShaderType::AnyHit: 		return shaderc_glsl_anyhit_shader;
+				case ShaderType::RayGeneration: return shaderc_glsl_raygen_shader;
+				case ShaderType::Intersection: 	return shaderc_glsl_intersection_shader;
+				case ShaderType::Miss: 			return shaderc_glsl_miss_shader;
+				case ShaderType::ClosestHit: 	return shaderc_glsl_closesthit_shader;
+				case ShaderType::Mesh: 			return shaderc_glsl_mesh_shader;
+			}
 
 			HG_CORE_ASSERT(false, "Unknown shader type!");
-			return std::nullopt;
+			return (shaderc_shader_kind)0;
+		}
+
+		static const char* ShaderTypeToString(ShaderType type)
+		{
+			switch (type)
+			{
+				case ShaderType::Vertex: 		return "Vertex";
+				case ShaderType::Fragment: 		return "Fragment";
+				case ShaderType::Compute: 		return "Compute";
+				case ShaderType::AnyHit: 		return "AnyHit";
+				case ShaderType::RayGeneration: return "RayGeneration";
+				case ShaderType::Intersection: 	return "Intersection";
+				case ShaderType::Miss: 			return "Miss";
+				case ShaderType::ClosestHit: 	return "ClosestHit";
+				case ShaderType::Mesh: 			return "Mesh";
+			}
+
+			HG_CORE_ASSERT(false, "Unknown shader type!");
+			return nullptr;
+		}
+
+		static ShaderType StringToShaderType(const std::string& str)
+		{
+			if (str == "Vertex") 		return ShaderType::Vertex;
+			if (str == "Fragment") 		return ShaderType::Fragment;
+			if (str == "Compute")		return ShaderType::Compute;
+			if (str == "AnyHit")		return ShaderType::AnyHit;
+			if (str == "RayGeneration")	return ShaderType::RayGeneration;
+			if (str == "Intersection")	return ShaderType::Intersection;
+			if (str == "Miss")			return ShaderType::Miss;
+			if (str == "ClosestHit")	return ShaderType::ClosestHit;
+			if (str == "Mesh")			return ShaderType::Mesh;
+
+			HG_CORE_ASSERT(false, "Unknown shader type!");
+			return (ShaderType)0;
+		}
+
+		static ShaderType ShaderKindToShaderType(shaderc_shader_kind kind)
+		{
+			switch (kind)
+			{
+				case shaderc_glsl_vertex_shader: 		return ShaderType::Vertex;
+				case shaderc_glsl_fragment_shader: 		return ShaderType::Fragment;
+				case shaderc_glsl_compute_shader: 		return ShaderType::Compute;
+				case shaderc_glsl_anyhit_shader: 		return ShaderType::AnyHit;
+				case shaderc_glsl_raygen_shader: 		return ShaderType::RayGeneration;
+				case shaderc_glsl_intersection_shader: 	return ShaderType::Intersection;
+				case shaderc_glsl_miss_shader: 			return ShaderType::Miss;
+				case shaderc_glsl_closesthit_shader: 	return ShaderType::ClosestHit;
+				case shaderc_glsl_mesh_shader: 			return ShaderType::Mesh;
+			}
+
+			HG_CORE_ASSERT(false, "Unknown shader type!");
+			return (ShaderType)0;
+		}
+
+		static ShaderType FileExtensionToShaderType(const std::string& extension)
+		{
+			std::string string = extension.substr(1);
+			if (string == "vertex")
+				return ShaderType::Vertex;
+			if (string == "fragment")
+				return ShaderType::Fragment;
+			if (string == "compute")
+				return ShaderType::Compute;
+			if (string == "anyhit")
+				return ShaderType::AnyHit;
+			if (string == "raygen")
+				return ShaderType::RayGeneration;
+			if (string == "intersection")
+				return ShaderType::Intersection;
+			if (string == "miss")
+				return ShaderType::Miss;
+			if (string == "closesthit")
+				return ShaderType::ClosestHit;
+			if (string == "mesh")
+				return ShaderType::Mesh;
+
+			HG_CORE_ASSERT(false, "Unknown shader type!");
+			return (ShaderType)0;
 		}
 
 		static void CreateCacheDirectoryIfNeeded()
 		{
-			const std::string cacheDirectory(CVar_ShaderCachePath.Get());
+			const std::string cacheDirectory(CVar_ShaderCacheDir.Get());
 			if (!std::filesystem::exists(cacheDirectory))
 				std::filesystem::create_directories(cacheDirectory);
 		}
+	}
 
-		static const char* ShaderStageCachedVulkanFileExtension(shaderc_shader_kind stage)
+	Ref<ShaderSource> ShaderSource::Deserialize(YAML::Node& info)
+	{
+		std::string name = info["Name"].as<std::string>();
+		std::filesystem::path filepath = std::filesystem::path(info["FilePath"].as<std::string>());
+		std::filesystem::path cacheFilepath = std::filesystem::path(info["CacheFilePath"].as<std::string>());
+		ShaderType type = Utils::StringToShaderType(info["Type"].as<std::string>());
+		size_t hash = info["Hash"].as<size_t>();
+
+		std::vector<uint32_t> code = ReadBinaryFile(cacheFilepath.string());
+
+		auto reference = CreateRef<ShaderSource>(std::forward<std::string>(name),
+			std::forward<std::filesystem::path>(filepath), 
+			type, hash, std::forward<std::vector<uint32_t>>(code));
+		reference->CacheFilePath = cacheFilepath;
+
+		return reference;
+	}
+
+	void ShaderSource::Serialize(YAML::Emitter& emitter)
+	{
+		CacheFilePath = std::filesystem::path(CVar_ShaderCacheDir.Get()) / 
+			std::filesystem::path(Name + CVar_ShaderCompiledFileExtension.Get());
+
+		emitter << YAML::Key << Name << YAML::BeginMap;
 		{
-			switch (stage)
-			{
-				case shaderc_glsl_vertex_shader:    return ".cached_vulkan.vert";
-				case shaderc_glsl_fragment_shader:  return ".cached_vulkan.frag";
-			}
-			HG_CORE_ASSERT(false);
-			return "";
+			emitter << YAML::Key << "Name" << YAML::Value << Name;
+			emitter << YAML::Key << "FilePath" << YAML::Value << FilePath.string();
+			emitter << YAML::Key << "CacheFilePath" << YAML::Value << CacheFilePath.string();
+			emitter << YAML::Key << "Type" << YAML::Value << Utils::ShaderTypeToString(Type);
+			emitter << YAML::Key << "Hash" << YAML::Value << Hash;
 		}
 
-		static const char* ShaderStageToString(shaderc_shader_kind stage)
+		emitter << YAML::EndMap;
+
+		WriteBinaryFile(CacheFilePath.string(), Code);
+	}
+
+	void ShaderCache::InitializeImpl()
+	{
+ 		auto cacheDir = std::filesystem::path(CVar_ShaderCacheDir.Get());
+		auto dbFilename = std::filesystem::path(CVar_ShaderCacheDBFile.Get());
+		auto dbFile = cacheDir / dbFilename;
+
+		if (!std::filesystem::exists(cacheDir))
 		{
-			switch (stage)
+			HG_CORE_INFO("Could not find shader cache directory");
+			return;
+		}
+
+		if (!std::filesystem::exists(dbFile))
+		{
+			HG_CORE_INFO("Could not find shader cache database file");
+			return;
+		}
+
+		// Read shader cache db file
+		// Populate internal cache
+		YAML::Node data;
+		try
+		{
+			data = YAML::LoadFile(dbFile.string());
+		}
+		catch (YAML::ParserException e)
+		{
+			HG_CORE_WARN("Could not parse shader database file");
+			return;
+		}
+
+		auto shaders = data["ShaderCache"];
+		if (shaders)
+		{
+			for (auto shader : shaders)
 			{
-				case shaderc_glsl_vertex_shader:   return "shaderc_glsl_vertex_shader";
-				case shaderc_glsl_fragment_shader: return "shaderc_glsl_fragment_shader";
+				auto name = shader.first.as<std::string>();
+				auto info = data["ShaderCache"][name.c_str()];
+				auto shaderSource = ShaderSource::Deserialize(info);
+				m_ShaderCache.insert({ name, shaderSource });
 			}
-			HG_CORE_ASSERT(false);
+		}
+	}
+
+	void ShaderCache::DeinitializeImpl()
+	{
+		SaveToFilesystem();
+	}
+
+	Ref<ShaderSource> ShaderCache::GetShaderImpl(const std::string& name)
+	{
+		// Read shader file
+		const std::filesystem::path shaderDir(CVar_ShaderSourceDir.Get());
+		const std::filesystem::path file(name);
+		std::filesystem::path fullPath = shaderDir / file;
+
+		if (!std::filesystem::exists(fullPath))
+		{
+			HG_CORE_ERROR("Could find file while trying to load shader {0}", fullPath);
+			return nullptr;
+		}
+			
+
+		if (!file.has_extension())
+		{
+			HG_CORE_ERROR("Shaders must have appropriate file extension");
 			return nullptr;
 		}
 
-		static shaderc_shader_kind StringToShaderStage(std::string string)
+		std::string source = ReadFile(fullPath);
+		ShaderType type = Utils::FileExtensionToShaderType(file.extension().string());
+
+		// Hash shader file
+		std::size_t hash = std::hash<std::string>{}(source);
+
+		// Check if shader is known by cache
+		if (m_ShaderCache.contains(name))
 		{
-			if (string == "shaderc_glsl_vertex_shader") return shaderc_glsl_vertex_shader;
-			if (string == "shaderc_glsl_fragment_shader") return shaderc_glsl_fragment_shader;
-
-			HG_CORE_ASSERT(false);
-			return (shaderc_shader_kind)0;
-		}
-		
-		static std::unordered_map<std::string, std::unordered_map<shaderc_shader_kind, std::size_t>> LoadShaderCacheDB()
-		{
-			std::unordered_map<std::string, std::unordered_map<shaderc_shader_kind, std::size_t>> db;
-			std::filesystem::path path(CVar_ShaderCacheDBFile.Get());
-
-			if (!std::filesystem::exists(path))
-				return db;
-
-			YAML::Node data;
-			try
+			// if yes check if its hash is up to date
+			if (m_ShaderCache[name]->Hash == hash)
 			{
-				data = YAML::LoadFile(path.string());
+				// if yes return ShaderSource
+				return m_ShaderCache[name];
 			}
-			catch (YAML::ParserException e)
-			{
-				return db;
-			}
-
-			auto shaders = data["Cache Database"];
-			if (shaders)
-			{
-				for (auto shader : shaders)
-				{
-					const std::string name = shader.first.as<std::string>();
-					std::unordered_map<shaderc_shader_kind, std::size_t> stageHashes;
-					auto stages = data["Cache Database"][name.c_str()];
-					if (stages)
-					{
-						for (auto stage : stages)
-						{
-							shaderc_shader_kind kind = StringToShaderStage(stage.first.as<std::string>());
-							stageHashes.insert({ kind, stage.second.as<std::size_t>()});
-						}
-					}
-
-					db.insert({ name, stageHashes });
-				}
-			}
-
-			return db;
 		}
 
-		static void SaveShaderCacheDB(std::unordered_map<std::string, std::unordered_map<shaderc_shader_kind, std::size_t>>& db)
-		{
-			YAML::Emitter out;
-			out << YAML::BeginMap;
-			out << YAML::Key << "Cache Database" << YAML::Value << YAML::BeginMap;
-			for (auto entry : db)
-			{
-				std::string name = entry.first;
-				
-				out << YAML::Key << name << YAML::BeginMap;
-				for (auto stage : entry.second)
-				{
-					out << YAML::Key << ShaderStageToString(stage.first) << YAML::Value << stage.second;
-				}
+		// else compile shader, update cache, save, return new ShaderSource
+		auto code = CompileShader(source, type, fullPath);
+		auto shaderSource = ShaderSource::Create(std::forward<std::string>(static_cast<std::string>(name)),
+			std::forward<std::filesystem::path>(fullPath),
+			type, hash, std::forward<std::vector<uint32_t>>(code));
 
-				out << YAML::EndMap;
-			}
+		m_ShaderCache[name] = shaderSource;
+		SaveToFilesystem();
 
-			out << YAML::EndMap;
-			out << YAML::EndMap;
-
-			std::ofstream fout(CVar_ShaderCacheDBFile.Get());
-			fout << out.c_str();
-		}
+		return shaderSource;
 	}
 
-	VkShaderStageFlagBits Shader::ShaderTypeToVkShaderStageFlagBit(ShaderType type)
+	Ref<ShaderSource> ShaderCache::ReloadShaderImpl(const std::string& name)
 	{
-		switch (type)
+		// Read shader file
+		const std::filesystem::path shaderDir(CVar_ShaderCacheDir.Get());
+		const std::filesystem::path file(name);
+		std::filesystem::path fullPath = shaderDir / file;
+
+		if (!std::filesystem::exists(fullPath))
 		{
-			case ShaderType::Vertex: return VK_SHADER_STAGE_VERTEX_BIT;
-			case ShaderType::Fragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
-			case ShaderType::Compute: return VK_SHADER_STAGE_COMPUTE_BIT;
+			HG_CORE_ERROR("Could find file while trying to load shader {0}", fullPath);
+			return nullptr;
 		}
 
-		return (VkShaderStageFlagBits)0;
+
+		if (!file.has_extension())
+		{
+			HG_CORE_ERROR("Shaders must have appropriate file extension");
+			return nullptr;
+		}
+
+		std::string source = ReadFile(fullPath);
+		ShaderType type = Utils::FileExtensionToShaderType(file.extension().string());
+
+		// Hash shader file
+		std::size_t hash = std::hash<std::string>{}(source);
+
+		// Compile shader
+		auto code = CompileShader(source, type, fullPath);
+		auto shaderSource = ShaderSource::Create(std::forward<std::string>(static_cast<std::string>(name)),
+			std::forward<std::filesystem::path>(fullPath),
+			type, hash, std::forward<std::vector<uint32_t>>(code));
+
+		// insert new ShaderSource to cache, save
+		m_ShaderCache[name] = shaderSource;
+		SaveToFilesystem();
+
+		// return new ShaderSource
+		return shaderSource;
 	}
 
-	Ref<Shader> Shader::Create(const std::string& filepath)
+	void ShaderCache::SaveToFilesystem()
 	{
-		return CreateRef<Shader>(filepath);
-	}
-
-	Shader::Shader(const std::string& filepath)
-		: m_FilePath(filepath)
-	{
-		m_Device = context.Device;
 		Utils::CreateCacheDirectoryIfNeeded();
 
-		std::string source = ReadFile(filepath);
-		auto shaderSources = PreProcess(source);
-
-		// Extract name from filepath
-		auto lastSlash = filepath.find_last_of("/\\");
-		lastSlash = lastSlash == std::string::npos ? 0 : lastSlash + 1;
-		auto lastDot = filepath.rfind('.');
-		auto count = lastDot == std::string::npos ? filepath.size() - lastSlash : lastDot - lastSlash;
-		m_Name = filepath.substr(lastSlash, count);
-
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "ShaderCache" << YAML::Value << YAML::BeginMap;
+		for (auto entry : m_ShaderCache)
 		{
-			Timer timer;
-			CompileOrGetVulkanBinaries(shaderSources);
-			CreateProgram();
-			GeneratePipelineLayout();
-			HG_CORE_WARN("Shader creation took {0} ms", timer.ElapsedMillis());
+			entry.second->Serialize(out);
 		}
+
+		out << YAML::EndMap;
+		out << YAML::EndMap;
+
+		auto cacheDir = std::filesystem::path(CVar_ShaderCacheDir.Get());
+		auto dbFilename = std::filesystem::path(CVar_ShaderCacheDBFile.Get());
+		auto dbFile = cacheDir / dbFilename;
+		std::ofstream fout(dbFile);
+		fout << out.c_str();
 	}
 
-	Shader::~Shader()
+	std::vector<uint32_t> ShaderCache::CompileShader(const std::string& source, ShaderType type, const std::filesystem::path& filepath)
 	{
-		for (auto& layout : m_DescriptorSetLayouts)
-		{
-			vkDestroyDescriptorSetLayout(m_Device, layout, nullptr);
-		}
+		Timer timer;
 
-		vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);
-
-		vkDestroyShaderModule(m_Device, m_VertexShaderModule, nullptr);
-		vkDestroyShaderModule(m_Device, m_FragmentShaderModule, nullptr);
-	}
-
-	Ref<GraphicsPipeline> Shader::CreateOrGetDefaultPipeline()
-	{
-		if (!m_DefaultPipeline)
-		{
-			m_DefaultPipeline = CreateRef<GraphicsPipeline>(context.Device, GetPipelineLayout(), context.SwapchainExtent, context.RenderPass);
-
-			m_DefaultPipeline->AddShaderStage(ShaderType::Vertex, GetVertexShaderModule());
-			m_DefaultPipeline->AddShaderStage(ShaderType::Fragment, GetFragmentShaderModule());
-
-			m_DefaultPipeline->VertexInputBindingDescriptions.push_back(GetVertexInputBindingDescription());
-			m_DefaultPipeline->VertexInputAttributeDescriptions = GetVertexInputAttributeDescriptions();
-
-			m_DefaultPipeline->PipelineDepthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-
-			m_DefaultPipeline->Create();
-		}
-
-		return m_DefaultPipeline;
-	}
-
-	std::string Shader::ReadFile(const std::string& filepath)
-	{
-		std::string result;
-		std::ifstream in(filepath, std::ios::in | std::ios::binary); // ifstream closes itself due to RAII
-		if (in)
-		{
-			in.seekg(0, std::ios::end);
-			size_t size = in.tellg();
-			if (size != -1)
-			{
-				result.resize(size);
-				in.seekg(0, std::ios::beg);
-				in.read(&result[0], size);
-			}
-			else
-			{
-				HG_CORE_ERROR("Could not read from file '{0}'", filepath);
-			}
-		}
-		else
-		{
-			HG_CORE_ERROR("Could not open file '{0}'", filepath);
-		}
-
-		return result;
-	}
-
-	void Shader::CompileOrGetVulkanBinaries(const std::unordered_map<shaderc_shader_kind, std::string>& shaderSources)
-	{
 		shaderc::Compiler compiler;
 		shaderc::CompileOptions options;
-		options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
+		options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
 
 		options.AddMacroDefinition(MATERIAL_ARRAY_SIZE_NAMESTR, sizeof(MATERIAL_ARRAY_SIZE_NAMESTR) - 1,
 			MATERIAL_ARRAY_SIZE_VALUESTR, sizeof(MATERIAL_ARRAY_SIZE_VALUESTR) - 1);
 		options.AddMacroDefinition(TEXTURE_ARRAY_SIZE_NAMESTR, sizeof(TEXTURE_ARRAY_SIZE_NAMESTR) - 1,
 			TEXTURE_ARRAY_SIZE_VALUESTR, sizeof(TEXTURE_ARRAY_SIZE_VALUESTR) - 1);
 
-		const bool optimize = true;
-		if (optimize)
+		
+		if (CVar_ShaderOptimizationLevel.Get() == 0)
+		{
 			options.SetOptimizationLevel(shaderc_optimization_level_zero);
-
-		std::filesystem::path cacheDirectory(CVar_ShaderCachePath.Get());
-		auto cacheDB = Utils::LoadShaderCacheDB();
-
-		auto& shaderData = m_VulkanSPIRV;
-		shaderData.clear();
-		for (auto&& [stage, source] : shaderSources)
+		}
+		else if (CVar_ShaderOptimizationLevel.Get() == 1)
 		{
-			std::filesystem::path shaderFilePath = m_FilePath;
-			std::filesystem::path cachedPath = cacheDirectory / (shaderFilePath.filename().string() + Utils::ShaderStageCachedVulkanFileExtension(stage));
-
-			if (cacheDB.contains(m_Name))
-			{
-				if (cacheDB[m_Name].contains(stage))
-				{
-					if (cacheDB[m_Name][stage] == std::hash<std::string>{}(source))
-					{
-						std::ifstream in(cachedPath, std::ios::in | std::ios::binary);
-						if (in.is_open())
-						{
-							in.seekg(0, std::ios::end);
-							auto size = in.tellg();
-							in.seekg(0, std::ios::beg);
-
-							auto& data = shaderData[stage];
-							data.resize(size / sizeof(uint32_t));
-							in.read((char*)data.data(), size);
-						}
-
-						// Done lets move on to the next one
-						continue;
-					}
-				}
-			}
-
-			// Cache did not contain an up to date version of the shader
-			shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, stage, m_FilePath.c_str(), options);
-			if (module.GetCompilationStatus() != shaderc_compilation_status_success)
-			{
-				HG_CORE_ERROR(module.GetErrorMessage());
-				HG_CORE_ASSERT(false);
-			}
-
-			shaderData[stage] = std::vector<uint32_t>(module.cbegin(), module.cend());
-
-			std::ofstream out(cachedPath, std::ios::out | std::ios::binary);
-			if (out.is_open())
-			{
-				auto& data = shaderData[stage];
-				out.write((char*)data.data(), data.size() * sizeof(uint32_t));
-				out.flush();
-				out.close();
-			}
-
-			std::size_t hash = std::hash<std::string>{}(source);
-
-			if (!cacheDB.contains(m_Name))
-			{
-				// Never seen this shader before
-				cacheDB.insert({ m_Name, {{stage, hash}} });
-			}
-			else
-			{
-				if (cacheDB[m_Name].contains(stage))
-				{
-					// Seen this shader just need to update the cache
-					cacheDB[m_Name][stage] = hash;
-				}
-				else
-				{
-					// Seen this shader but not his stage
-					cacheDB[m_Name].insert({ stage, hash });
-				}
-			}
+			options.SetOptimizationLevel(shaderc_optimization_level_size);
+		}
+		else if (CVar_ShaderOptimizationLevel.Get() == 2)
+		{
+			options.SetOptimizationLevel(shaderc_optimization_level_performance);
 		}
 
-		Utils::SaveShaderCacheDB(cacheDB);
+		std::vector<uint32_t> shaderData;
 
-		for (auto&& [stage, data] : shaderData)
-			Reflect(stage, data);
+		// Cache did not contain an up to date version of the shader
+		shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::ShaderTypeToShaderKind(type), filepath.string().c_str(), options);
+		if (module.GetCompilationStatus() != shaderc_compilation_status_success)
+		{
+			HG_CORE_ERROR(module.GetErrorMessage());
+			HG_CORE_WARN("Shader creation took {0} ms", timer.ElapsedMillis());
+			return shaderData;
+		}
+
+		shaderData = std::vector<uint32_t>(module.cbegin(), module.cend());
+
+		HG_CORE_WARN("Shader creation took {0} ms", timer.ElapsedMillis());
+
+		return shaderData;
 	}
 
-	void Shader::Reflect(shaderc_shader_kind stage, const std::vector<uint32_t>& shaderData)
+	Ref<Shader> Shader::Create(const std::string& name, const std::string& vertex, const std::string& fragment)
 	{
-		spirv_cross::Compiler compiler(shaderData);
-		spirv_cross::ShaderResources resources = compiler.get_shader_resources();
+		auto shader = Create(name);
+		shader->AddStage(vertex);
+		shader->AddStage(fragment);
+		shader->Generate();
 
-		HG_CORE_TRACE("OpenGLShader::Reflect - {0} {1}", Utils::ShaderStageToString(stage), m_FilePath);
-		HG_CORE_TRACE("    {0} uniform buffers", resources.uniform_buffers.size());
-		HG_CORE_TRACE("    {0} resources", resources.sampled_images.size());
-
-		HG_CORE_TRACE("Uniform buffers:");
-		for (const auto& resource : resources.uniform_buffers)
-		{
-			const auto& bufferType = compiler.get_type(resource.base_type_id);
-			uint32_t bufferSize;
-			if (bufferType.basetype == spirv_cross::SPIRType::Struct)
-				bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
-			else
-				bufferSize = (bufferType.width * bufferType.vecsize) / 8;
-			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-			int memberCount = (int)bufferType.member_types.size();
-			uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
-
-			HG_CORE_TRACE("  {0}", resource.name);
-			HG_CORE_TRACE("    Size = {0}", bufferSize);
-			HG_CORE_TRACE("    Binding = {0}", binding);
-			HG_CORE_TRACE("    Members = {0}", memberCount);
-			HG_CORE_TRACE("    Set = {0}", set);
-
-			if (m_DescriptorSetLayoutBinding[set].size() < binding + 1)
-			{
-				m_DescriptorSetLayoutBinding[set].resize(binding + 1);
-			}
-
-			VkDescriptorSetLayoutBinding& layoutBinding = m_DescriptorSetLayoutBinding[set][binding];
-
-			layoutBinding.binding = binding;
-			layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			layoutBinding.descriptorCount = 1;
-			layoutBinding.stageFlags |= Utils::ShaderStageFlagBitsFromShaderKind(stage).value();
-		}
-
-		HG_CORE_TRACE("Stage Inputs:");
-		for (const auto& resource : resources.stage_inputs)
-		{
-			const auto& bufferType = compiler.get_type(resource.base_type_id);
-			uint32_t bufferSize;
-			if (bufferType.basetype == spirv_cross::SPIRType::Struct)
-				bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
-			else
-				bufferSize = (bufferType.width * bufferType.vecsize) / 8;
-			uint32_t location = compiler.get_decoration(resource.id, spv::DecorationLocation);
-			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-			uint32_t offset = compiler.get_decoration(resource.id, spv::DecorationAlignment);
-
-			HG_CORE_TRACE("  {0}", resource.name);
-			HG_CORE_TRACE("    Size = {0}", bufferSize);
-			HG_CORE_TRACE("    Location = {0}", location);
-			HG_CORE_TRACE("    Binding = {0}", binding);
-			HG_CORE_TRACE("    Offset = {0}", offset);
-			HG_CORE_TRACE("    HasDecoration = {0}", compiler.has_decoration(resource.id, spv::DecorationMatrixStride));
-		}
-
-		if (stage == shaderc_glsl_vertex_shader)
-		{
-			m_VertexInputAttributeDescriptions.resize(resources.stage_inputs.size());
-
-			std::vector<uint32_t> elementSize(resources.stage_inputs.size());
-
-			for (int i = 0; i < resources.stage_inputs.size(); ++i)
-			{
-				auto id = resources.stage_inputs[i].id;
-				auto typeId = resources.stage_inputs[i].base_type_id;
-				uint32_t location = compiler.get_decoration(resources.stage_inputs[i].id, spv::DecorationLocation);
-				const auto& bufferType = compiler.get_type(typeId);
-
-				uint32_t bufferSize;
-				if (bufferType.basetype == spirv_cross::SPIRType::Struct)
-					bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
-				else
-					bufferSize = (bufferType.width * bufferType.vecsize) / 8;
-
-				elementSize[location] = bufferSize;
-				m_VertexInputAttributeDescriptions[location].binding = 0;
-				m_VertexInputAttributeDescriptions[location].location = location;
-				m_VertexInputAttributeDescriptions[location].format = Utils::SpirvBaseTypeToVkFormat(bufferType);
-				m_VertexInputAttributeDescriptions[location].offset = 0;
-			}
-
-			uint32_t offset = 0;
-			for (int i = 0; i < elementSize.size(); ++i)
-			{
-				m_VertexInputAttributeDescriptions[i].offset = offset;
-				offset += elementSize[i];
-			}
-
-			m_VertexInputBindingDescription.binding = 0;
-			m_VertexInputBindingDescription.stride = offset;
-			m_VertexInputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-		}
-
-		HG_CORE_TRACE("Stage Outputs:");
-		for (const auto& resource : resources.stage_outputs)
-		{
-			const auto& bufferType = compiler.get_type(resource.base_type_id);
-			uint32_t bufferSize;
-			if (bufferType.basetype == spirv_cross::SPIRType::Struct)
-				bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
-			else
-				bufferSize = (bufferType.width * bufferType.vecsize) / 8;
-			uint32_t location = compiler.get_decoration(resource.id, spv::DecorationLocation);
-			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-			uint32_t offset = compiler.get_decoration(resource.id, spv::DecorationOffset);
-
-			HG_CORE_TRACE("  {0}", resource.name);
-			HG_CORE_TRACE("    Size = {0}", bufferSize);
-			HG_CORE_TRACE("    Location = {0}", location);
-			HG_CORE_TRACE("    Binding = {0}", binding);
-			HG_CORE_TRACE("    Offset = {0}", offset);
-		}
-
-		HG_CORE_TRACE("Push Constants:");
-		for (const auto& resource : resources.push_constant_buffers)
-		{
-			const auto& bufferType = compiler.get_type(resource.base_type_id);
-			uint32_t bufferSize;
-			if (bufferType.basetype == spirv_cross::SPIRType::Struct)
-				bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
-			else
-				bufferSize = (bufferType.width * bufferType.vecsize) / 8;
-			uint32_t location = compiler.get_decoration(resource.id, spv::DecorationLocation);
-			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-			uint32_t offset = compiler.get_decoration(resource.id, spv::DecorationOffset);
-
-			HG_CORE_TRACE("  {0}", resource.name);
-			HG_CORE_TRACE("    Size = {0}", bufferSize);
-			HG_CORE_TRACE("    Location = {0}", location);
-			HG_CORE_TRACE("    Binding = {0}", binding);
-			HG_CORE_TRACE("    Offset = {0}", offset);
-			HG_CORE_TRACE("    HasOffset = {0}", compiler.has_decoration(resource.id, spv::DecorationOffset));
-
-			VkPushConstantRange pushConstant = {};
-			pushConstant.offset = 0;
-			pushConstant.size = bufferSize;
-			pushConstant.stageFlags |= Utils::ShaderStageFlagBitsFromShaderKind(stage).value();
-
-			m_PushConstantRanges.push_back(pushConstant);
-		}
-
-		HG_CORE_TRACE("Sampled Images:");
-		for (const auto& resource : resources.sampled_images)
-		{
-			VkDescriptorSetLayoutBinding layoutBinding = {};
-
-			const auto& bufferType = compiler.get_type(resource.type_id);
-			uint32_t bufferSize;
-			if (bufferType.basetype == spirv_cross::SPIRType::Struct)
-				bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
-			else
-				bufferSize = (bufferType.width * bufferType.vecsize) / 8;
-			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-			uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
-			int memberCount = (int)bufferType.member_types.size();
-
-			HG_CORE_TRACE("  {0}", resource.name);
-			HG_CORE_TRACE("    Size = {0}", bufferSize);
-			HG_CORE_TRACE("    Binding = {0}", binding);
-			HG_CORE_TRACE("    Members = {0}", memberCount);
-			HG_CORE_TRACE("    Set = {0}", set);
-
- 			layoutBinding.binding = binding;
-			layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			layoutBinding.descriptorCount = bufferType.array[0];
-			layoutBinding.stageFlags |= Utils::ShaderStageFlagBitsFromShaderKind(stage).value();
-			m_DescriptorSetLayoutBinding[set].push_back(layoutBinding);
-		}
+		return shader;
 	}
 
-	void Shader::CreateProgram()
+	Ref<Shader> Shader::Create(const std::string& name)
 	{
-		m_VertexShaderModule = CreateShaderModule(m_VulkanSPIRV[shaderc_glsl_vertex_shader]);
-		m_FragmentShaderModule = CreateShaderModule(m_VulkanSPIRV[shaderc_glsl_fragment_shader]);
+		return CreateRef<Shader>(name);
 	}
 
-	VkShaderModule Shader::CreateShaderModule(const std::vector<uint32_t>& code)
+	Shader::~Shader()
 	{
-		VkShaderModuleCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		createInfo.codeSize = (uint32_t)code.size() * sizeof(uint32_t);
-		createInfo.pCode = code.data();
+		for (auto& layout : m_DescriptorSetLayouts)
+		{
+			vkDestroyDescriptorSetLayout(GraphicsContext::GetDevice(), layout, nullptr);
+		}
 
-		VkShaderModule shaderModule;
-		CheckVkResult(vkCreateShaderModule(m_Device, &createInfo, nullptr, &shaderModule));
+		vkDestroyPipelineLayout(GraphicsContext::GetDevice(), m_PipelineLayout, nullptr);
 
-		return shaderModule;
+		for (auto& [stage, shaderModule] : m_Modules)
+		{
+			vkDestroyShaderModule(GraphicsContext::GetDevice(), shaderModule, nullptr);
+		}
+		
+		m_Sources.clear();
 	}
 
-	void Shader::GeneratePipelineLayout()
+	void Shader::AddStage(Ref<ShaderSource> source)
 	{
+		if (m_Sources.find(source->Type) != m_Sources.end())
+		{
+			HG_CORE_WARN("Replacing existing source in shader!");
+		}
+
+		m_Sources[source->Type] = source;
+	}
+
+	void Shader::AddStage(const std::string& name)
+	{
+		Ref<ShaderSource> source = ShaderCache::GetShader(name);
+		AddStage(source);
+	}
+
+	void Shader::Generate()
+	{
+		Reflect();
+
 		for (int i = 0; i < m_DescriptorSetLayoutBinding.size(); ++i)
 		{
 			VkDescriptorSetLayoutCreateInfo layoutInfo{};
@@ -636,108 +553,218 @@ namespace Hog {
 		m_PipelineLayoutCreateInfo.setLayoutCount = (uint32_t)m_DescriptorSetLayouts.size(); // Optional
 		m_PipelineLayoutCreateInfo.pSetLayouts = m_DescriptorSetLayouts.data(); // Optional
 
-		CheckVkResult(vkCreatePipelineLayout(m_Device, &m_PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
-	}
+		CheckVkResult(vkCreatePipelineLayout(GraphicsContext::GetDevice(), &m_PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 
-	std::unordered_map<shaderc_shader_kind, std::string> Shader::PreProcess(const std::string& source)
-	{
-		std::unordered_map<shaderc_shader_kind, std::string> shaderSources;
+		m_Pipeline = CreateRef<GraphicsPipeline>(context.Device, m_PipelineLayout, context.SwapchainExtent, context.RenderPass);
 
-		const char* typeToken = "#type";
-		size_t typeTokenLength = strlen(typeToken);
-		size_t pos = source.find(typeToken, 0); //Start of shader type declaration line
-		while (pos != std::string::npos)
+		for (const auto& [stage, source] : m_Sources)
 		{
-			size_t eol = source.find_first_of("\r\n", pos); //End of shader type declaration line
-			HG_CORE_ASSERT(eol != std::string::npos, "Syntax error");
-			size_t begin = pos + typeTokenLength + 1; //Start of shader type name (after "#type " keyword)
-			std::string type = source.substr(begin, eol - begin);
-			HG_CORE_ASSERT(Utils::ShaderTypeFromString(type).has_value(), "Invalid shader type specified");
+			VkShaderModuleCreateInfo createInfo{};
+			createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+			createInfo.codeSize = (uint32_t)source->Code.size() * sizeof(uint32_t);
+			createInfo.pCode = source->Code.data();
 
-			size_t nextLinePos = source.find_first_not_of("\r\n", eol); //Start of shader code after shader type declaration line
-			HG_CORE_ASSERT(nextLinePos != std::string::npos, "Syntax error");
-			pos = source.find(typeToken, nextLinePos); //Start of next shader type declaration line
+			VkShaderModule shaderModule;
+			CheckVkResult(vkCreateShaderModule(GraphicsContext::GetDevice(), &createInfo, nullptr, &shaderModule));
 
-			shaderSources[Utils::ShaderTypeFromString(type).value()] = (pos == std::string::npos) ? source.substr(nextLinePos) : source.substr(nextLinePos, pos - nextLinePos);
+			m_Pipeline->AddShaderStage(stage, shaderModule);
+			m_Modules[stage] = shaderModule;
 		}
 
-		return shaderSources;
+		m_Pipeline->VertexInputBindingDescriptions.push_back(m_VertexInputBindingDescription);
+		m_Pipeline->VertexInputAttributeDescriptions = m_VertexInputAttributeDescriptions;
+
+		m_Pipeline->PipelineDepthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+
+		m_Pipeline->Create();
 	}
 
-	static std::unordered_map<std::string, Ref<Shader>> s_Shaders;
-
-	void ShaderLibrary::Add(const std::string& name, const Ref<Shader>& shader)
+	void Shader::Bind(VkCommandBuffer commandBuffer)
 	{
-		HG_CORE_ASSERT(!Exists(name), "Shader already exists!");
-		s_Shaders[name] = shader;
+		m_Pipeline->Bind(commandBuffer);
 	}
 
-	void ShaderLibrary::Add(const Ref<Shader>& shader)
+	void Shader::Reaload()
 	{
-		auto& name = shader->GetName();
-		Add(name, shader);
 	}
 
-	void ShaderLibrary::LoadDirectory(const std::string& directory)
+	void Shader::Reflect()
 	{
-		auto path = std::filesystem::path(directory);
-		for (auto const& file : std::filesystem::recursive_directory_iterator(path))
+		for (const auto& [stage, source] : m_Sources)
 		{
-			if (file.is_regular_file())
+			spirv_cross::Compiler compiler(source->Code);
+			spirv_cross::ShaderResources resources = compiler.get_shader_resources();
+
+			HG_CORE_TRACE("Shader::Reflect - {0} {1}", Utils::ShaderTypeToString(stage), source->FilePath);
+			HG_CORE_TRACE("    {0} uniform buffers", resources.uniform_buffers.size());
+			HG_CORE_TRACE("    {0} resources", resources.sampled_images.size());
+
+			HG_CORE_TRACE("Uniform buffers:");
+			for (const auto& resource : resources.uniform_buffers)
 			{
-				auto& filePath = file.path();
-				if (filePath.has_extension())
+				const auto& bufferType = compiler.get_type(resource.base_type_id);
+				uint32_t bufferSize;
+				if (bufferType.basetype == spirv_cross::SPIRType::Struct)
+					bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
+				else
+					bufferSize = (bufferType.width * bufferType.vecsize) / 8;
+				uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+				int memberCount = (int)bufferType.member_types.size();
+				uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+
+				HG_CORE_TRACE("  {0}", resource.name);
+				HG_CORE_TRACE("    Size = {0}", bufferSize);
+				HG_CORE_TRACE("    Binding = {0}", binding);
+				HG_CORE_TRACE("    Members = {0}", memberCount);
+				HG_CORE_TRACE("    Set = {0}", set);
+
+				if (m_DescriptorSetLayoutBinding[set].size() < binding + 1)
 				{
-					if (filePath.extension().string() == ".glsl")
-					{
-						Load(filePath.string());
-					}
+					m_DescriptorSetLayoutBinding[set].resize(binding + 1);
 				}
+
+				VkDescriptorSetLayoutBinding& layoutBinding = m_DescriptorSetLayoutBinding[set][binding];
+
+				layoutBinding.binding = binding;
+				layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				layoutBinding.descriptorCount = 1;
+				layoutBinding.stageFlags |= Utils::ShaderTypeToShaderStageFlag(stage);
+			}
+
+			HG_CORE_TRACE("Stage Inputs:");
+			for (const auto& resource : resources.stage_inputs)
+			{
+				const auto& bufferType = compiler.get_type(resource.base_type_id);
+				uint32_t bufferSize;
+				if (bufferType.basetype == spirv_cross::SPIRType::Struct)
+					bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
+				else
+					bufferSize = (bufferType.width * bufferType.vecsize) / 8;
+				uint32_t location = compiler.get_decoration(resource.id, spv::DecorationLocation);
+				uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+				uint32_t offset = compiler.get_decoration(resource.id, spv::DecorationAlignment);
+
+				HG_CORE_TRACE("  {0}", resource.name);
+				HG_CORE_TRACE("    Size = {0}", bufferSize);
+				HG_CORE_TRACE("    Location = {0}", location);
+				HG_CORE_TRACE("    Binding = {0}", binding);
+				HG_CORE_TRACE("    Offset = {0}", offset);
+				HG_CORE_TRACE("    HasDecoration = {0}", compiler.has_decoration(resource.id, spv::DecorationMatrixStride));
+			}
+
+			if (stage == ShaderType::Vertex)
+			{
+				m_VertexInputAttributeDescriptions.resize(resources.stage_inputs.size());
+
+				std::vector<uint32_t> elementSize(resources.stage_inputs.size());
+
+				for (int i = 0; i < resources.stage_inputs.size(); ++i)
+				{
+					auto id = resources.stage_inputs[i].id;
+					auto typeId = resources.stage_inputs[i].base_type_id;
+					uint32_t location = compiler.get_decoration(resources.stage_inputs[i].id, spv::DecorationLocation);
+					const auto& bufferType = compiler.get_type(typeId);
+
+					uint32_t bufferSize;
+					if (bufferType.basetype == spirv_cross::SPIRType::Struct)
+						bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
+					else
+						bufferSize = (bufferType.width * bufferType.vecsize) / 8;
+
+					elementSize[location] = bufferSize;
+					m_VertexInputAttributeDescriptions[location].binding = 0;
+					m_VertexInputAttributeDescriptions[location].location = location;
+					m_VertexInputAttributeDescriptions[location].format = Utils::SpirvBaseTypeToVkFormat(bufferType);
+					m_VertexInputAttributeDescriptions[location].offset = 0;
+				}
+
+				uint32_t offset = 0;
+				for (int i = 0; i < elementSize.size(); ++i)
+				{
+					m_VertexInputAttributeDescriptions[i].offset = offset;
+					offset += elementSize[i];
+				}
+
+				m_VertexInputBindingDescription.binding = 0;
+				m_VertexInputBindingDescription.stride = offset;
+				m_VertexInputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+			}
+
+			HG_CORE_TRACE("Stage Outputs:");
+			for (const auto& resource : resources.stage_outputs)
+			{
+				const auto& bufferType = compiler.get_type(resource.base_type_id);
+				uint32_t bufferSize;
+				if (bufferType.basetype == spirv_cross::SPIRType::Struct)
+					bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
+				else
+					bufferSize = (bufferType.width * bufferType.vecsize) / 8;
+				uint32_t location = compiler.get_decoration(resource.id, spv::DecorationLocation);
+				uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+				uint32_t offset = compiler.get_decoration(resource.id, spv::DecorationOffset);
+
+				HG_CORE_TRACE("  {0}", resource.name);
+				HG_CORE_TRACE("    Size = {0}", bufferSize);
+				HG_CORE_TRACE("    Location = {0}", location);
+				HG_CORE_TRACE("    Binding = {0}", binding);
+				HG_CORE_TRACE("    Offset = {0}", offset);
+			}
+
+			HG_CORE_TRACE("Push Constants:");
+			for (const auto& resource : resources.push_constant_buffers)
+			{
+				const auto& bufferType = compiler.get_type(resource.base_type_id);
+				uint32_t bufferSize;
+				if (bufferType.basetype == spirv_cross::SPIRType::Struct)
+					bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
+				else
+					bufferSize = (bufferType.width * bufferType.vecsize) / 8;
+				uint32_t location = compiler.get_decoration(resource.id, spv::DecorationLocation);
+				uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+				uint32_t offset = compiler.get_decoration(resource.id, spv::DecorationOffset);
+
+				HG_CORE_TRACE("  {0}", resource.name);
+				HG_CORE_TRACE("    Size = {0}", bufferSize);
+				HG_CORE_TRACE("    Location = {0}", location);
+				HG_CORE_TRACE("    Binding = {0}", binding);
+				HG_CORE_TRACE("    Offset = {0}", offset);
+				HG_CORE_TRACE("    HasOffset = {0}", compiler.has_decoration(resource.id, spv::DecorationOffset));
+
+				VkPushConstantRange pushConstant = {};
+				pushConstant.offset = 0;
+				pushConstant.size = bufferSize;
+				pushConstant.stageFlags |= Utils::ShaderTypeToShaderStageFlag(stage);
+
+				m_PushConstantRanges.push_back(pushConstant);
+			}
+
+			HG_CORE_TRACE("Sampled Images:");
+			for (const auto& resource : resources.sampled_images)
+			{
+				VkDescriptorSetLayoutBinding layoutBinding = {};
+
+				const auto& bufferType = compiler.get_type(resource.type_id);
+				uint32_t bufferSize;
+				if (bufferType.basetype == spirv_cross::SPIRType::Struct)
+					bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
+				else
+					bufferSize = (bufferType.width * bufferType.vecsize) / 8;
+				uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+				uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+				int memberCount = (int)bufferType.member_types.size();
+
+				HG_CORE_TRACE("  {0}", resource.name);
+				HG_CORE_TRACE("    Size = {0}", bufferSize);
+				HG_CORE_TRACE("    Binding = {0}", binding);
+				HG_CORE_TRACE("    Members = {0}", memberCount);
+				HG_CORE_TRACE("    Set = {0}", set);
+
+				layoutBinding.binding = binding;
+				layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				layoutBinding.descriptorCount = bufferType.array[0];
+				layoutBinding.stageFlags |= Utils::ShaderTypeToShaderStageFlag(stage);
+				m_DescriptorSetLayoutBinding[set].push_back(layoutBinding);
 			}
 		}
-	}
-
-	Ref<Shader> ShaderLibrary::Load(const std::string& filepath)
-	{
-		auto shader = Shader::Create(filepath);
-		Add(shader);
-		return shader;
-	}
-
-	Ref<Shader> ShaderLibrary::Load(const std::string& name, const std::string& filepath)
-	{
-		auto shader = Shader::Create(filepath);
-		Add(name, shader);
-		return shader;
-	}
-
-	Ref<Shader> ShaderLibrary::LoadOrGet(const std::string& filepath)
-	{
-		auto lastSlash = filepath.find_last_of("/\\");
-		lastSlash = lastSlash == std::string::npos ? 0 : lastSlash + 1;
-		auto lastDot = filepath.rfind('.');
-		auto count = lastDot == std::string::npos ? filepath.size() - lastSlash : lastDot - lastSlash;
-		std::string name = filepath.substr(lastSlash, count);
-
-		if (Exists(name))
-			return Get(name);
-		else
-			return Load(filepath);
-	}
-
-	Ref<Shader> ShaderLibrary::Get(const std::string& name)
-	{
-		HG_CORE_ASSERT(Exists(name), "Shader not found!");
-		return s_Shaders[name];
-	}
-
-	void ShaderLibrary::Deinitialize()
-	{
-		s_Shaders.clear();
-	}
-
-	bool ShaderLibrary::Exists(const std::string& name)
-	{
-		return s_Shaders.find(name) != s_Shaders.end();
 	}
 }

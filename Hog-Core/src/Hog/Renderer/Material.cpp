@@ -11,8 +11,8 @@ namespace Hog
 	{
 		HG_PROFILE_FUNCTION()
 
-		Ref<Shader> shaderRef = ShaderLibrary::LoadOrGet("assets/shaders/Basic.glsl");
-		return CreateRef<Material>(name, shaderRef, shaderRef->CreateOrGetDefaultPipeline(), data);
+		Ref<Shader> shaderRef = Shader::Create("Basic", "Basic.vertex", "Basic.fragment");
+		return CreateRef<Material>(name, shaderRef, data);
 	}
 
 	void Material::Bind(VkCommandBuffer commandBuffer, VkDescriptorSet* descriptorSetPtr)
