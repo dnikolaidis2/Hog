@@ -86,7 +86,7 @@ namespace Hog {
 
 		void AddStage(Ref<ShaderSource> source);
 		void AddStage(const std::string& name);
-		void Generate();
+		void Generate(VkRenderPass renderPass);
 		void Bind(VkCommandBuffer commandBuffer);
 		void Reaload();
 

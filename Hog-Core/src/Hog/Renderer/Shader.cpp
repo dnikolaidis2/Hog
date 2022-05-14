@@ -491,7 +491,6 @@ namespace Hog {
 		auto shader = Create(name);
 		shader->AddStage(vertex);
 		shader->AddStage(fragment);
-		shader->Generate();
 
 		return shader;
 	}
@@ -534,7 +533,7 @@ namespace Hog {
 		AddStage(source);
 	}
 
-	void Shader::Generate()
+	void Shader::Generate(VkRenderPass renderPass)
 	{
 		Reflect();
 
@@ -555,7 +554,7 @@ namespace Hog {
 
 		CheckVkResult(vkCreatePipelineLayout(GraphicsContext::GetDevice(), &m_PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 
-		m_Pipeline = CreateRef<GraphicsPipeline>(context.Device, m_PipelineLayout, context.SwapchainExtent, context.RenderPass);
+		m_Pipeline = CreateRef<GraphicsPipeline>(context.Device, m_PipelineLayout, context.SwapchainExtent, renderPass);
 
 		for (const auto& [stage, source] : m_Sources)
 		{

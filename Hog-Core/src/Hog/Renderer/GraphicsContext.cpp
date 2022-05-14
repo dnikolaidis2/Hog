@@ -8,6 +8,7 @@
 
 AutoCVar_Int CVar_MSAA("renderer.enableMSAA", "Enables MSAA for renderer", 0, CVarFlags::EditReadOnly);
 AutoCVar_Int CVar_ValidationLayers("renderer.enableValidationLayers", "Enables Vulkan validation layers", 1, CVarFlags::EditReadOnly);
+AutoCVar_Int CVar_FrameCount("renderer.frameCount", "Number off frames being rendered", 2, CVarFlags::EditReadOnly);
 
 namespace Hog {
 
@@ -472,55 +473,25 @@ namespace Hog {
 		SelectPhysicalDevice();
 		CreateLogicalDeviceAndQueues();
 		InitializeAllocator();
-		CreateSemaphores();
 		CreateCommandPools();
 		CreateCommandBuffers();
 		CreateSwapChain();
-		CreateRenderTargets();
-		CreateRenderPass();
-		CreateFrameBuffers();
 
 		m_Initialized = true;
 	}
 
 	void GraphicsContext::DeinitializeImpl()
 	{
-		for (size_t i = 0; i < CommandPools.size(); i++) {
-			vkFreeCommandBuffers(Device, CommandPools[i], 1, &CommandBuffers[i]);
-		}
-
-		for (auto framebuffer : FrameBuffers) {
-			vkDestroyFramebuffer(Device, framebuffer, nullptr);
-		}
-
-		vkDestroyRenderPass(Device, RenderPass, nullptr);
-
 		for (auto& image : SwapchainImages)
 		{
 			image.reset();
 		}
 
-		DepthImage.reset();
-		ColorImage.reset();
-
 		vkDestroySwapchainKHR(Device, Swapchain, nullptr);
 
-		for (auto fence : CommandBufferFences)
-		{
-			vkDestroyFence(Device, fence, nullptr);
-		}
 		vkDestroyFence(Device, UploadFence, nullptr);
 
-		for (size_t i = 0; i < CommandPools.size(); i++) {
-			vkDestroyCommandPool(Device, CommandPools[i], nullptr);
-		}
 		vkDestroyCommandPool(Device, UploadCommandPool, nullptr);
-
-		for (int i = 0; i < FrameCount; ++i)
-		{
-			vkDestroySemaphore(Device, AcquireSemaphores[i], nullptr);
-			vkDestroySemaphore(Device, RenderCompleteSemaphores[i], nullptr);
-		}
 
 		vmaDestroyAllocator(Allocator);
 
@@ -545,9 +516,6 @@ namespace Hog {
 
 		CheckVkResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(GPU->Device, Surface, &GPU->SurfaceCapabilities));
 		CreateSwapChain();
-		CreateRenderTargets();
-		CreateFrameBuffers();
-		CreateCommandBuffers();
 	}
 
 	void GraphicsContext::WaitIdleImpl()
@@ -1024,43 +992,9 @@ namespace Hog {
 		vmaCreateAllocator(&allocatorInfo, &Allocator);
 	}
 
-	void GraphicsContext::CreateSemaphores()
-	{
-		HG_PROFILE_FUNCTION();
-		AcquireSemaphores.resize(FrameCount);
-		RenderCompleteSemaphores.resize(FrameCount);
-
-		VkSemaphoreCreateInfo semaphoreCreateInfo = {};
-		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-		for (int i = 0; i < FrameCount; ++i) {
-			CheckVkResult(vkCreateSemaphore(Device, &semaphoreCreateInfo, nullptr, &(AcquireSemaphores[i])));
-			CheckVkResult(vkCreateSemaphore(Device, &semaphoreCreateInfo, nullptr, &(RenderCompleteSemaphores[i])));
-		}
-	}
-
 	void GraphicsContext::CreateCommandPools()
 	{
 		HG_PROFILE_FUNCTION();
-
-		CommandPools.resize(FrameCount);
-		for (int i = 0; i < FrameCount; ++i)
-		{
-			// Because command buffers can be very flexible, we don't want to be 
-			// doing a lot of allocation while we're trying to render.
-			// For this reason we create a pool to hold allocated command buffers.
-			VkCommandPoolCreateInfo commandPoolCreateInfo = {};
-			commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-
-			// This allows the command buffer to be implicitly reset when vkBeginCommandBuffer is called.
-			// You can also explicitly call vkResetCommandBuffer.  
-			commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-
-			// We'll be building command buffers to send to the graphics queue
-			commandPoolCreateInfo.queueFamilyIndex = GraphicsFamilyIndex;
-
-			CheckVkResult(vkCreateCommandPool(Device, &commandPoolCreateInfo, nullptr, &CommandPools[i]));
-		}
 
 		// Because command buffers can be very flexible, we don't want to be 
 		// doing a lot of allocation while we're trying to render.
@@ -1081,36 +1015,6 @@ namespace Hog {
 	void GraphicsContext::CreateCommandBuffers()
 	{
 		HG_PROFILE_FUNCTION();
-
-		CommandBuffers.resize(FrameCount);
-		CommandBufferFences.resize(FrameCount);
-		for (int i = 0; i < FrameCount; ++i)
-		{
-			VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
-			commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-
-			// Don't worry about this
-			commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-
-			// The command pool we created above
-			commandBufferAllocateInfo.commandPool = CommandPools[i];
-
-			// We'll have two command buffers.  One will be in flight
-			// while the other is being built.
-			commandBufferAllocateInfo.commandBufferCount = 1;
-
-
-			// You can allocate multiple command buffers at once.
-			CheckVkResult(vkAllocateCommandBuffers(Device, &commandBufferAllocateInfo, &CommandBuffers[i]));
-
-			// We create fences that we can use to wait for a 
-			// given command buffer to be done on the GPU.
-			VkFenceCreateInfo fenceCreateInfo = {};
-			fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-			fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-			CheckVkResult(vkCreateFence(Device, &fenceCreateInfo, nullptr, &CommandBufferFences[i]));
-		}
 
 		// We create fences that we can use to wait for a 
 		// given command buffer to be done on the GPU.
@@ -1138,7 +1042,7 @@ namespace Hog {
 		info.surface = Surface;
 
 		// double buffer again!
-		info.minImageCount = FrameCount;
+		info.minImageCount = CVar_FrameCount.Get();
 
 		info.imageFormat = surfaceFormat.format;
 		info.imageColorSpace = surfaceFormat.colorSpace;
@@ -1191,7 +1095,7 @@ namespace Hog {
 
 		// First call gets numImages.
 		uint32_t numImages = 0;
-		std::vector<VkImage> swapchainImages(FrameCount);
+		std::vector<VkImage> swapchainImages(CVar_FrameCount.Get());
 		CheckVkResult(vkGetSwapchainImagesKHR(Device, Swapchain, &numImages, nullptr));
 		HG_ASSERT(numImages > 0, "vkGetSwapchainImagesKHR returned a zero image count.")
 
@@ -1199,14 +1103,14 @@ namespace Hog {
 		CheckVkResult(vkGetSwapchainImagesKHR(Device, Swapchain, &numImages, swapchainImages.data()));
 		HG_ASSERT(numImages > 0, "vkGetSwapchainImagesKHR returned a zero image count.");
 
-		SwapchainImages.resize(FrameCount);
+		SwapchainImages.resize(CVar_FrameCount.Get());
 
 		// New concept - Image Views
 		// Much like the logical device is an interface to the physical device,
 		// image views are interfaces to actual images.  Think of it as this.
 		// The image exists outside of you.  But the view is your personal view 
 		// ( how you perceive ) the image.
-		for (int i = 0; i < FrameCount; ++i) {
+		for (int i = 0; i < CVar_FrameCount.Get(); ++i) {
 			VkImageViewCreateInfo info = {};
 			info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 
@@ -1248,11 +1152,11 @@ namespace Hog {
 			VkFormatProperties props;
 			vkGetPhysicalDeviceFormatProperties(PhysicalDevice, format, &props);
 
-			if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) 
+			if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
 			{
 				return format;
 			}
-			else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) 
+			else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
 			{
 				return format;
 			}
@@ -1263,216 +1167,13 @@ namespace Hog {
 		return VK_FORMAT_UNDEFINED;
 	}
 
-	void GraphicsContext::CreateRenderTargets()
-	{
-		HG_PROFILE_FUNCTION();
-
-		VkFormat internalFormat;
-		// Select Depth Format, prefer as high a precision as we can get.
-		{
-			VkFormat formats[] = {
-				VK_FORMAT_D32_SFLOAT_S8_UINT,
-				VK_FORMAT_D24_UNORM_S8_UINT
-			};
-
-			// Make sure to check it supports optimal tiling and is a depth/stencil format.
-			internalFormat = ChooseSupportedFormat(
-				formats, 2,
-				VK_IMAGE_TILING_OPTIMAL,
-				VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-			internalFormat = VK_FORMAT_D32_SFLOAT;
-		}
-
-		// idTech4.5 does have an independent idea of a depth attachment
-		// So now that the context contains the selected format we can simply
-		// create the internal one.
-
-		DepthImage = Image::Create(ImageType::Depth, GPU->SurfaceCapabilities.currentExtent.width, GPU->SurfaceCapabilities.currentExtent.height, 1, internalFormat, MSAASamples);
-		if (CVar_MSAA.Get())
-		{
-			ColorImage = Image::Create(ImageType::SampledColorAttachment,
-				GPU->SurfaceCapabilities.currentExtent.width,
-				GPU->SurfaceCapabilities.currentExtent.height,
-				1,
-				SwapchainFormat,
-				MSAASamples);
-		}
-	}
-
-	void GraphicsContext::CreateRenderPass()
-	{
-		HG_PROFILE_FUNCTION();
-		std::vector<VkAttachmentDescription> attachments;
-
-		// VkNeo uses a single renderpass, so I just create it on startup.
-		// Attachments act as slots in which to insert images.
-
-		// For the color attachment, we'll simply be using the swapchain images.
-		VkAttachmentDescription colorAttachment = {};
-		colorAttachment.format = SwapchainFormat;
-		// Sample count goes from 1 - 64
-		colorAttachment.samples = MSAASamples;
-		// I don't care what you do with the image memory when you load it for use.
-		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		// Just store the image when you go to store it.
-		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		// I don't care what the initial layout of the image is.
-		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		// It better be ready to present to the user when we're done with the renderpass.
-		if (CVar_MSAA.Get()) 
-			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		else 
-			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		attachments.push_back(colorAttachment);
-
-		
-
-		// For the depth attachment, we'll be using the _viewDepth we just created.
-		VkAttachmentDescription depthAttachment = {};
-		depthAttachment.format = DepthImage->GetInternalFormat();
-		depthAttachment.flags = 0;
-		depthAttachment.samples = MSAASamples;
-		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		attachments.push_back(depthAttachment);
-
-		if (CVar_MSAA.Get())
-		{
-			VkAttachmentDescription colorAttachmentResolve = {};
-			colorAttachmentResolve.format = SwapchainFormat;
-			colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
-			colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-			attachments.push_back(colorAttachmentResolve);
-		}
-
-		// Now we enumerate the attachments for a subpass.  We have to have at least one subpass.
-		VkAttachmentReference colorRef = {};
-		colorRef.attachment = 0;
-		colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference depthRef = {};
-		depthRef.attachment = 1;
-		depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		// Basically is this graphics or compute
-		VkSubpassDescription subpass = {};
-		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.colorAttachmentCount = 1;
-		subpass.pColorAttachments = &colorRef;
-		subpass.pDepthStencilAttachment = &depthRef;
-
-		if (MSAASamples != VK_SAMPLE_COUNT_1_BIT)
-		{
-			VkAttachmentReference colorAttachmentRef{};
-			colorAttachmentRef.attachment = 2;
-			colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-			subpass.pResolveAttachments = &colorAttachmentRef;
-		}
-
-		VkRenderPassCreateInfo renderPassCreateInfo = {};
-		renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassCreateInfo.attachmentCount = (uint32_t)attachments.size();
-		renderPassCreateInfo.pAttachments = attachments.data();
-		renderPassCreateInfo.subpassCount = 1;
-		renderPassCreateInfo.pSubpasses = &subpass;
-		renderPassCreateInfo.dependencyCount = 0;
-
-		if (CVar_MSAA.Get())
-		{
-			VkSubpassDependency dependency{};
-			dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-			dependency.dstSubpass = 0;
-			dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-			dependency.srcAccessMask = 0;
-			dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-			dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-			renderPassCreateInfo.dependencyCount = 1;
-			renderPassCreateInfo.pDependencies = &dependency;
-		}
-
-		CheckVkResult(vkCreateRenderPass(Device, &renderPassCreateInfo, nullptr, &RenderPass));
-	}
-
-	void GraphicsContext::CreateFrameBuffers()
-	{
-		HG_PROFILE_FUNCTION();
-		FrameBuffers.resize(FrameCount);
-
-		
-		std::vector<VkImageView> attachments;
-
-		// Depth attachment is the same
-		// We never show the depth buffer, so we only ever need one.
-		int swapChainImageIndex;
-		if (CVar_MSAA.Get())
-		{
-			attachments.resize(3);
-			attachments[0] = ColorImage->GetImageView();
-			swapChainImageIndex = 2;
-		}
-		else
-		{
-			attachments.resize(2);
-			swapChainImageIndex = 0;
-		}
-		
-		attachments[1] = DepthImage->GetImageView();
-
-		// VkFrameBuffer is what maps attachments to a renderpass.  That's really all it is.
-		VkFramebufferCreateInfo frameBufferCreateInfo = {};
-		frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		// The renderpass we just created.
-		frameBufferCreateInfo.renderPass = RenderPass;
-		// The color and depth attachments
-		frameBufferCreateInfo.attachmentCount = (uint32_t)attachments.size();
-		frameBufferCreateInfo.pAttachments = attachments.data();
-		// Current render size
-		frameBufferCreateInfo.width = SwapchainExtent.width;
-		frameBufferCreateInfo.height = SwapchainExtent.height;
-		frameBufferCreateInfo.layers = 1;
-
-		// Because we're double buffering, we need to create the same number of framebuffers.
-		// The main difference again is that both of them use the same depth image view.
-		for (int i = 0; i < FrameCount; ++i) {
-			attachments[swapChainImageIndex] = SwapchainImages[i]->GetImageView();
-			CheckVkResult(vkCreateFramebuffer(Device, &frameBufferCreateInfo, NULL, &FrameBuffers[i]));
-		}
-	}
-
 	void GraphicsContext::CleanupSwapChain()
 	{
 		HG_PROFILE_FUNCTION();
-		for (size_t i = 0; i < FrameBuffers.size(); i++) {
-			vkDestroyFramebuffer(Device, FrameBuffers[i], nullptr);
-		}
-
-		for (size_t i = 0; i < CommandPools.size(); i++) {
-			vkFreeCommandBuffers(Device, CommandPools[i], 1, &CommandBuffers[i]);
-		}
-		
-		for (auto fence : CommandBufferFences)
-		{
-			vkDestroyFence(Device, fence, nullptr);
-		}
-		vkDestroyFence(Device, UploadFence, nullptr);
 
 		for (size_t i = 0; i < SwapchainImages.size(); i++) {
 			SwapchainImages[i].reset();
 		}
-
-		DepthImage.reset();
-		ColorImage.reset();
 	}
 
 	VkSampleCountFlagBits GraphicsContext::GetMaxMSAASampleCount()

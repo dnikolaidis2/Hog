@@ -74,15 +74,6 @@ namespace Hog {
 		static VkExtent2D GetExtent() { return Get().SwapchainExtent; }
 		static VkSwapchainKHR GetSwapchain() { return Get().Swapchain; }
 		static VkQueue GetGraphicsQueue() { return Get().GraphicsQueue; }
-		static int GetCurrentFrame() { return Get().CurrentFrame; }
-		static int GetFrameCount() { return Get().FrameCount; }
-		static void SetCurrentFrame(int frameNumber) { Get().CurrentFrame = frameNumber; }
-		static VkCommandBuffer GetCurrentCommandBuffer() { return Get().CommandBuffers[GetCurrentFrame()]; }
-		static VkFramebuffer GetCurrentFrameBuffer() { return Get().FrameBuffers[GetCurrentFrame()]; }
-		static VkRenderPass GetRenderPass() { return Get().RenderPass; }
-		static VkFence GetCurrentCommandBufferFence() { return Get().CommandBufferFences[GetCurrentFrame()]; }
-		static VkSemaphore GetCurrentAcquireSemaphore() { return Get().AcquireSemaphores[GetCurrentFrame()]; }
-		static VkSemaphore GetCurrentRenderCompleteSemaphore() { return Get().RenderCompleteSemaphores[GetCurrentFrame()]; }
 		static VkSampleCountFlagBits GetMSAASamples() { return Get().MSAASamples; }
 		static GPUInfo* GetGPUInfo() { return Get().GPU; }
 
@@ -113,14 +104,10 @@ namespace Hog {
 		void SelectPhysicalDevice();
 		void CreateLogicalDeviceAndQueues();
 		void InitializeAllocator();
-		void CreateSemaphores();
 		void CreateCommandPools();
 		void CreateCommandBuffers();
 		void CreateSwapChain();
 		VkFormat ChooseSupportedFormat(VkFormat* formats, int numFormats, VkImageTiling tiling, VkFormatFeatureFlags features);
-		void CreateRenderTargets();
-		void CreateRenderPass();
-		void CreateFrameBuffers();
 
 		void CleanupSwapChain();
 
@@ -131,9 +118,6 @@ namespace Hog {
 		bool m_Initialized = false;
 
 	public:
-		int const FrameCount = 2;
-		int CurrentFrame = 0;
-
 		VkInstance Instance = VK_NULL_HANDLE;
 		VkDebugUtilsMessengerEXT DebugMessenger = VK_NULL_HANDLE;
 
@@ -161,23 +145,9 @@ namespace Hog {
 
 		std::vector<Ref<Image>> SwapchainImages;
 
-		std::vector<VkSemaphore> AcquireSemaphores;
-		std::vector<VkSemaphore> RenderCompleteSemaphores;
-
-		std::vector<VkCommandPool> CommandPools;
 		VkCommandPool UploadCommandPool;
 
-		std::vector<VkCommandBuffer> CommandBuffers;
-		std::vector<VkFence> CommandBufferFences;
-
 		VkFence UploadFence;
-
-		Ref<Image> DepthImage;
-		Ref<Image> ColorImage;
-
-		VkRenderPass RenderPass = VK_NULL_HANDLE;
-
-		std::vector<VkFramebuffer> FrameBuffers;
 
 		VkSampleCountFlagBits MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 

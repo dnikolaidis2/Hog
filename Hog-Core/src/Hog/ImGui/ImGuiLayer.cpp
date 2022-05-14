@@ -14,7 +14,7 @@
 #include "Hog/Renderer/GraphicsContext.h"
 #include "Hog/Renderer/Renderer.h"
 #include "Hog/Utils/RendererUtils.h"
-
+#include "Hog/Core/CVars.h"
 
 namespace Hog {
 
@@ -25,7 +25,7 @@ namespace Hog {
 
 	void ImGuiLayer::OnUpdate(Timestep ts)
 	{
-		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), GraphicsContext::GetCurrentCommandBuffer());
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), VK_NULL_HANDLE);
 
 		Renderer::EndScene();
 	}
@@ -74,12 +74,12 @@ namespace Hog {
 		initInfo.Device = GraphicsContext::GetDevice();
 		initInfo.Queue = GraphicsContext::GetGraphicsQueue();
 		initInfo.DescriptorPool = GraphicsContext::GetImGuiDescriptorPool();
-		initInfo.MinImageCount = GraphicsContext::GetFrameCount();
-		initInfo.ImageCount = GraphicsContext::GetFrameCount();
+		initInfo.MinImageCount = *CVarSystem::Get()->GetIntCVar("renderer.frameCount");
+		initInfo.ImageCount = *CVarSystem::Get()->GetIntCVar("renderer.frameCount");
 		initInfo.MSAASamples = GraphicsContext::GetMSAASamples();
 		initInfo.CheckVkResultFn = CheckVkResult;
 
-		ImGui_ImplVulkan_Init(&initInfo, GraphicsContext::GetRenderPass());
+		ImGui_ImplVulkan_Init(&initInfo, VK_NULL_HANDLE);
 
 		GraphicsContext::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 		{
