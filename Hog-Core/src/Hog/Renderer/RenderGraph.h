@@ -1,10 +1,19 @@
 #pragma once
 
+#include "Hog/Renderer/Shader.h"
+
 namespace Hog
 {
+	enum class RendererStageType
+	{
+		Compute, Graphics
+	};
+
 	struct RendererStage
 	{
 		std::string Name;
+		Ref<Shader> Shader;
+		RendererStageType StageType;
 	};
 
 	struct Node
