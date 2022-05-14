@@ -15,8 +15,6 @@
 
 #include "Constants.h"
 
-static auto& context = Hog::GraphicsContext::Get();
-
 AutoCVar_String CVar_ShaderCacheDBFile("shader.cacheDBFile", "Shader cache database filename", ".db", CVarFlags::EditReadOnly);
 AutoCVar_String CVar_ShaderCacheDir("shader.cachePath", "Shader cache directory", "assets/cache/shader/vulkan", CVarFlags::EditReadOnly);
 AutoCVar_String CVar_ShaderSourceDir("shader.sourceDir", "Shader source directory", "assets/shaders/", CVarFlags::EditReadOnly);
@@ -544,7 +542,7 @@ namespace Hog {
 			layoutInfo.bindingCount = (uint32_t)m_DescriptorSetLayoutBinding[i].size();
 			layoutInfo.pBindings = m_DescriptorSetLayoutBinding[i].data();
 
-			CheckVkResult(vkCreateDescriptorSetLayout(context.Device, &layoutInfo, nullptr, &m_DescriptorSetLayouts[i]));
+			CheckVkResult(vkCreateDescriptorSetLayout(GraphicsContext::GetDevice(), &layoutInfo, nullptr, &m_DescriptorSetLayouts[i]));
 		}
 
 		m_PipelineLayoutCreateInfo.pushConstantRangeCount = (uint32_t)m_PushConstantRanges.size();
@@ -554,7 +552,7 @@ namespace Hog {
 
 		CheckVkResult(vkCreatePipelineLayout(GraphicsContext::GetDevice(), &m_PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 
-		m_Pipeline = CreateRef<GraphicsPipeline>(context.Device, m_PipelineLayout, context.SwapchainExtent, renderPass);
+		m_Pipeline = Pipeline::CreateGraphics(m_VertexInputBindingDescription, m_VertexInputAttributeDescriptions, m_PipelineLayout, renderPass);
 
 		for (const auto& [stage, source] : m_Sources)
 		{
@@ -570,10 +568,6 @@ namespace Hog {
 			m_Modules[stage] = shaderModule;
 		}
 
-		m_Pipeline->VertexInputBindingDescriptions.push_back(m_VertexInputBindingDescription);
-		m_Pipeline->VertexInputAttributeDescriptions = m_VertexInputAttributeDescriptions;
-
-		m_Pipeline->PipelineDepthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 
 		m_Pipeline->Create();
 	}

@@ -93,10 +93,10 @@ namespace Hog {
 		const std::string& GetName() const { return m_Name; }
 		void SetName(const std::string& name) { m_Name = name; }
 
-		VkPipelineLayout GetPipelineLayout() const { return m_PipelineLayout; }
+		/*VkPipelineLayout GetPipelineLayout() const { return m_PipelineLayout; }
 		const std::array<VkDescriptorSetLayout, 4>& GetDescriptorSetLayouts() const { return m_DescriptorSetLayouts; }
 		const std::vector<VkVertexInputAttributeDescription>& GetVertexInputAttributeDescriptions() { return m_VertexInputAttributeDescriptions; }
-		VkVertexInputBindingDescription GetVertexInputBindingDescription() const { return m_VertexInputBindingDescription; }
+		VkVertexInputBindingDescription GetVertexInputBindingDescription() const { return m_VertexInputBindingDescription; }*/
 		
 	private:
 		void Reflect();
@@ -118,6 +118,6 @@ namespace Hog {
 		};
 
 		VkPipelineLayout m_PipelineLayout;
-		Ref<GraphicsPipeline> m_Pipeline;
+		Ref<Pipeline> m_Pipeline;
 	};
 }

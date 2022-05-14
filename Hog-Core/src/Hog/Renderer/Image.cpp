@@ -6,6 +6,7 @@
 
 #include "Hog/Renderer/GraphicsContext.h"
 #include "Hog/Utils/RendererUtils.h"
+#include "Hog/Core/CVars.h"
 
 namespace Hog
 {
@@ -245,8 +246,17 @@ namespace Hog
 
 		uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
 
-		auto image = Image::Create(ImageType::Texture, width, height, mipLevels, format);
-		
+		Ref<Image> image;
+
+		if (*CVarSystem::Get()->GetIntCVar("renderer.enableMipMapping"))
+		{
+			image = Image::Create(ImageType::Texture, width, height, mipLevels, format);
+		}
+		else
+		{
+			image = Image::Create(ImageType::Texture, width, height, 1, format);
+		}
+
 		image->SetData(pixels, imageSize);
 
 		Add(name, image);

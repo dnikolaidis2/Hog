@@ -3,19 +3,22 @@
 
 #include "Hog/Renderer/GraphicsContext.h"
 #include "Hog/Utils/RendererUtils.h"
+#include "Hog/Core/CVars.h"
+
+AutoCVar_Int CVar_ImageMipLevels("renderer.enableMipMapping", "Enable mip mapping for textures", 0, CVarFlags::None);
 
 namespace Hog
 {
 	struct RendererState
 	{
-		
+		RenderGraph Graph;
 	};
 
 	static RendererState s_Data;
 
 	void Renderer::Initialize(RenderGraph renderGraph)
 	{
-		
+		s_Data.Graph = renderGraph;
 	}
 
 	void Renderer::BeginScene(const EditorCamera& camera, GlobalShaderData& globalShaderData)
