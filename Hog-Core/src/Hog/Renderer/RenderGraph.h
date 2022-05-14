@@ -52,6 +52,11 @@ namespace Hog
 		{
 			ParentList.push_back(parent);
 		}
+
+		bool IsEndNode()
+		{
+			return ChildList.empty();
+		}
 	};
 
 	class RenderGraph
@@ -62,6 +67,7 @@ namespace Hog
 		Ref<Node> AddStage(Ref<Node> parent, RendererStage stageInfo);
 		Ref<Node> AddStage(std::vector<Ref<Node>> parents, RendererStage stageInfo);
 		std::vector<Ref<Node>> GetStages();
+		std::vector<Ref<Node>> GetFinalStages();
 	private:
 		std::vector<Ref<Node>> m_StartingPoints;
 	};
