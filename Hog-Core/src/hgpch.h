@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <queue>
+#include <stack>
 
 #include "vulkan/vulkan.h"
 
