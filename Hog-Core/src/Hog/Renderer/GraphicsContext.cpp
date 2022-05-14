@@ -641,6 +641,19 @@ namespace Hog {
 		vkResetCommandPool(Device, UploadCommandPool, 0);
 	}
 
+	VkFence GraphicsContext::CreateFenceImpl(bool signaled)
+	{
+		VkFence fence;
+
+		VkFenceCreateInfo fenceCreateInfo = {};
+		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceCreateInfo.flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
+
+		CheckVkResult(vkCreateFence(Device, &fenceCreateInfo, nullptr, &fence));
+
+		return fence;
+	}
+
 	void GraphicsContext::CreateInstance()
 	{
 		HG_PROFILE_FUNCTION();
@@ -828,6 +841,7 @@ namespace Hog {
 			GPUInfo* gpu = &(GPUs[i]);
 			// This is again related to queues.  Don't worry I'll get there soon.
 			int graphicsIdx = -1;
+			int computeIdx = -1;
 			int presentIdx = -1;
 
 			// Remember when we created our instance we got all those device extensions?
@@ -873,6 +887,24 @@ namespace Hog {
 				}
 			}
 
+			// Find compute queue family
+			for (uint32_t j = 0; j < gpu->QueueFamilyProperties.size(); ++j) 
+			{
+				VkQueueFamilyProperties& props = gpu->QueueFamilyProperties[j];
+
+				if (props.queueCount == 0) 
+				{
+					continue;
+				}
+
+				if (props.queueFlags & VK_QUEUE_COMPUTE_BIT) 
+				{
+					// Got it!
+					computeIdx = j;
+					break;
+				}
+			}
+
 			// Find present queue family
 			for (int j = 0; j < gpu->QueueFamilyProperties.size(); ++j) 
 			{
@@ -906,6 +938,7 @@ namespace Hog {
 			{
 				GraphicsFamilyIndex = (uint32_t)graphicsIdx;
 				PresentFamilyIndex = (uint32_t)presentIdx;
+				ComputeFamilyIndex = (uint32_t)computeIdx;
 				PhysicalDevice = gpu->Device;
 				GPU = gpu;
 				if (CVar_MSAA.Get())
@@ -931,6 +964,9 @@ namespace Hog {
 		uniqueIdx.push_back(GraphicsFamilyIndex);
 		if (std::find(uniqueIdx.begin(), uniqueIdx.end(), PresentFamilyIndex) == uniqueIdx.end()) {
 			uniqueIdx.push_back(PresentFamilyIndex);
+		}
+		if (std::find(uniqueIdx.begin(), uniqueIdx.end(), ComputeFamilyIndex) == uniqueIdx.end()) {
+			uniqueIdx.push_back(ComputeFamilyIndex);
 		}
 
 		std::vector<VkDeviceQueueCreateInfo> devqInfo;
@@ -973,6 +1009,7 @@ namespace Hog {
 		// Now get the queues from the devie we just created.
 		vkGetDeviceQueue(Device, GraphicsFamilyIndex, 0, &GraphicsQueue);
 		vkGetDeviceQueue(Device, PresentFamilyIndex, 0, &PresentQueue);
+		vkGetDeviceQueue(Device, ComputeFamilyIndex, 0, &ComputeQueue);
 	}
 
 	void GraphicsContext::InitializeAllocator()

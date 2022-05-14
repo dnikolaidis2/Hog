@@ -86,6 +86,8 @@ namespace Hog {
 		static VkSampleCountFlagBits GetMSAASamples() { return Get().MSAASamples; }
 		static GPUInfo* GetGPUInfo() { return Get().GPU; }
 
+		static VkFence CreateFence(bool signaled) { return Get().CreateFenceImpl(signaled); }
+
 		static void ImmediateSubmit(std::function<void(VkCommandBuffer commandBuffer)>&& function) { return Get().ImmediateSubmitImpl(std::move(function)); }
 	public:
 		GraphicsContext(GraphicsContext const&) = delete;
@@ -100,6 +102,8 @@ namespace Hog {
 		void GetImGuiDescriptorPoolImpl();
 		void DestroyImGuiDescriptorPoolImpl();
 		void ImmediateSubmitImpl(std::function<void(VkCommandBuffer commandBuffer)>&& function);
+
+		VkFence CreateFenceImpl(bool signaled);
 
 	public:
 		void CreateInstance();
@@ -139,9 +143,11 @@ namespace Hog {
 
 		uint32_t GraphicsFamilyIndex;
 		uint32_t PresentFamilyIndex;
+		uint32_t ComputeFamilyIndex;
 
 		VkQueue GraphicsQueue = VK_NULL_HANDLE;
 		VkQueue PresentQueue = VK_NULL_HANDLE;
+		VkQueue ComputeQueue = VK_NULL_HANDLE;
 
 		VkSurfaceKHR Surface = VK_NULL_HANDLE;
 
