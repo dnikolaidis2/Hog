@@ -31,6 +31,7 @@
 #include "Hog/Renderer/RendererObject.h"
 #include "Hog/Renderer/EditorCamera.h"
 #include "Hog/Renderer/Renderer.h"
+#include "Hog/Renderer/RenderGraph.h"
 #include "Hog/Renderer/Image.h"
 
 /*
