@@ -4,7 +4,7 @@
 #include <yaml-cpp/yaml.h>
 #include <vulkan/vulkan.h>
 
-#include "Hog/Renderer/GraphicsPipeline.h"
+#include "Hog/Renderer/Pipeline.h"
 
 namespace Hog {
 

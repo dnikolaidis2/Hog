@@ -23,7 +23,7 @@
 
 // ---Renderer------------------------
 #include "Hog/Renderer/GraphicsContext.h"
-#include "Hog/Renderer/GraphicsPipeline.h"
+#include "Hog/Renderer/Pipeline.h"
 #include "Hog/Renderer/Shader.h"
 #include "Hog/Renderer/Buffer.h"
 #include "Hog/Renderer/Mesh.h"

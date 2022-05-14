@@ -4,7 +4,7 @@
 
 #include "Constants.h"
 #include "Hog/Renderer/Shader.h"
-#include "Hog/Renderer/GraphicsPipeline.h"
+#include "Hog/Renderer/Pipeline.h"
 #include "Hog/Renderer/Image.h"
 
 namespace Hog
