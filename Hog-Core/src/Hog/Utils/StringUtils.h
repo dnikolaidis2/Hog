@@ -10,7 +10,7 @@ namespace StringUtils {
 		return ((count ? fnv1a_32(s, count - 1) : 2166136261u) ^ s[count]) * 16777619u;
 	}
 
-	constexpr size_t const_strlen(const char* s)
+	constexpr size_t ConstStrlen(const char* s)
 	{
 		size_t size = 0;
 		while (s[size]) { size++; };
@@ -25,7 +25,7 @@ namespace StringUtils {
 
 		constexpr StringHash(const char* s) noexcept : computedHash(0)
 		{
-			computedHash = fnv1a_32(s, const_strlen(s));
+			computedHash = fnv1a_32(s, ConstStrlen(s));
 		}
 		constexpr StringHash(const char* s, std::size_t count)noexcept : computedHash(0)
 		{
