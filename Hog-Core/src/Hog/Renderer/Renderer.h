@@ -19,11 +19,10 @@ namespace Hog
 		static void Initialize(RenderGraph renderGraph);
 		static void Deinitialize();
 
-		static void BeginScene(const EditorCamera& camera, GlobalShaderData& globalShaderData);
-		static void EndScene();
+		static void Begin();
+		static void End();
 
-		static void DrawObject(const Ref<RendererObject> object);
-		static void DrawObjects(const std::vector<Ref<RendererObject>>& objects);
+		static void Draw();
 
 		struct RendererStats
 		{

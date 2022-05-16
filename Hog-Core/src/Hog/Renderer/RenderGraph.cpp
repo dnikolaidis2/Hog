@@ -4,6 +4,16 @@
 
 namespace Hog
 {
+	bool ResourceLayout::ContainsType(ResourceType type) const
+	{
+		for (const auto & elem : m_Elements)
+		{
+			if (elem.Type == type) return true;
+		}
+
+		return false;
+	}
+
 	Ref<Node> RenderGraph::AddStage(Ref<Node> parent, RendererStage stageInfo)
 	{
 		if (parent == nullptr)

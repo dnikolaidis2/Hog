@@ -622,6 +622,35 @@ namespace Hog {
 		return fence;
 	}
 
+	VkCommandPool GraphicsContext::CreateCommandPoolImpl()
+	{
+		VkCommandPool commandPool;
+
+		VkCommandPoolCreateInfo commandPoolCreateInfo = {};
+		commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		commandPoolCreateInfo.queueFamilyIndex = GraphicsFamilyIndex;
+
+		CheckVkResult(vkCreateCommandPool(Device, &commandPoolCreateInfo, nullptr, &commandPool));
+
+		return commandPool;
+	}
+
+	VkCommandBuffer GraphicsContext::CreateCommandBufferImpl(VkCommandPool commandPool)
+	{
+		VkCommandBuffer commandBuffer;
+
+		VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
+		commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		commandBufferAllocateInfo.commandPool = commandPool;
+		commandBufferAllocateInfo.commandBufferCount = 1;
+
+		CheckVkResult(vkAllocateCommandBuffers(Device, &commandBufferAllocateInfo, &commandBuffer));
+
+		return commandBuffer;
+	}
+
 	void GraphicsContext::CreateInstance()
 	{
 		HG_PROFILE_FUNCTION();
@@ -1178,7 +1207,7 @@ namespace Hog {
 
 	VkSampleCountFlagBits GraphicsContext::GetMaxMSAASampleCount()
 	{
-		VkSampleCountFlags counts = GPU->DeviceProperties.limits.framebufferColorSampleCounts & GPU->DeviceProperties.limits.framebufferDepthSampleCounts;
+		const VkSampleCountFlags counts = GPU->DeviceProperties.limits.framebufferColorSampleCounts & GPU->DeviceProperties.limits.framebufferDepthSampleCounts;
 
 		if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
 		if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }

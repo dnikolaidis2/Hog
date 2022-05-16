@@ -18,7 +18,7 @@ namespace Hog
 		virtual VkPipeline Create() = 0;
 		virtual void Bind(VkCommandBuffer commandBuffer) = 0;
 
-		void AddShaderStage(ShaderType type, VkShaderModule shaderModule, const char* main = "main");
+		void AddShaderStage(ShaderType type, VkShaderModule shaderModule, VkSpecializationInfo* specializationInfo, const char* main = "main");
 		void Destroy();
 		operator VkPipeline() const { return m_Handle; }
 	protected:

@@ -531,7 +531,7 @@ namespace Hog {
 		AddStage(source);
 	}
 
-	void Shader::Generate(VkRenderPass renderPass)
+	void Shader::Generate(VkSpecializationInfo specializationInfo)
 	{
 		Reflect();
 
@@ -551,7 +551,47 @@ namespace Hog {
 		m_PipelineLayoutCreateInfo.pSetLayouts = m_DescriptorSetLayouts.data(); // Optional
 
 		CheckVkResult(vkCreatePipelineLayout(GraphicsContext::GetDevice(), &m_PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
+		
+		m_Pipeline = Pipeline::CreateCompute(m_PipelineLayout);
 
+		for (const auto& [stage, source] : m_Sources)
+		{
+			VkShaderModuleCreateInfo createInfo{};
+			createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+			createInfo.codeSize = (uint32_t)source->Code.size() * sizeof(uint32_t);
+			createInfo.pCode = source->Code.data();
+
+			VkShaderModule shaderModule;
+			CheckVkResult(vkCreateShaderModule(GraphicsContext::GetDevice(), &createInfo, nullptr, &shaderModule));
+
+			m_Pipeline->AddShaderStage(stage, shaderModule, &specializationInfo);
+			m_Modules[stage] = shaderModule;
+		}
+
+
+		m_Pipeline->Create();
+	}
+
+	void Shader::Generate(VkRenderPass renderPass, VkSpecializationInfo specializationInfo)
+	{
+		Reflect();
+
+		for (int i = 0; i < m_DescriptorSetLayoutBinding.size(); ++i)
+		{
+			VkDescriptorSetLayoutCreateInfo layoutInfo{};
+			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			layoutInfo.bindingCount = (uint32_t)m_DescriptorSetLayoutBinding[i].size();
+			layoutInfo.pBindings = m_DescriptorSetLayoutBinding[i].data();
+
+			CheckVkResult(vkCreateDescriptorSetLayout(GraphicsContext::GetDevice(), &layoutInfo, nullptr, &m_DescriptorSetLayouts[i]));
+		}
+
+		m_PipelineLayoutCreateInfo.pushConstantRangeCount = (uint32_t)m_PushConstantRanges.size();
+		m_PipelineLayoutCreateInfo.pPushConstantRanges = m_PushConstantRanges.data();
+		m_PipelineLayoutCreateInfo.setLayoutCount = (uint32_t)m_DescriptorSetLayouts.size(); // Optional
+		m_PipelineLayoutCreateInfo.pSetLayouts = m_DescriptorSetLayouts.data(); // Optional
+
+		CheckVkResult(vkCreatePipelineLayout(GraphicsContext::GetDevice(), &m_PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 		m_Pipeline = Pipeline::CreateGraphics(m_VertexInputBindingDescription, m_VertexInputAttributeDescriptions, m_PipelineLayout, renderPass);
 
 		for (const auto& [stage, source] : m_Sources)
@@ -564,7 +604,7 @@ namespace Hog {
 			VkShaderModule shaderModule;
 			CheckVkResult(vkCreateShaderModule(GraphicsContext::GetDevice(), &createInfo, nullptr, &shaderModule));
 
-			m_Pipeline->AddShaderStage(stage, shaderModule);
+			m_Pipeline->AddShaderStage(stage, shaderModule, &specializationInfo);
 			m_Modules[stage] = shaderModule;
 		}
 

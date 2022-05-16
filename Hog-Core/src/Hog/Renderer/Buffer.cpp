@@ -7,75 +7,104 @@
 
 namespace Hog
 {
-	VmaMemoryUsage MemoryTypeToVmaMemoryUsage(MemoryType type)
+	VmaMemoryUsage BufferTypeToVmaMemoryUsage(BufferType type)
 	{
 		switch (type)
 		{
-			case MemoryType::CPUWritableVertexBuffer: return VMA_MEMORY_USAGE_CPU_TO_GPU;
-			case MemoryType::CPUWritableIndexBuffer: return VMA_MEMORY_USAGE_CPU_TO_GPU;
-			case MemoryType::GPUOnlyVertexBuffer: return VMA_MEMORY_USAGE_GPU_ONLY;
-			case MemoryType::TransferSourceBuffer: return VMA_MEMORY_USAGE_CPU_ONLY;
-			case MemoryType::UniformBuffer: return VMA_MEMORY_USAGE_CPU_TO_GPU;
+			case BufferType::CPUWritableVertexBuffer:	return VMA_MEMORY_USAGE_CPU_TO_GPU;
+			case BufferType::CPUWritableIndexBuffer:	return VMA_MEMORY_USAGE_CPU_TO_GPU;
+			case BufferType::GPUOnlyVertexBuffer:		return VMA_MEMORY_USAGE_GPU_ONLY;
+			case BufferType::TransferSourceBuffer:		return VMA_MEMORY_USAGE_CPU_ONLY;
+			case BufferType::UniformBuffer:				return VMA_MEMORY_USAGE_CPU_TO_GPU;
+			case BufferType::ReadbackUniformBuffer:		return VMA_MEMORY_USAGE_AUTO;
 		}
 
-		HG_CORE_ASSERT(false, "Unknown MemoryType!");
+		HG_CORE_ASSERT(false, "Unknown BufferType!");
 		return (VmaMemoryUsage)0;
 	}
 
-	VkBufferUsageFlags MemoryTypeToVkBufferUsageFlagBits(MemoryType type)
+	VmaAllocationCreateFlags BufferTypeToVmaAllocationCreateFlags(BufferType type)
 	{
 		switch (type)
 		{
-			case MemoryType::CPUWritableVertexBuffer: return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-			case MemoryType::CPUWritableIndexBuffer: return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-			case MemoryType::GPUOnlyVertexBuffer: return (VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-			case MemoryType::TransferSourceBuffer: return VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-			case MemoryType::UniformBuffer: return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			case BufferType::CPUWritableVertexBuffer:	return 0;
+			case BufferType::CPUWritableIndexBuffer:	return 0;
+			case BufferType::GPUOnlyVertexBuffer:		return 0;
+			case BufferType::TransferSourceBuffer:		return 0;
+			case BufferType::UniformBuffer:				return 0;
+			case BufferType::ReadbackUniformBuffer:		return VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT |
+				VMA_ALLOCATION_CREATE_MAPPED_BIT;
 		}
 
-		HG_CORE_ASSERT(false, "Unknown MemoryType!");
+		HG_CORE_ASSERT(false, "Unknown BufferType!");
+		return (VmaAllocationCreateFlags)0;
+	}
+
+	VkBufferUsageFlags BufferTypeToVkBufferUsageFlags(BufferType type)
+	{
+		switch (type)
+		{
+			case BufferType::CPUWritableVertexBuffer:	return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+			case BufferType::CPUWritableIndexBuffer:	return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+			case BufferType::GPUOnlyVertexBuffer:		return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | 
+				VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+			case BufferType::TransferSourceBuffer:		return VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+			case BufferType::UniformBuffer:				return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			case BufferType::ReadbackUniformBuffer:		return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | 
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+				VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		}
+
+		HG_CORE_ASSERT(false, "Unknown BufferType!");
 		return (VkBufferUsageFlags)0;
 	}
 
-	VkSharingMode MemoryTypeToVkSharingMode(MemoryType type)
+	VkSharingMode BufferTypeToVkSharingMode(BufferType type)
 	{
 		switch (type)
 		{
-			case MemoryType::CPUWritableVertexBuffer: return VK_SHARING_MODE_EXCLUSIVE;
-			case MemoryType::GPUOnlyVertexBuffer: return VK_SHARING_MODE_EXCLUSIVE;
-			case MemoryType::CPUWritableIndexBuffer: return VK_SHARING_MODE_EXCLUSIVE;
-			case MemoryType::TransferSourceBuffer: return VK_SHARING_MODE_EXCLUSIVE;
-			case MemoryType::UniformBuffer: return VK_SHARING_MODE_EXCLUSIVE;
+			case BufferType::CPUWritableVertexBuffer:	return VK_SHARING_MODE_EXCLUSIVE;
+			case BufferType::GPUOnlyVertexBuffer:		return VK_SHARING_MODE_EXCLUSIVE;
+			case BufferType::CPUWritableIndexBuffer:	return VK_SHARING_MODE_EXCLUSIVE;
+			case BufferType::TransferSourceBuffer:		return VK_SHARING_MODE_EXCLUSIVE;
+			case BufferType::UniformBuffer:				return VK_SHARING_MODE_EXCLUSIVE;
+			case BufferType::ReadbackUniformBuffer:		return VK_SHARING_MODE_EXCLUSIVE;
 		}
 
-		HG_CORE_ASSERT(false, "Unknown MemoryType!");
+		HG_CORE_ASSERT(false, "Unknown BufferType!");
 		return (VkSharingMode)0;
 	}
 
-	bool IsTypeGPUOnly(MemoryType type)
+	bool IsPersistentlyMapped(BufferType type)
+	{
+		return (bool)(BufferTypeToVmaAllocationCreateFlags(type) & VMA_ALLOCATION_CREATE_MAPPED_BIT);
+	}
+
+	bool IsTypeGPUOnly(BufferType type)
 	{
 		switch (type)
 		{
-			case MemoryType::GPUOnlyVertexBuffer: return true;
+			case BufferType::GPUOnlyVertexBuffer: return true;
 		}
 
 		return false;
 	}
 
-	Buffer::Buffer(MemoryType type, uint32_t size)
+	Buffer::Buffer(BufferType type, uint32_t size)
 		:m_Type(type), m_Size(size)
 	{
 		m_BufferCreateInfo.size = size;
-		m_BufferCreateInfo.usage = MemoryTypeToVkBufferUsageFlagBits(type);
-		m_BufferCreateInfo.sharingMode = MemoryTypeToVkSharingMode(type);
+		m_BufferCreateInfo.usage = BufferTypeToVkBufferUsageFlags(type);
+		m_BufferCreateInfo.sharingMode = BufferTypeToVkSharingMode(type);
 
-		m_AllocationCreateInfo.usage = MemoryTypeToVmaMemoryUsage(type);
+		m_AllocationCreateInfo.usage = BufferTypeToVmaMemoryUsage(type);
+		m_AllocationCreateInfo.flags = BufferTypeToVmaAllocationCreateFlags(type);
 
 		//allocate the buffer
 		CheckVkResult(vmaCreateBuffer(GraphicsContext::GetAllocator(), &m_BufferCreateInfo, &m_AllocationCreateInfo,
 			&m_Handle,
 			&m_Allocation,
-			nullptr));
+			&m_AllocationInfo));
 	}
 
 	Buffer::~Buffer()
@@ -83,7 +112,7 @@ namespace Hog
 		vmaDestroyBuffer(GraphicsContext::GetAllocator(), m_Handle, m_Allocation);
 	}
 
-	Ref<Buffer> Buffer::Create(MemoryType type, uint32_t size)
+	Ref<Buffer> Buffer::Create(BufferType type, uint32_t size)
 	{
 		return CreateRef<Buffer>(type, size);
 	}
@@ -94,16 +123,23 @@ namespace Hog
 
 		if (!IsTypeGPUOnly(m_Type))
 		{
-			void* dstAdr;
-			vmaMapMemory(GraphicsContext::GetAllocator(), m_Allocation, &dstAdr);
+			if (IsPersistentlyMapped(m_Type))
+			{
+				memcpy(m_AllocationInfo.pMappedData, data, size);
+			}
+			else
+			{
+				void* dstAdr;
+				vmaMapMemory(GraphicsContext::GetAllocator(), m_Allocation, &dstAdr);
 
-			memcpy(dstAdr, data, size);
+				memcpy(dstAdr, data, size);
 
-			vmaUnmapMemory(GraphicsContext::GetAllocator(), m_Allocation);
+				vmaUnmapMemory(GraphicsContext::GetAllocator(), m_Allocation);
+			}
 		}
 		else
 		{
-			auto buffer = Buffer::Create(MemoryType::TransferSourceBuffer, size);
+			auto buffer = Buffer::Create(BufferType::TransferSourceBuffer, size);
 			buffer->SetData(data, size);
 			TransferData(size, buffer);
 		}
@@ -121,17 +157,71 @@ namespace Hog
 		});
 	}
 
+	void Buffer::LockAfterWrite(VkCommandBuffer commandBuffer, VkPipelineStageFlags stage)
+	{
+		if (BufferTypeToVkBufferUsageFlags(m_Type) & VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
+		{
+			const VkBufferMemoryBarrier2 bufferMemoryBarrier = {
+				.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+				.srcStageMask = VK_PIPELINE_STAGE_HOST_BIT,
+				.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT,
+				.dstStageMask = stage,
+				.dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+				.buffer = m_Handle,
+				.offset = 0,
+				.size = VK_WHOLE_SIZE,
+			};
+
+			const VkDependencyInfo dependencyInfo = {
+				.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+				.bufferMemoryBarrierCount = 1,
+				.pBufferMemoryBarriers = &bufferMemoryBarrier,
+			};
+
+			vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+		}
+	}
+
+	void Buffer::LockBeforeRead(VkCommandBuffer commandBuffer, VkPipelineStageFlags stage)
+	{
+		if (BufferTypeToVkBufferUsageFlags(m_Type) & VK_BUFFER_USAGE_TRANSFER_DST_BIT)
+		{
+			const VkBufferMemoryBarrier2 bufferMemoryBarrier = {
+				.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+				.srcStageMask = stage,
+				.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+				.dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+				.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
+				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+				.buffer = m_Handle,
+				.offset = 0,
+				.size = VK_WHOLE_SIZE,
+			};
+
+			const VkDependencyInfo dependencyInfo = {
+				.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+				.bufferMemoryBarrierCount = 1,
+				.pBufferMemoryBarriers = &bufferMemoryBarrier,
+			};
+
+			vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+		}
+	}
+
 	Ref<VertexBuffer> VertexBuffer::Create(uint32_t size)
 	{
 		return CreateRef<VertexBuffer>(size);
 	}
 
 	VertexBuffer::VertexBuffer(uint32_t size)
-		: Buffer(MemoryType::GPUOnlyVertexBuffer, size)
+		: Buffer(BufferType::GPUOnlyVertexBuffer, size)
 	{
 	}
 
-	VkVertexInputBindingDescription VertexBuffer::GetInputBindingDescription()
+	/*VkVertexInputBindingDescription VertexBuffer::GetInputBindingDescription()
 	{
 		VkVertexInputBindingDescription bindingDescription{};
 		bindingDescription.binding = 0;
@@ -154,5 +244,5 @@ namespace Hog
 		}
 
 		return attributeDescriptions;
-	}
+	}*/
 }

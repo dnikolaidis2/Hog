@@ -27,7 +27,7 @@ namespace Hog {
 	{
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), VK_NULL_HANDLE);
 
-		Renderer::EndScene();
+		Renderer::End();
 	}
 
 	void ImGuiLayer::OnAttach()

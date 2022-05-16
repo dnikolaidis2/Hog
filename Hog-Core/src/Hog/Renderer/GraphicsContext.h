@@ -74,9 +74,12 @@ namespace Hog {
 		static VkExtent2D GetExtent() { return Get().SwapchainExtent; }
 		static VkSwapchainKHR GetSwapchain() { return Get().Swapchain; }
 		static VkQueue GetGraphicsQueue() { return Get().GraphicsQueue; }
+		static VkQueue GetComputeQueue() { return Get().ComputeQueue; }
 		static VkSampleCountFlagBits GetMSAASamples() { return Get().MSAASamples; }
 		static GPUInfo* GetGPUInfo() { return Get().GPU; }
 
+		static VkCommandPool CreateCommandPool() { return Get().CreateCommandPoolImpl(); }
+		static VkCommandBuffer CreateCommandBuffer(VkCommandPool commandPool) { return Get().CreateCommandBufferImpl(commandPool); }
 		static VkFence CreateFence(bool signaled) { return Get().CreateFenceImpl(signaled); }
 
 		static void ImmediateSubmit(std::function<void(VkCommandBuffer commandBuffer)>&& function) { return Get().ImmediateSubmitImpl(std::move(function)); }
@@ -94,6 +97,8 @@ namespace Hog {
 		void DestroyImGuiDescriptorPoolImpl();
 		void ImmediateSubmitImpl(std::function<void(VkCommandBuffer commandBuffer)>&& function);
 
+		VkCommandPool CreateCommandPoolImpl();
+		VkCommandBuffer CreateCommandBufferImpl(VkCommandPool commandPool);
 		VkFence CreateFenceImpl(bool signaled);
 
 	public:

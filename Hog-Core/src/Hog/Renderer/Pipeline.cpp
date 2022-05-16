@@ -19,13 +19,14 @@ namespace Hog
 		return CreateRef<ComputePipeline>(layout);
 	}
 
-	void Pipeline::AddShaderStage(ShaderType type, VkShaderModule shaderModule, const char* main)
+	void Pipeline::AddShaderStage(ShaderType type, VkShaderModule shaderModule, VkSpecializationInfo* specializationInfo, const char* main)
 	{
 		VkPipelineShaderStageCreateInfo info = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = Utils::ShaderTypeToShaderStageFlag(type),
 			.module = shaderModule,
 			.pName = main,
+			.pSpecializationInfo = specializationInfo,
 		};
 
 		m_ShaderStageCreateInfos.push_back(info);
