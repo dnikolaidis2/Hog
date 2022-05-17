@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tiny_obj_loader.h>
+#include <cgltf.h>
 
 #include "Hog/Renderer/Mesh.h"
 #include "Hog/Renderer/RendererObject.h"
@@ -153,5 +154,81 @@ namespace Hog
 		}
 
 		return ret;
+	}
+
+	inline static bool LoadGltfFile(const std::string& filepath, std::vector<Ref<RendererObject>>& objects)
+	{
+		cgltf_options options = {};
+		cgltf_data* data = NULL;
+		cgltf_result result = cgltf_parse_file(&options, filepath.c_str(), &data);
+		if (result == cgltf_result_success)
+		{
+			// Extract name from filepath
+			auto path = std::filesystem::path(filepath);
+			auto currentPath = std::filesystem::current_path();
+			std::filesystem::current_path(currentPath / path.parent_path());
+
+			for (int i = 0; i < data->buffers_count; ++i)
+			{
+				result = cgltf_load_buffers(&options, data, data->buffers[i].uri);
+				if (result != cgltf_result_success)
+				{
+					cgltf_free(data);
+					return false;
+				}
+			}
+			
+			// path.filename().replace_extension({ ".bin" });
+
+			//cgltf_load_buffers(&options, data, );
+
+			/*for (int i = 0; i < data->materials_count; ++i)
+			{
+				MaterialData materialData = {};
+
+				if (data->materials[i].has_pbr_metallic_roughness)
+				{
+					if (data->materials[i].pbr_metallic_roughness.base_color_texture.texture != nullptr)
+					{
+						materialData.DiffuseTexture =
+							TextureLibrary::LoadOrGet(
+								{ data->materials[i].pbr_metallic_roughness.base_color_texture.texture->image->uri });
+					}
+				}
+
+				MaterialLibrary::Create({ data->materials[i].name }, materialData);
+			}*/
+
+			const size_t initialSize = objects.size();
+			objects.reserve(initialSize + data->meshes_count);
+
+			std::vector<glm::vec3> buffer;
+
+			for (int i = 0; i < data->meshes_count; ++i)
+			{
+				for (int j = 0; j < data->meshes[i].primitives_count; ++j)
+				{
+					for (int k = 0; k < data->meshes[i].primitives[j].attributes_count; ++k)
+					{
+						const auto attribute = data->meshes[i].primitives[j].attributes[k];
+						const cgltf_size floats = cgltf_accessor_unpack_floats(attribute.data, nullptr, 0);
+
+						if (buffer.size() < floats / 3)
+						{
+							buffer.resize(floats / 3);
+						}
+
+						cgltf_accessor_unpack_floats(attribute.data, (cgltf_float*)buffer.data(), floats);
+
+					}
+				}
+			}
+
+			std::filesystem::current_path(currentPath);
+			cgltf_free(data);
+			return true;
+		}
+
+		return false;
 	}
 }
