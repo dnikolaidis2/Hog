@@ -29,7 +29,8 @@ project "Sandbox"
 		"%{IncludeDir.tinyobjloader}",
 		"%{IncludeDir.cgltf}",
 		"%{IncludeDir.VulkanSDK}",
-		"%{IncludeDir.optick}"
+		"%{IncludeDir.optick}",
+		"%{IncludeDir.yaml_cpp}",
 	}
 
 	links
