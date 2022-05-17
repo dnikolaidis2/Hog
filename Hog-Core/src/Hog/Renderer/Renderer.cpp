@@ -67,7 +67,7 @@ namespace Hog
 
 			for (int i = 0; i < s_Data.MaxFrameCount; ++i)
 			{
-				s_Data.CameraUniformBuffers[i] = CreateRef<Buffer>(MemoryType::UniformBuffer, (uint32_t)sizeof(CameraData));
+				s_Data.CameraUniformBuffers[i] = CreateRef<Buffer>(BufferType::UniformBuffer, (uint32_t)sizeof(CameraData));
 			}
 		}
 
@@ -77,7 +77,7 @@ namespace Hog
 
 			for (int i = 0; i < s_Data.MaxFrameCount; ++i)
 			{
-				s_Data.GlobalShaderDataUniformBuffers[i] = CreateRef<Buffer>(MemoryType::UniformBuffer, (uint32_t)sizeof(Renderer::GlobalShaderData));
+				s_Data.GlobalShaderDataUniformBuffers[i] = CreateRef<Buffer>(BufferType::UniformBuffer, (uint32_t)sizeof(Renderer::GlobalShaderData));
 			}
 		}
 
@@ -87,7 +87,7 @@ namespace Hog
 
 			for (int i = 0; i < s_Data.MaxFrameCount; ++i)
 			{
-				s_Data.MaterialUniformBuffers[i] = CreateRef<Buffer>(MemoryType::UniformBuffer, (uint32_t)(sizeof(MaterialGPUData) * MATERIAL_ARRAY_SIZE));
+				s_Data.MaterialUniformBuffers[i] = CreateRef<Buffer>(BufferType::UniformBuffer, (uint32_t)(sizeof(MaterialGPUData) * MATERIAL_ARRAY_SIZE));
 			}
 		}
 

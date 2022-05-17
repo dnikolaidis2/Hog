@@ -8,22 +8,29 @@
 
 namespace Hog {
 
-	enum class MemoryType
+	enum class BufferType
 	{
 		CPUWritableVertexBuffer,
 		GPUOnlyVertexBuffer,
 		TransferSourceBuffer,
 		CPUWritableIndexBuffer,
 		UniformBuffer,
+		ReadbackStorageBuffer,
 	};
 
-	static VmaMemoryUsage MemoryTypeToVmaMemoryUsage(MemoryType type);
+	static VmaMemoryUsage BufferTypeToVmaMemoryUsage(BufferType type);
 
-	static VkBufferUsageFlags MemoryTypeToVkBufferUsageFlagBits(MemoryType type);
+	static VmaAllocationCreateFlags BufferTypeToVmaAllocationCreateFlags(BufferType type);
+
+	static VkBufferUsageFlags BufferTypeToVkBufferUsageFlags(BufferType type);
+
+	VkDescriptorType BufferTypeToVkDescriptorType(BufferType type);
 	
-	static VkSharingMode MemoryTypeToVkSharingMode(MemoryType type);
+	static VkSharingMode BufferTypeToVkSharingMode(BufferType type);
 
-	static bool IsTypeGPUOnly(MemoryType type);
+	static bool IsPersistentlyMapped(BufferType type);
+
+	static bool IsTypeGPUOnly(BufferType type);
 
 	enum class DataType
 	{
@@ -216,19 +223,24 @@ namespace Hog {
 	class Buffer
 	{
 	public:
-		static Ref<Buffer> Create(MemoryType type, uint32_t size);
+		static Ref<Buffer> Create(BufferType type, uint32_t size);
 	public:
-		Buffer(MemoryType type, uint32_t size);
+		Buffer(BufferType type, uint32_t size);
 		virtual ~Buffer();
 
 		void SetData(void* data, uint32_t size);
 		void TransferData(uint32_t size, const Ref<Buffer>& src);
 		const VkBuffer& GetHandle() const { return m_Handle; }
 		uint32_t GetSize() const { return m_Size; }
-		MemoryType GetMemoryType() const { return m_Type; }
+		BufferType GetBufferType() const { return m_Type; }
+		void LockAfterWrite(VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage);
+		void LockBeforeRead(VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage);
+
+		operator void* () { return m_AllocationInfo.pMappedData; }
 	private:
 		VkBuffer m_Handle;
 		VmaAllocation m_Allocation;
+		VmaAllocationInfo m_AllocationInfo;
 
 		VkBufferCreateInfo m_BufferCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -237,7 +249,7 @@ namespace Hog {
 
 		VmaAllocationCreateInfo m_AllocationCreateInfo = {};
 
-		MemoryType m_Type;
+		BufferType m_Type;
 		uint32_t m_Size;
 	};
 
@@ -251,9 +263,6 @@ namespace Hog {
 
 		const BufferLayout& GetLayout() const { return m_Layout; }
 		void SetLayout(const BufferLayout& layout) { m_Layout = layout; }
-
-		VkVertexInputBindingDescription GetInputBindingDescription();
-		std::vector<VkVertexInputAttributeDescription> GetInputAttributeDescriptions();
 	private:
 		BufferLayout m_Layout;
 	};
