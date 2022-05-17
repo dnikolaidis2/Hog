@@ -486,7 +486,7 @@ namespace Hog {
 
 	Ref<Shader> Shader::Create(const std::string& name, const std::string& vertex, const std::string& fragment)
 	{
-		auto shader = Create(name);
+		auto shader = CreateRef<Shader>(name);
 		shader->AddStage(vertex);
 		shader->AddStage(fragment);
 
@@ -495,7 +495,10 @@ namespace Hog {
 
 	Ref<Shader> Shader::Create(const std::string& name)
 	{
-		return CreateRef<Shader>(name);
+		auto shader = CreateRef<Shader>(name);
+		shader->AddStage(name);
+
+		return shader;
 	}
 
 	Shader::~Shader()
@@ -660,6 +663,38 @@ namespace Hog {
 
 				layoutBinding.binding = binding;
 				layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				layoutBinding.descriptorCount = 1;
+				layoutBinding.stageFlags |= Utils::ShaderTypeToShaderStageFlag(stage);
+			}
+
+			HG_CORE_TRACE("Storage buffers:");
+			for (const auto& resource : resources.storage_buffers)
+			{
+				const auto& bufferType = compiler.get_type(resource.base_type_id);
+				uint32_t bufferSize;
+				if (bufferType.basetype == spirv_cross::SPIRType::Struct)
+					bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
+				else
+					bufferSize = (bufferType.width * bufferType.vecsize) / 8;
+				uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+				int memberCount = (int)bufferType.member_types.size();
+				uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+
+				HG_CORE_TRACE("  {0}", resource.name);
+				HG_CORE_TRACE("    Size = {0}", bufferSize);
+				HG_CORE_TRACE("    Binding = {0}", binding);
+				HG_CORE_TRACE("    Members = {0}", memberCount);
+				HG_CORE_TRACE("    Set = {0}", set);
+
+				if (m_DescriptorSetLayoutBinding[set].size() < binding + 1)
+				{
+					m_DescriptorSetLayoutBinding[set].resize(binding + 1);
+				}
+
+				VkDescriptorSetLayoutBinding& layoutBinding = m_DescriptorSetLayoutBinding[set][binding];
+
+				layoutBinding.binding = binding;
+				layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 				layoutBinding.descriptorCount = 1;
 				layoutBinding.stageFlags |= Utils::ShaderTypeToShaderStageFlag(stage);
 			}

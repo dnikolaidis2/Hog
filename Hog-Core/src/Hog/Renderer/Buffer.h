@@ -15,7 +15,7 @@ namespace Hog {
 		TransferSourceBuffer,
 		CPUWritableIndexBuffer,
 		UniformBuffer,
-		ReadbackUniformBuffer,
+		ReadbackStorageBuffer,
 	};
 
 	static VmaMemoryUsage BufferTypeToVmaMemoryUsage(BufferType type);
@@ -23,6 +23,8 @@ namespace Hog {
 	static VmaAllocationCreateFlags BufferTypeToVmaAllocationCreateFlags(BufferType type);
 
 	static VkBufferUsageFlags BufferTypeToVkBufferUsageFlags(BufferType type);
+
+	VkDescriptorType BufferTypeToVkDescriptorType(BufferType type);
 	
 	static VkSharingMode BufferTypeToVkSharingMode(BufferType type);
 
@@ -230,9 +232,9 @@ namespace Hog {
 		void TransferData(uint32_t size, const Ref<Buffer>& src);
 		const VkBuffer& GetHandle() const { return m_Handle; }
 		uint32_t GetSize() const { return m_Size; }
-		BufferType GetMemoryType() const { return m_Type; }
-		void LockAfterWrite(VkCommandBuffer commandBuffer, VkPipelineStageFlags stage);
-		void LockBeforeRead(VkCommandBuffer commandBuffer, VkPipelineStageFlags stage);
+		BufferType GetBufferType() const { return m_Type; }
+		void LockAfterWrite(VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage);
+		void LockBeforeRead(VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage);
 
 		operator void* () { return m_AllocationInfo.pMappedData; }
 	private:

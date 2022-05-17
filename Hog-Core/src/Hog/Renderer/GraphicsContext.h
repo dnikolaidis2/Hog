@@ -17,7 +17,7 @@ namespace Hog {
 		{
 			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
 			{
-				HG_CORE_INFO(pCallbackData->pMessage);
+				HG_CORE_TRACE(pCallbackData->pMessage);
 			} break;
 
 			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
@@ -49,6 +49,25 @@ namespace Hog {
 			VkPhysicalDeviceMemoryProperties MemoryProperties;
 			VkPhysicalDeviceProperties DeviceProperties;
 			VkPhysicalDeviceFeatures PhysicalDeviceFeatures;
+
+			VkPhysicalDeviceVulkan13Features PhysicalDeviceVulkan13Features = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+			};
+
+			VkPhysicalDeviceVulkan12Features PhysicalDeviceVulkan12Features = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+				.pNext = &PhysicalDeviceVulkan13Features,
+			};
+
+			VkPhysicalDeviceVulkan11Features PhysicalDeviceVulkan11Features = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+				.pNext = &PhysicalDeviceVulkan12Features,
+			};
+
+			VkPhysicalDeviceFeatures2  PhysicalDeviceFeatures2 = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+				.pNext = &PhysicalDeviceVulkan11Features,
+			};
 		};
 
 	public:
@@ -195,8 +214,24 @@ namespace Hog {
 			.shaderSampledImageArrayDynamicIndexing = VK_TRUE,
 		};
 
+		VkPhysicalDeviceVulkan13Features DeviceFeatures13 = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+			.synchronization2 = VK_TRUE,
+			.maintenance4 = VK_TRUE,
+		};
+
+		VkPhysicalDeviceVulkan12Features DeviceFeatures12 = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+			.pNext = &DeviceFeatures13,
+		};
+
+		VkPhysicalDeviceVulkan11Features DeviceFeatures11 = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
+			.pNext = &DeviceFeatures12,
+		};
+
 		std::vector<const char*> InstanceExtensions = {  };
-		std::vector<const char*> DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+		std::vector<const char*> DeviceExtensions = { VK_KHR_MAINTENANCE_4_EXTENSION_NAME, VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
 		std::vector<const char*> ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 

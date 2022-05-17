@@ -14,6 +14,11 @@ namespace Hog
 		return false;
 	}
 
+	void RenderGraph::Cleanup()
+	{
+		m_StartingPoints.clear();
+	}
+
 	Ref<Node> RenderGraph::AddStage(Ref<Node> parent, RendererStage stageInfo)
 	{
 		if (parent == nullptr)

@@ -12,341 +12,13 @@ AutoCVar_Int CVar_FrameCount("renderer.frameCount", "Number off frames being ren
 
 namespace Hog {
 
-	static bool CheckPhysicalDeviceFeatureSupport(GraphicsContext::GPUInfo* gpu, VkPhysicalDeviceFeatures features)
-	{
-		bool supported = true;
-		if (features.robustBufferAccess == VK_TRUE && gpu->PhysicalDeviceFeatures.robustBufferAccess != features.robustBufferAccess)
-		{
-			HG_CORE_ERROR("robustBufferAccess feature not supported by physical device.");
-			supported = false;
-		}
+	static bool CheckPhysicalDeviceFeatureSupport(GraphicsContext::GPUInfo* gpu, VkPhysicalDeviceFeatures features);
 
-	    if (features.fullDrawIndexUint32 == VK_TRUE && gpu->PhysicalDeviceFeatures.fullDrawIndexUint32 != features.fullDrawIndexUint32)
-	    {
-	    	HG_CORE_ERROR("fullDrawIndexUint32 feature not supported by physical device.");
-	    	supported = false;
-	    }
+	static bool CheckPhysicalDeviceFeatureSupport11(GraphicsContext::GPUInfo* gpu, VkPhysicalDeviceVulkan11Features features);
 
-	    if (features.imageCubeArray == VK_TRUE && gpu->PhysicalDeviceFeatures.imageCubeArray != features.imageCubeArray)
-	    {
-	    	HG_CORE_ERROR("imageCubeArray feature not supported by physical device.");
-	    	supported = false;
-	    }
+	static bool CheckPhysicalDeviceFeatureSupport12(GraphicsContext::GPUInfo* gpu, VkPhysicalDeviceVulkan12Features features);
 
-	    if (features.independentBlend == VK_TRUE && gpu->PhysicalDeviceFeatures.independentBlend != features.independentBlend)
-	    {
-	    	HG_CORE_ERROR("independentBlend feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.geometryShader == VK_TRUE && gpu->PhysicalDeviceFeatures.geometryShader != features.geometryShader)
-	    {
-	    	HG_CORE_ERROR("geometryShader feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.tessellationShader == VK_TRUE && gpu->PhysicalDeviceFeatures.tessellationShader != features.tessellationShader)
-	    {
-	    	HG_CORE_ERROR("tessellationShader feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.sampleRateShading == VK_TRUE && gpu->PhysicalDeviceFeatures.sampleRateShading != features.sampleRateShading)
-	    {
-	    	HG_CORE_ERROR("sampleRateShading feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.dualSrcBlend == VK_TRUE && gpu->PhysicalDeviceFeatures.dualSrcBlend != features.dualSrcBlend)
-	    {
-	    	HG_CORE_ERROR("dualSrcBlend feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.logicOp == VK_TRUE && gpu->PhysicalDeviceFeatures.logicOp != features.logicOp)
-	    {
-	    	HG_CORE_ERROR("logicOp feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.multiDrawIndirect == VK_TRUE && gpu->PhysicalDeviceFeatures.multiDrawIndirect != features.multiDrawIndirect)
-	    {
-	    	HG_CORE_ERROR("multiDrawIndirect feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.drawIndirectFirstInstance == VK_TRUE && gpu->PhysicalDeviceFeatures.drawIndirectFirstInstance != features.drawIndirectFirstInstance)
-	    {
-	    	HG_CORE_ERROR("drawIndirectFirstInstance feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.depthClamp == VK_TRUE && gpu->PhysicalDeviceFeatures.depthClamp != features.depthClamp)
-	    {
-	    	HG_CORE_ERROR("depthClamp feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.depthBiasClamp == VK_TRUE && gpu->PhysicalDeviceFeatures.depthBiasClamp != features.depthBiasClamp)
-	    {
-	    	HG_CORE_ERROR("depthBiasClamp feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.fillModeNonSolid == VK_TRUE && gpu->PhysicalDeviceFeatures.fillModeNonSolid != features.fillModeNonSolid)
-	    {
-	    	HG_CORE_ERROR("fillModeNonSolid feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.depthBounds == VK_TRUE && gpu->PhysicalDeviceFeatures.depthBounds != features.depthBounds)
-	    {
-	    	HG_CORE_ERROR("depthBounds feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.wideLines == VK_TRUE && gpu->PhysicalDeviceFeatures.wideLines != features.wideLines)
-	    {
-	    	HG_CORE_ERROR("wideLines feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.largePoints == VK_TRUE && gpu->PhysicalDeviceFeatures.largePoints != features.largePoints)
-	    {
-	    	HG_CORE_ERROR("largePoints feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.alphaToOne == VK_TRUE && gpu->PhysicalDeviceFeatures.alphaToOne != features.alphaToOne)
-	    {
-	    	HG_CORE_ERROR("alphaToOne feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.multiViewport == VK_TRUE && gpu->PhysicalDeviceFeatures.multiViewport != features.multiViewport)
-	    {
-	    	HG_CORE_ERROR("multiViewport feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.samplerAnisotropy == VK_TRUE && gpu->PhysicalDeviceFeatures.samplerAnisotropy != features.samplerAnisotropy)
-	    {
-	    	HG_CORE_ERROR("samplerAnisotropy feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.textureCompressionETC2 == VK_TRUE && gpu->PhysicalDeviceFeatures.textureCompressionETC2 != features.textureCompressionETC2)
-	    {
-	    	HG_CORE_ERROR("textureCompressionETC2 feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.textureCompressionASTC_LDR == VK_TRUE && gpu->PhysicalDeviceFeatures.textureCompressionASTC_LDR != features.textureCompressionASTC_LDR)
-	    {
-	    	HG_CORE_ERROR("textureCompressionASTC_LDR feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.textureCompressionBC == VK_TRUE && gpu->PhysicalDeviceFeatures.textureCompressionBC != features.textureCompressionBC)
-	    {
-	    	HG_CORE_ERROR("textureCompressionBC feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.occlusionQueryPrecise == VK_TRUE && gpu->PhysicalDeviceFeatures.occlusionQueryPrecise != features.occlusionQueryPrecise)
-	    {
-	    	HG_CORE_ERROR("occlusionQueryPrecise feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.pipelineStatisticsQuery == VK_TRUE && gpu->PhysicalDeviceFeatures.pipelineStatisticsQuery != features.pipelineStatisticsQuery)
-	    {
-	    	HG_CORE_ERROR("pipelineStatisticsQuery feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.vertexPipelineStoresAndAtomics == VK_TRUE && gpu->PhysicalDeviceFeatures.vertexPipelineStoresAndAtomics != features.vertexPipelineStoresAndAtomics)
-	    {
-	    	HG_CORE_ERROR("vertexPipelineStoresAndAtomics feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.fragmentStoresAndAtomics == VK_TRUE && gpu->PhysicalDeviceFeatures.fragmentStoresAndAtomics != features.fragmentStoresAndAtomics)
-	    {
-	    	HG_CORE_ERROR("fragmentStoresAndAtomics feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderTessellationAndGeometryPointSize == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderTessellationAndGeometryPointSize != features.shaderTessellationAndGeometryPointSize)
-	    {
-	    	HG_CORE_ERROR("shaderTessellationAndGeometryPointSize feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderImageGatherExtended == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderImageGatherExtended != features.shaderImageGatherExtended)
-	    {
-	    	HG_CORE_ERROR("shaderImageGatherExtended feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderStorageImageExtendedFormats == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderStorageImageExtendedFormats != features.shaderStorageImageExtendedFormats)
-	    {
-	    	HG_CORE_ERROR("shaderStorageImageExtendedFormats feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderStorageImageMultisample == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderStorageImageMultisample != features.shaderStorageImageMultisample)
-	    {
-	    	HG_CORE_ERROR("shaderStorageImageMultisample feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderStorageImageReadWithoutFormat == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderStorageImageReadWithoutFormat != features.shaderStorageImageReadWithoutFormat)
-	    {
-	    	HG_CORE_ERROR("shaderStorageImageReadWithoutFormat feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderStorageImageWriteWithoutFormat == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderStorageImageWriteWithoutFormat != features.shaderStorageImageWriteWithoutFormat)
-	    {
-	    	HG_CORE_ERROR("shaderStorageImageWriteWithoutFormat feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderUniformBufferArrayDynamicIndexing == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderUniformBufferArrayDynamicIndexing != features.shaderUniformBufferArrayDynamicIndexing)
-	    {
-	    	HG_CORE_ERROR("shaderUniformBufferArrayDynamicIndexing feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderSampledImageArrayDynamicIndexing == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderSampledImageArrayDynamicIndexing != features.shaderSampledImageArrayDynamicIndexing)
-	    {
-	    	HG_CORE_ERROR("shaderSampledImageArrayDynamicIndexing feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderStorageBufferArrayDynamicIndexing == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderStorageBufferArrayDynamicIndexing != features.shaderStorageBufferArrayDynamicIndexing)
-	    {
-	    	HG_CORE_ERROR("shaderStorageBufferArrayDynamicIndexing feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderStorageImageArrayDynamicIndexing == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderStorageImageArrayDynamicIndexing != features.shaderStorageImageArrayDynamicIndexing)
-	    {
-	    	HG_CORE_ERROR("shaderStorageImageArrayDynamicIndexing feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderClipDistance == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderClipDistance != features.shaderClipDistance)
-	    {
-	    	HG_CORE_ERROR("shaderClipDistance feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderCullDistance == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderCullDistance != features.shaderCullDistance)
-	    {
-	    	HG_CORE_ERROR("shaderCullDistance feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderFloat64 == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderFloat64 != features.shaderFloat64)
-	    {
-	    	HG_CORE_ERROR("shaderFloat64 feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderInt64 == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderInt64 != features.shaderInt64)
-	    {
-	    	HG_CORE_ERROR("shaderInt64 feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderInt16 == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderInt16 != features.shaderInt16)
-	    {
-	    	HG_CORE_ERROR("shaderInt16 feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderResourceResidency == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderResourceResidency != features.shaderResourceResidency)
-	    {
-	    	HG_CORE_ERROR("shaderResourceResidency feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.shaderResourceMinLod == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderResourceMinLod != features.shaderResourceMinLod)
-	    {
-	    	HG_CORE_ERROR("shaderResourceMinLod feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.sparseBinding == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseBinding != features.sparseBinding)
-	    {
-	    	HG_CORE_ERROR("sparseBinding feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.sparseResidencyBuffer == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseResidencyBuffer != features.sparseResidencyBuffer)
-	    {
-	    	HG_CORE_ERROR("sparseResidencyBuffer feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.sparseResidencyImage2D == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseResidencyImage2D != features.sparseResidencyImage2D)
-	    {
-	    	HG_CORE_ERROR("sparseResidencyImage2D feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.sparseResidencyImage3D == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseResidencyImage3D != features.sparseResidencyImage3D)
-	    {
-	    	HG_CORE_ERROR("sparseResidencyImage3D feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.sparseResidency2Samples == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseResidency2Samples != features.sparseResidency2Samples)
-	    {
-	    	HG_CORE_ERROR("sparseResidency2Samples feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.sparseResidency4Samples == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseResidency4Samples != features.sparseResidency4Samples)
-	    {
-	    	HG_CORE_ERROR("sparseResidency4Samples feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.sparseResidency8Samples == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseResidency8Samples != features.sparseResidency8Samples)
-	    {
-	    	HG_CORE_ERROR("sparseResidency8Samples feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.sparseResidency16Samples == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseResidency16Samples != features.sparseResidency16Samples)
-	    {
-	    	HG_CORE_ERROR("sparseResidency16Samples feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.sparseResidencyAliased == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseResidencyAliased != features.sparseResidencyAliased)
-	    {
-	    	HG_CORE_ERROR("sparseResidencyAliased feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.variableMultisampleRate == VK_TRUE && gpu->PhysicalDeviceFeatures.variableMultisampleRate != features.variableMultisampleRate)
-	    {
-	    	HG_CORE_ERROR("variableMultisampleRate feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    if (features.inheritedQueries == VK_TRUE && gpu->PhysicalDeviceFeatures.inheritedQueries != features.inheritedQueries)
-	    {
-	    	HG_CORE_ERROR("inheritedQueries feature not supported by physical device.");
-	    	supported = false;
-	    }
-
-	    return supported;
-	}
+	static bool CheckPhysicalDeviceFeatureSupport13(GraphicsContext::GPUInfo* gpu, VkPhysicalDeviceVulkan13Features  features);
 
 	static bool CheckPhysicalDeviceExtensionSupport(GraphicsContext::GPUInfo* gpu, std::vector<const char*>& extensions)
 	{
@@ -816,6 +488,8 @@ namespace Hog {
 			{
 				// Get physical device features to check with features required by application
 				vkGetPhysicalDeviceFeatures(gpu.Device, &gpu.PhysicalDeviceFeatures);
+
+				vkGetPhysicalDeviceFeatures2(gpu.Device, &gpu.PhysicalDeviceFeatures2);
 			}
 
 			// Almost done! Up next wee get the memory types supported by the device.
@@ -930,6 +604,21 @@ namespace Hog {
 				continue;
 			}
 
+			if (!CheckPhysicalDeviceFeatureSupport11(gpu, DeviceFeatures11))
+			{
+				continue;
+			}
+
+			if (!CheckPhysicalDeviceFeatureSupport12(gpu, DeviceFeatures12))
+			{
+				continue;
+			}
+
+			if (!CheckPhysicalDeviceFeatureSupport13(gpu, DeviceFeatures13))
+			{
+				continue;
+			}
+
 			// Did we find a device supporting both graphics and present.
 			if (graphicsIdx >= 0 && presentIdx >= 0) 
 			{
@@ -985,6 +674,7 @@ namespace Hog {
 		// Put it all together.
 		VkDeviceCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+		info.pNext = &DeviceFeatures11;
 		info.queueCreateInfoCount = (uint32_t)devqInfo.size();
 		info.pQueueCreateInfos = devqInfo.data();
 		info.pEnabledFeatures = &DeviceFeatures;
@@ -1218,4 +908,809 @@ namespace Hog {
 
 		return VK_SAMPLE_COUNT_1_BIT;
 	}
+
+	static bool CheckPhysicalDeviceFeatureSupport(GraphicsContext::GPUInfo* gpu, VkPhysicalDeviceFeatures features)
+	{
+		bool supported = true;
+		if (features.robustBufferAccess == VK_TRUE && gpu->PhysicalDeviceFeatures.robustBufferAccess == VK_FALSE)
+		{
+			HG_CORE_ERROR("robustBufferAccess feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.fullDrawIndexUint32 == VK_TRUE && gpu->PhysicalDeviceFeatures.fullDrawIndexUint32 == VK_FALSE)
+		{
+			HG_CORE_ERROR("fullDrawIndexUint32 feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.imageCubeArray == VK_TRUE && gpu->PhysicalDeviceFeatures.imageCubeArray == VK_FALSE)
+		{
+			HG_CORE_ERROR("imageCubeArray feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.independentBlend == VK_TRUE && gpu->PhysicalDeviceFeatures.independentBlend == VK_FALSE)
+		{
+			HG_CORE_ERROR("independentBlend feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.geometryShader == VK_TRUE && gpu->PhysicalDeviceFeatures.geometryShader == VK_FALSE)
+		{
+			HG_CORE_ERROR("geometryShader feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.tessellationShader == VK_TRUE && gpu->PhysicalDeviceFeatures.tessellationShader == VK_FALSE)
+		{
+			HG_CORE_ERROR("tessellationShader feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.sampleRateShading == VK_TRUE && gpu->PhysicalDeviceFeatures.sampleRateShading == VK_FALSE)
+		{
+			HG_CORE_ERROR("sampleRateShading feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.dualSrcBlend == VK_TRUE && gpu->PhysicalDeviceFeatures.dualSrcBlend == VK_FALSE)
+		{
+			HG_CORE_ERROR("dualSrcBlend feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.logicOp == VK_TRUE && gpu->PhysicalDeviceFeatures.logicOp == VK_FALSE)
+		{
+			HG_CORE_ERROR("logicOp feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.multiDrawIndirect == VK_TRUE && gpu->PhysicalDeviceFeatures.multiDrawIndirect == VK_FALSE)
+		{
+			HG_CORE_ERROR("multiDrawIndirect feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.drawIndirectFirstInstance == VK_TRUE && gpu->PhysicalDeviceFeatures.drawIndirectFirstInstance == VK_FALSE)
+		{
+			HG_CORE_ERROR("drawIndirectFirstInstance feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.depthClamp == VK_TRUE && gpu->PhysicalDeviceFeatures.depthClamp == VK_FALSE)
+		{
+			HG_CORE_ERROR("depthClamp feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.depthBiasClamp == VK_TRUE && gpu->PhysicalDeviceFeatures.depthBiasClamp == VK_FALSE)
+		{
+			HG_CORE_ERROR("depthBiasClamp feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.fillModeNonSolid == VK_TRUE && gpu->PhysicalDeviceFeatures.fillModeNonSolid == VK_FALSE)
+		{
+			HG_CORE_ERROR("fillModeNonSolid feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.depthBounds == VK_TRUE && gpu->PhysicalDeviceFeatures.depthBounds == VK_FALSE)
+		{
+			HG_CORE_ERROR("depthBounds feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.wideLines == VK_TRUE && gpu->PhysicalDeviceFeatures.wideLines == VK_FALSE)
+		{
+			HG_CORE_ERROR("wideLines feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.largePoints == VK_TRUE && gpu->PhysicalDeviceFeatures.largePoints == VK_FALSE)
+		{
+			HG_CORE_ERROR("largePoints feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.alphaToOne == VK_TRUE && gpu->PhysicalDeviceFeatures.alphaToOne == VK_FALSE)
+		{
+			HG_CORE_ERROR("alphaToOne feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.multiViewport == VK_TRUE && gpu->PhysicalDeviceFeatures.multiViewport == VK_FALSE)
+		{
+			HG_CORE_ERROR("multiViewport feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.samplerAnisotropy == VK_TRUE && gpu->PhysicalDeviceFeatures.samplerAnisotropy == VK_FALSE)
+		{
+			HG_CORE_ERROR("samplerAnisotropy feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.textureCompressionETC2 == VK_TRUE && gpu->PhysicalDeviceFeatures.textureCompressionETC2 == VK_FALSE)
+		{
+			HG_CORE_ERROR("textureCompressionETC2 feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.textureCompressionASTC_LDR == VK_TRUE && gpu->PhysicalDeviceFeatures.textureCompressionASTC_LDR == VK_FALSE)
+		{
+			HG_CORE_ERROR("textureCompressionASTC_LDR feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.textureCompressionBC == VK_TRUE && gpu->PhysicalDeviceFeatures.textureCompressionBC == VK_FALSE)
+		{
+			HG_CORE_ERROR("textureCompressionBC feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.occlusionQueryPrecise == VK_TRUE && gpu->PhysicalDeviceFeatures.occlusionQueryPrecise == VK_FALSE)
+		{
+			HG_CORE_ERROR("occlusionQueryPrecise feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.pipelineStatisticsQuery == VK_TRUE && gpu->PhysicalDeviceFeatures.pipelineStatisticsQuery == VK_FALSE)
+		{
+			HG_CORE_ERROR("pipelineStatisticsQuery feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.vertexPipelineStoresAndAtomics == VK_TRUE && gpu->PhysicalDeviceFeatures.vertexPipelineStoresAndAtomics == VK_FALSE)
+		{
+			HG_CORE_ERROR("vertexPipelineStoresAndAtomics feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.fragmentStoresAndAtomics == VK_TRUE && gpu->PhysicalDeviceFeatures.fragmentStoresAndAtomics == VK_FALSE)
+		{
+			HG_CORE_ERROR("fragmentStoresAndAtomics feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderTessellationAndGeometryPointSize == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderTessellationAndGeometryPointSize == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderTessellationAndGeometryPointSize feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderImageGatherExtended == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderImageGatherExtended == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderImageGatherExtended feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderStorageImageExtendedFormats == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderStorageImageExtendedFormats == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderStorageImageExtendedFormats feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderStorageImageMultisample == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderStorageImageMultisample == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderStorageImageMultisample feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderStorageImageReadWithoutFormat == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderStorageImageReadWithoutFormat == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderStorageImageReadWithoutFormat feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderStorageImageWriteWithoutFormat == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderStorageImageWriteWithoutFormat == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderStorageImageWriteWithoutFormat feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderUniformBufferArrayDynamicIndexing == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderUniformBufferArrayDynamicIndexing == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderUniformBufferArrayDynamicIndexing feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderSampledImageArrayDynamicIndexing == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderSampledImageArrayDynamicIndexing == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderSampledImageArrayDynamicIndexing feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderStorageBufferArrayDynamicIndexing == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderStorageBufferArrayDynamicIndexing == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderStorageBufferArrayDynamicIndexing feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderStorageImageArrayDynamicIndexing == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderStorageImageArrayDynamicIndexing == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderStorageImageArrayDynamicIndexing feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderClipDistance == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderClipDistance == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderClipDistance feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderCullDistance == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderCullDistance == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderCullDistance feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderFloat64 == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderFloat64 == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderFloat64 feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderInt64 == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderInt64 == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderInt64 feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderInt16 == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderInt16 == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderInt16 feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderResourceResidency == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderResourceResidency == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderResourceResidency feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.shaderResourceMinLod == VK_TRUE && gpu->PhysicalDeviceFeatures.shaderResourceMinLod == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderResourceMinLod feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.sparseBinding == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseBinding == VK_FALSE)
+		{
+			HG_CORE_ERROR("sparseBinding feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.sparseResidencyBuffer == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseResidencyBuffer == VK_FALSE)
+		{
+			HG_CORE_ERROR("sparseResidencyBuffer feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.sparseResidencyImage2D == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseResidencyImage2D == VK_FALSE)
+		{
+			HG_CORE_ERROR("sparseResidencyImage2D feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.sparseResidencyImage3D == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseResidencyImage3D == VK_FALSE)
+		{
+			HG_CORE_ERROR("sparseResidencyImage3D feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.sparseResidency2Samples == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseResidency2Samples == VK_FALSE)
+		{
+			HG_CORE_ERROR("sparseResidency2Samples feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.sparseResidency4Samples == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseResidency4Samples == VK_FALSE)
+		{
+			HG_CORE_ERROR("sparseResidency4Samples feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.sparseResidency8Samples == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseResidency8Samples == VK_FALSE)
+		{
+			HG_CORE_ERROR("sparseResidency8Samples feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.sparseResidency16Samples == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseResidency16Samples == VK_FALSE)
+		{
+			HG_CORE_ERROR("sparseResidency16Samples feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.sparseResidencyAliased == VK_TRUE && gpu->PhysicalDeviceFeatures.sparseResidencyAliased == VK_FALSE)
+		{
+			HG_CORE_ERROR("sparseResidencyAliased feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.variableMultisampleRate == VK_TRUE && gpu->PhysicalDeviceFeatures.variableMultisampleRate == VK_FALSE)
+		{
+			HG_CORE_ERROR("variableMultisampleRate feature not supported by physical device.");
+			supported = false;
+		}
+
+		if (features.inheritedQueries == VK_TRUE && gpu->PhysicalDeviceFeatures.inheritedQueries == VK_FALSE)
+		{
+			HG_CORE_ERROR("inheritedQueries feature not supported by physical device.");
+			supported = false;
+		}
+
+		return supported;
+	}
+
+	static bool CheckPhysicalDeviceFeatureSupport11(GraphicsContext::GPUInfo* gpu, VkPhysicalDeviceVulkan11Features features)
+	{
+		bool supported = true;
+
+		if (features.storageBuffer16BitAccess == VK_TRUE && gpu->PhysicalDeviceVulkan11Features.storageBuffer16BitAccess == VK_FALSE)
+		{
+			HG_CORE_ERROR("storageBuffer16BitAccess feature not supported by physical device");
+			supported = false;
+		}
+
+		if (features.uniformAndStorageBuffer16BitAccess == VK_TRUE && gpu->PhysicalDeviceVulkan11Features.uniformAndStorageBuffer16BitAccess == VK_FALSE)
+		{
+			HG_CORE_ERROR("uniformAndStorageBuffer16BitAccess feature not supported by physical device");
+			supported = false;
+		}
+
+		if (features.storagePushConstant16 == VK_TRUE && gpu->PhysicalDeviceVulkan11Features.storagePushConstant16 == VK_FALSE)
+		{
+			HG_CORE_ERROR("storagePushConstant16 feature not supported by physical device");
+			supported = false;
+		}
+
+		if (features.storageInputOutput16 == VK_TRUE && gpu->PhysicalDeviceVulkan11Features.storageInputOutput16 == VK_FALSE)
+		{
+			HG_CORE_ERROR("storageInputOutput16 feature not supported by physical device");
+			supported = false;
+		}
+
+		if (features.multiview == VK_TRUE && gpu->PhysicalDeviceVulkan11Features.multiview == VK_FALSE)
+		{
+			HG_CORE_ERROR("multiview feature not supported by physical device");
+			supported = false;
+		}
+
+		if (features.multiviewGeometryShader == VK_TRUE && gpu->PhysicalDeviceVulkan11Features.multiviewGeometryShader == VK_FALSE)
+		{
+			HG_CORE_ERROR("multiviewGeometryShader feature not supported by physical device");
+			supported = false;
+		}
+
+		if (features.multiviewTessellationShader == VK_TRUE && gpu->PhysicalDeviceVulkan11Features.multiviewTessellationShader == VK_FALSE)
+		{
+			HG_CORE_ERROR("multiviewTessellationShader feature not supported by physical device");
+			supported = false;
+		}
+
+		if (features.variablePointersStorageBuffer == VK_TRUE && gpu->PhysicalDeviceVulkan11Features.variablePointersStorageBuffer == VK_FALSE)
+		{
+			HG_CORE_ERROR("variablePointersStorageBuffer feature not supported by physical device");
+			supported = false;
+		}
+
+		if (features.variablePointers == VK_TRUE && gpu->PhysicalDeviceVulkan11Features.variablePointers == VK_FALSE)
+		{
+			HG_CORE_ERROR("variablePointers feature not supported by physical device");
+			supported = false;
+		}
+
+		if (features.protectedMemory == VK_TRUE && gpu->PhysicalDeviceVulkan11Features.protectedMemory == VK_FALSE)
+		{
+			HG_CORE_ERROR("protectedMemory feature not supported by physical device");
+			supported = false;
+		}
+
+		if (features.samplerYcbcrConversion == VK_TRUE && gpu->PhysicalDeviceVulkan11Features.samplerYcbcrConversion == VK_FALSE)
+		{
+			HG_CORE_ERROR("samplerYcbcrConversion feature not supported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderDrawParameters == VK_TRUE && gpu->PhysicalDeviceVulkan11Features.shaderDrawParameters == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderDrawParameters feature not supported by physical device");
+			supported = false;
+		}
+
+
+		return supported;
+	}
+
+	static bool CheckPhysicalDeviceFeatureSupport12(GraphicsContext::GPUInfo* gpu, VkPhysicalDeviceVulkan12Features features)
+	{
+		bool supported = true;
+
+		if (features.samplerMirrorClampToEdge == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.samplerMirrorClampToEdge == VK_FALSE)
+		{
+			HG_CORE_ERROR("samplerMirrorClampToEdge feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.drawIndirectCount == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.drawIndirectCount == VK_FALSE)
+		{
+			HG_CORE_ERROR("drawIndirectCount feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.storageBuffer8BitAccess == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.storageBuffer8BitAccess == VK_FALSE)
+		{
+			HG_CORE_ERROR("storageBuffer8BitAccess feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.uniformAndStorageBuffer8BitAccess == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.uniformAndStorageBuffer8BitAccess == VK_FALSE)
+		{
+			HG_CORE_ERROR("uniformAndStorageBuffer8BitAccess feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.storagePushConstant8 == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.storagePushConstant8 == VK_FALSE)
+		{
+			HG_CORE_ERROR("storagePushConstant8 feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderBufferInt64Atomics == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderBufferInt64Atomics == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderBufferInt64Atomics feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderSharedInt64Atomics == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderSharedInt64Atomics == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderSharedInt64Atomics feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderFloat16 == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderFloat16 == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderFloat16 feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderInt8 == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderInt8 == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderInt8 feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.descriptorIndexing == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.descriptorIndexing == VK_FALSE)
+		{
+			HG_CORE_ERROR("descriptorIndexing feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderInputAttachmentArrayDynamicIndexing == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderInputAttachmentArrayDynamicIndexing == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderInputAttachmentArrayDynamicIndexing feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderUniformTexelBufferArrayDynamicIndexing == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderUniformTexelBufferArrayDynamicIndexing == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderUniformTexelBufferArrayDynamicIndexing feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderStorageTexelBufferArrayDynamicIndexing == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderStorageTexelBufferArrayDynamicIndexing == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderStorageTexelBufferArrayDynamicIndexing feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderUniformBufferArrayNonUniformIndexing == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderUniformBufferArrayNonUniformIndexing == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderUniformBufferArrayNonUniformIndexing feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderSampledImageArrayNonUniformIndexing == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderSampledImageArrayNonUniformIndexing == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderSampledImageArrayNonUniformIndexing feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderStorageBufferArrayNonUniformIndexing == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderStorageBufferArrayNonUniformIndexing == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderStorageBufferArrayNonUniformIndexing feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderStorageImageArrayNonUniformIndexing == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderStorageImageArrayNonUniformIndexing == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderStorageImageArrayNonUniformIndexing feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderInputAttachmentArrayNonUniformIndexing == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderInputAttachmentArrayNonUniformIndexing == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderInputAttachmentArrayNonUniformIndexing feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderUniformTexelBufferArrayNonUniformIndexing == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderUniformTexelBufferArrayNonUniformIndexing == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderUniformTexelBufferArrayNonUniformIndexing feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderStorageTexelBufferArrayNonUniformIndexing == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderStorageTexelBufferArrayNonUniformIndexing == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderStorageTexelBufferArrayNonUniformIndexing feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.descriptorBindingUniformBufferUpdateAfterBind == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.descriptorBindingUniformBufferUpdateAfterBind == VK_FALSE)
+		{
+			HG_CORE_ERROR("descriptorBindingUniformBufferUpdateAfterBind feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.descriptorBindingSampledImageUpdateAfterBind == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.descriptorBindingSampledImageUpdateAfterBind == VK_FALSE)
+		{
+			HG_CORE_ERROR("descriptorBindingSampledImageUpdateAfterBind feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.descriptorBindingStorageImageUpdateAfterBind == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.descriptorBindingStorageImageUpdateAfterBind == VK_FALSE)
+		{
+			HG_CORE_ERROR("descriptorBindingStorageImageUpdateAfterBind feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.descriptorBindingStorageBufferUpdateAfterBind == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.descriptorBindingStorageBufferUpdateAfterBind == VK_FALSE)
+		{
+			HG_CORE_ERROR("descriptorBindingStorageBufferUpdateAfterBind feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.descriptorBindingUniformTexelBufferUpdateAfterBind == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.descriptorBindingUniformTexelBufferUpdateAfterBind == VK_FALSE)
+		{
+			HG_CORE_ERROR("descriptorBindingUniformTexelBufferUpdateAfterBind feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.descriptorBindingStorageTexelBufferUpdateAfterBind == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.descriptorBindingStorageTexelBufferUpdateAfterBind == VK_FALSE)
+		{
+			HG_CORE_ERROR("descriptorBindingStorageTexelBufferUpdateAfterBind feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.descriptorBindingUpdateUnusedWhilePending == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.descriptorBindingUpdateUnusedWhilePending == VK_FALSE)
+		{
+			HG_CORE_ERROR("descriptorBindingUpdateUnusedWhilePending feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.descriptorBindingPartiallyBound == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.descriptorBindingPartiallyBound == VK_FALSE)
+		{
+			HG_CORE_ERROR("descriptorBindingPartiallyBound feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.descriptorBindingVariableDescriptorCount == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.descriptorBindingVariableDescriptorCount == VK_FALSE)
+		{
+			HG_CORE_ERROR("descriptorBindingVariableDescriptorCount feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.runtimeDescriptorArray == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.runtimeDescriptorArray == VK_FALSE)
+		{
+			HG_CORE_ERROR("runtimeDescriptorArray feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.samplerFilterMinmax == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.samplerFilterMinmax == VK_FALSE)
+		{
+			HG_CORE_ERROR("samplerFilterMinmax feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.scalarBlockLayout == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.scalarBlockLayout == VK_FALSE)
+		{
+			HG_CORE_ERROR("scalarBlockLayout feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.imagelessFramebuffer == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.imagelessFramebuffer == VK_FALSE)
+		{
+			HG_CORE_ERROR("imagelessFramebuffer feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.uniformBufferStandardLayout == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.uniformBufferStandardLayout == VK_FALSE)
+		{
+			HG_CORE_ERROR("uniformBufferStandardLayout feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderSubgroupExtendedTypes == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderSubgroupExtendedTypes == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderSubgroupExtendedTypes feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.separateDepthStencilLayouts == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.separateDepthStencilLayouts == VK_FALSE)
+		{
+			HG_CORE_ERROR("separateDepthStencilLayouts feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.hostQueryReset == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.hostQueryReset == VK_FALSE)
+		{
+			HG_CORE_ERROR("hostQueryReset feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.timelineSemaphore == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.timelineSemaphore == VK_FALSE)
+		{
+			HG_CORE_ERROR("timelineSemaphore feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.bufferDeviceAddress == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.bufferDeviceAddress == VK_FALSE)
+		{
+			HG_CORE_ERROR("bufferDeviceAddress feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.bufferDeviceAddressCaptureReplay == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.bufferDeviceAddressCaptureReplay == VK_FALSE)
+		{
+			HG_CORE_ERROR("bufferDeviceAddressCaptureReplay feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.bufferDeviceAddressMultiDevice == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.bufferDeviceAddressMultiDevice == VK_FALSE)
+		{
+			HG_CORE_ERROR("bufferDeviceAddressMultiDevice feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.vulkanMemoryModel == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.vulkanMemoryModel == VK_FALSE)
+		{
+			HG_CORE_ERROR("vulkanMemoryModel feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.vulkanMemoryModelDeviceScope == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.vulkanMemoryModelDeviceScope == VK_FALSE)
+		{
+			HG_CORE_ERROR("vulkanMemoryModelDeviceScope feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.vulkanMemoryModelAvailabilityVisibilityChains == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.vulkanMemoryModelAvailabilityVisibilityChains == VK_FALSE)
+		{
+			HG_CORE_ERROR("vulkanMemoryModelAvailabilityVisibilityChains feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderOutputViewportIndex == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderOutputViewportIndex == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderOutputViewportIndex feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderOutputLayer == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.shaderOutputLayer == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderOutputLayer feature not suported by physical device");
+			supported = false;
+		}
+
+		if (features.subgroupBroadcastDynamicId == VK_TRUE && gpu->PhysicalDeviceVulkan12Features.subgroupBroadcastDynamicId == VK_FALSE)
+		{
+			HG_CORE_ERROR("subgroupBroadcastDynamicId feature not suported by physical device");
+			supported = false;
+		}
+
+
+		return supported;
+	}
+
+	static bool CheckPhysicalDeviceFeatureSupport13(GraphicsContext::GPUInfo* gpu, VkPhysicalDeviceVulkan13Features  features)
+	{
+		bool supported = true;
+
+		if (features.robustImageAccess == VK_TRUE && gpu->PhysicalDeviceVulkan13Features.robustImageAccess == VK_FALSE)
+		{
+			HG_CORE_ERROR("robustImageAccess feature is not supported by physical device");
+			supported = false;
+		}
+
+		if (features.inlineUniformBlock == VK_TRUE && gpu->PhysicalDeviceVulkan13Features.inlineUniformBlock == VK_FALSE)
+		{
+			HG_CORE_ERROR("inlineUniformBlock feature is not supported by physical device");
+			supported = false;
+		}
+
+		if (features.descriptorBindingInlineUniformBlockUpdateAfterBind == VK_TRUE && gpu->PhysicalDeviceVulkan13Features.descriptorBindingInlineUniformBlockUpdateAfterBind == VK_FALSE)
+		{
+			HG_CORE_ERROR("descriptorBindingInlineUniformBlockUpdateAfterBind feature is not supported by physical device");
+			supported = false;
+		}
+
+		if (features.pipelineCreationCacheControl == VK_TRUE && gpu->PhysicalDeviceVulkan13Features.pipelineCreationCacheControl == VK_FALSE)
+		{
+			HG_CORE_ERROR("pipelineCreationCacheControl feature is not supported by physical device");
+			supported = false;
+		}
+
+		if (features.privateData == VK_TRUE && gpu->PhysicalDeviceVulkan13Features.privateData == VK_FALSE)
+		{
+			HG_CORE_ERROR("privateData feature is not supported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderDemoteToHelperInvocation == VK_TRUE && gpu->PhysicalDeviceVulkan13Features.shaderDemoteToHelperInvocation == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderDemoteToHelperInvocation feature is not supported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderTerminateInvocation == VK_TRUE && gpu->PhysicalDeviceVulkan13Features.shaderTerminateInvocation == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderTerminateInvocation feature is not supported by physical device");
+			supported = false;
+		}
+
+		if (features.subgroupSizeControl == VK_TRUE && gpu->PhysicalDeviceVulkan13Features.subgroupSizeControl == VK_FALSE)
+		{
+			HG_CORE_ERROR("subgroupSizeControl feature is not supported by physical device");
+			supported = false;
+		}
+
+		if (features.computeFullSubgroups == VK_TRUE && gpu->PhysicalDeviceVulkan13Features.computeFullSubgroups == VK_FALSE)
+		{
+			HG_CORE_ERROR("computeFullSubgroups feature is not supported by physical device");
+			supported = false;
+		}
+
+		if (features.synchronization2 == VK_TRUE && gpu->PhysicalDeviceVulkan13Features.synchronization2 == VK_FALSE)
+		{
+			HG_CORE_ERROR("synchronization2 feature is not supported by physical device");
+			supported = false;
+		}
+
+		if (features.textureCompressionASTC_HDR == VK_TRUE && gpu->PhysicalDeviceVulkan13Features.textureCompressionASTC_HDR == VK_FALSE)
+		{
+			HG_CORE_ERROR("textureCompressionASTC_HDR feature is not supported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderZeroInitializeWorkgroupMemory == VK_TRUE && gpu->PhysicalDeviceVulkan13Features.shaderZeroInitializeWorkgroupMemory == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderZeroInitializeWorkgroupMemory feature is not supported by physical device");
+			supported = false;
+		}
+
+		if (features.dynamicRendering == VK_TRUE && gpu->PhysicalDeviceVulkan13Features.dynamicRendering == VK_FALSE)
+		{
+			HG_CORE_ERROR("dynamicRendering feature is not supported by physical device");
+			supported = false;
+		}
+
+		if (features.shaderIntegerDotProduct == VK_TRUE && gpu->PhysicalDeviceVulkan13Features.shaderIntegerDotProduct == VK_FALSE)
+		{
+			HG_CORE_ERROR("shaderIntegerDotProduct feature is not supported by physical device");
+			supported = false;
+		}
+
+		if (features.maintenance4 == VK_TRUE && gpu->PhysicalDeviceVulkan13Features.maintenance4 == VK_FALSE)
+		{
+			HG_CORE_ERROR("maintenance4 feature is not supported by physical device");
+			supported = false;
+		}
+
+
+		return supported;
+	}
+
 }

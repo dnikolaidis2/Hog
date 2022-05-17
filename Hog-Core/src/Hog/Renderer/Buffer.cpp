@@ -16,7 +16,7 @@ namespace Hog
 			case BufferType::GPUOnlyVertexBuffer:		return VMA_MEMORY_USAGE_GPU_ONLY;
 			case BufferType::TransferSourceBuffer:		return VMA_MEMORY_USAGE_CPU_ONLY;
 			case BufferType::UniformBuffer:				return VMA_MEMORY_USAGE_CPU_TO_GPU;
-			case BufferType::ReadbackUniformBuffer:		return VMA_MEMORY_USAGE_AUTO;
+			case BufferType::ReadbackStorageBuffer:		return VMA_MEMORY_USAGE_AUTO;
 		}
 
 		HG_CORE_ASSERT(false, "Unknown BufferType!");
@@ -32,7 +32,7 @@ namespace Hog
 			case BufferType::GPUOnlyVertexBuffer:		return 0;
 			case BufferType::TransferSourceBuffer:		return 0;
 			case BufferType::UniformBuffer:				return 0;
-			case BufferType::ReadbackUniformBuffer:		return VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT |
+			case BufferType::ReadbackStorageBuffer:		return VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT |
 				VMA_ALLOCATION_CREATE_MAPPED_BIT;
 		}
 
@@ -50,13 +50,25 @@ namespace Hog
 				VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 			case BufferType::TransferSourceBuffer:		return VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			case BufferType::UniformBuffer:				return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-			case BufferType::ReadbackUniformBuffer:		return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | 
+			case BufferType::ReadbackStorageBuffer:		return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
 				VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 		}
 
 		HG_CORE_ASSERT(false, "Unknown BufferType!");
 		return (VkBufferUsageFlags)0;
+	}
+
+	VkDescriptorType BufferTypeToVkDescriptorType(BufferType type)
+	{
+		switch (type)
+		{
+			case BufferType::UniformBuffer:				return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			case BufferType::ReadbackStorageBuffer:		return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		}
+
+		HG_CORE_ASSERT(false, "Unknown BufferType!");
+		return (VkDescriptorType)0;
 	}
 
 	VkSharingMode BufferTypeToVkSharingMode(BufferType type)
@@ -68,7 +80,7 @@ namespace Hog
 			case BufferType::CPUWritableIndexBuffer:	return VK_SHARING_MODE_EXCLUSIVE;
 			case BufferType::TransferSourceBuffer:		return VK_SHARING_MODE_EXCLUSIVE;
 			case BufferType::UniformBuffer:				return VK_SHARING_MODE_EXCLUSIVE;
-			case BufferType::ReadbackUniformBuffer:		return VK_SHARING_MODE_EXCLUSIVE;
+			case BufferType::ReadbackStorageBuffer:		return VK_SHARING_MODE_EXCLUSIVE;
 		}
 
 		HG_CORE_ASSERT(false, "Unknown BufferType!");
@@ -157,16 +169,16 @@ namespace Hog
 		});
 	}
 
-	void Buffer::LockAfterWrite(VkCommandBuffer commandBuffer, VkPipelineStageFlags stage)
+	void Buffer::LockAfterWrite(VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage)
 	{
 		if (BufferTypeToVkBufferUsageFlags(m_Type) & VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
 		{
 			const VkBufferMemoryBarrier2 bufferMemoryBarrier = {
 				.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
-				.srcStageMask = VK_PIPELINE_STAGE_HOST_BIT,
-				.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT,
+				.srcStageMask = VK_PIPELINE_STAGE_2_HOST_BIT,
+				.srcAccessMask = VK_ACCESS_2_HOST_WRITE_BIT,
 				.dstStageMask = stage,
-				.dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+				.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
 				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 				.buffer = m_Handle,
@@ -184,16 +196,16 @@ namespace Hog
 		}
 	}
 
-	void Buffer::LockBeforeRead(VkCommandBuffer commandBuffer, VkPipelineStageFlags stage)
+	void Buffer::LockBeforeRead(VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage)
 	{
 		if (BufferTypeToVkBufferUsageFlags(m_Type) & VK_BUFFER_USAGE_TRANSFER_DST_BIT)
 		{
 			const VkBufferMemoryBarrier2 bufferMemoryBarrier = {
 				.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
 				.srcStageMask = stage,
-				.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
-				.dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
-				.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
+				.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
+				.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+				.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT,
 				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 				.buffer = m_Handle,

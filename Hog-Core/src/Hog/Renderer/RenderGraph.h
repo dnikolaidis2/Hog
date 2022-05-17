@@ -7,7 +7,7 @@ namespace Hog
 {
 	enum class ResourceType
 	{
-		Uniform, Constant, PushConstant,
+		Uniform, Constant, PushConstant, Storage
 	};
 
 	struct ResourceElement
@@ -18,9 +18,11 @@ namespace Hog
 		uint32_t ConstantID = 0;
 		size_t ConstantSize = 0;
 		void* ConstantDataPointer = nullptr;
+		uint32_t Binding = 0;
+		uint32_t Set = 0;
 
-		ResourceElement(const std::string& name, ResourceType type, Ref<Hog::Buffer> buffer)
-			: Name(name), Type(type), Buffer(buffer) {}
+		ResourceElement(const std::string& name, ResourceType type, Ref<Hog::Buffer> buffer, uint32_t binding, uint32_t set)
+			: Name(name), Type(type), Buffer(buffer), Binding(binding), Set(set) {}
 
 		ResourceElement(const std::string& name, ResourceType type, uint32_t constantID, size_t constantSize, void* dataPointer)
 			: Name(name), Type(type), ConstantID(constantID), ConstantSize(constantSize), ConstantDataPointer(dataPointer) {}
@@ -115,6 +117,7 @@ namespace Hog
 	{
 	public:
 		RenderGraph() = default;
+		void Cleanup();
 
 		Ref<Node> AddStage(Ref<Node> parent, RendererStage stageInfo);
 		Ref<Node> AddStage(std::vector<Ref<Node>> parents, RendererStage stageInfo);

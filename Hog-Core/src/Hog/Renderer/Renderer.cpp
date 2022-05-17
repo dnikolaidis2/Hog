@@ -1,9 +1,13 @@
 #include "hgpch.h"
 #include "Renderer.h"
 
+#include "Hog/Core/Application.h"
 #include "Hog/Renderer/GraphicsContext.h"
+#include "Hog/Renderer/Buffer.h"
+#include "Hog/Renderer/Descriptor.h"
 #include "Hog/Utils/RendererUtils.h"
 #include "Hog/Core/CVars.h"
+#include "Hog/ImGui/ImGuiLayer.h"
 
 AutoCVar_Int CVar_ImageMipLevels("renderer.enableMipMapping", "Enable mip mapping for textures", 0, CVarFlags::None);
 
@@ -15,12 +19,15 @@ namespace Hog
 		VkCommandPool CommandPool;
 		VkCommandBuffer CommandBuffer;
 		VkFence Fence;
+		std::vector<VkDescriptorSet> DescriptorSets;
 	};
 
 	struct RendererData
 	{
 		RenderGraph Graph;
 		std::vector<RendererStageData> StageData;
+		DescriptorLayoutCache DescriptorLayoutCache;
+		DescriptorAllocator DescriptorAllocator;
 	};
 
 	static RendererData s_Data;
@@ -28,6 +35,9 @@ namespace Hog
 	void Renderer::Initialize(RenderGraph renderGraph)
 	{
 		s_Data.Graph = renderGraph;
+		s_Data.DescriptorAllocator.Init(GraphicsContext::GetDevice());
+		s_Data.DescriptorLayoutCache.Init(GraphicsContext::GetDevice());
+
 		auto stages = s_Data.Graph.GetFinalStages();
 		s_Data.StageData.resize(stages.size());
 		s_Data.StageData[0].Info = stages[0]->StageInfo;
@@ -49,12 +59,12 @@ namespace Hog
 				if (resource.Type == ResourceType::Constant)
 				{
 					specializationMapEntries.push_back({ resource.ConstantID, offset, resource.ConstantSize });
-
-					offset += resource.ConstantSize;
 					size += resource.ConstantSize;
 
 					buffer.resize(size);
 					std::memcpy(buffer.data() + offset, resource.ConstantDataPointer, resource.ConstantSize);
+
+					offset += resource.ConstantSize;
 				}
 			}
 
@@ -68,6 +78,27 @@ namespace Hog
 		else
 		{
 			s_Data.StageData[0].Info.Shader->Generate({});
+		}
+
+		for (const auto& resource : s_Data.StageData[0].Info.Resources)
+		{
+			if (resource.Type == ResourceType::Storage)
+			{
+				VkDescriptorSet set;
+				VkDescriptorBufferInfo bufferInfo = { resource.Buffer->GetHandle(), 0, VK_WHOLE_SIZE };
+
+				DescriptorBuilder::Begin(&s_Data.DescriptorLayoutCache, &s_Data.DescriptorAllocator)
+					.BindBuffer(resource.Binding, &bufferInfo, BufferTypeToVkDescriptorType(resource.Buffer->GetBufferType()), VK_SHADER_STAGE_COMPUTE_BIT)
+					.Build(set);
+
+				s_Data.StageData[0].DescriptorSets.push_back(set);
+			}
+		}
+
+		if (*CVarSystem::Get()->GetIntCVar("application.enableImGui"))
+		{
+			auto imGuiLayer = CreateRef<ImGuiLayer>();
+			Application::Get().SetImGuiLayer(imGuiLayer);
 		}
 	}
 
@@ -95,22 +126,23 @@ namespace Hog
 
 			for (auto& resource : stage.Info.Resources)
 			{
-				if (resource.Type == ResourceType::Uniform)
+				if (resource.Type == ResourceType::Storage)
 				{
-					resource.Buffer->LockAfterWrite(stage.CommandBuffer, VK_SHADER_STAGE_COMPUTE_BIT);
+					resource.Buffer->LockAfterWrite(stage.CommandBuffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT);
 				}
 			}
 
 			stage.Info.Shader->Bind(stage.CommandBuffer);
-			//bind descriptor;
+			vkCmdBindDescriptorSets(stage.CommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, stage.Info.Shader->GetPipelineLayout(),
+				0, stage.DescriptorSets.size(), stage.DescriptorSets.data(), 0, 0);
 
 			vkCmdDispatch(stage.CommandBuffer, 32, 1, 1);
 
 			for (auto& resource : stage.Info.Resources)
 			{
-				if (resource.Type == ResourceType::Uniform)
+				if (resource.Type == ResourceType::Storage)
 				{
-					resource.Buffer->LockBeforeRead(stage.CommandBuffer, VK_SHADER_STAGE_COMPUTE_BIT);
+					resource.Buffer->LockBeforeRead(stage.CommandBuffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT);
 				}
 			}
 
@@ -138,6 +170,16 @@ namespace Hog
 
 	void Renderer::Deinitialize()
 	{
+		for (const auto & stage : s_Data.StageData)
+		{
+			vkDestroyFence(GraphicsContext::GetDevice(), stage.Fence, nullptr);
+			vkDestroyCommandPool(GraphicsContext::GetDevice(), stage.CommandPool, nullptr);
+		}
+
+		s_Data.StageData.clear();
+		s_Data.DescriptorLayoutCache.Cleanup();
+		s_Data.DescriptorAllocator.Cleanup();
+		s_Data.Graph.Cleanup();
 	}
 
 	Renderer::RendererStats Renderer::GetStats()

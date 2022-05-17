@@ -91,11 +91,14 @@ namespace Hog
 	}
 
 	ComputePipeline::ComputePipeline(VkPipelineLayout layout)
+		:m_PipelineLayout(layout)
 	{
 	}
 
 	ComputePipeline::~ComputePipeline()
 	{
+		vkDestroyPipeline(GraphicsContext::GetDevice(), m_Handle, nullptr);
+		m_Initialized = false;
 	}
 
 	VkPipeline ComputePipeline::Create()
