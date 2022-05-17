@@ -1,7 +1,7 @@
 #include "hgpch.h"
 #include "Renderer.h"
 
-#include "Hog/Renderer/GraphicsPipeline.h"
+#include "Hog/Renderer/Pipeline.h"
 #include "Hog/Renderer/GraphicsContext.h"
 #include "Hog/Utils/RendererUtils.h"
 

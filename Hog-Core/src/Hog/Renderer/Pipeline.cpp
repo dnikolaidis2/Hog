@@ -1,6 +1,6 @@
 #include <hgpch.h>
 
-#include "GraphicsPipeline.h"
+#include "Pipeline.h"
 
 #include <Hog/Utils/RendererUtils.h>
 #include <Hog/Renderer/GraphicsContext.h>
