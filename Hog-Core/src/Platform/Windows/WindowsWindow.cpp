@@ -64,8 +64,14 @@ namespace Hog {
 		const char** glfwExtensions;
 
 		glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-		
+
+		auto temp = context.InstanceExtensions;
 		context.InstanceExtensions = std::vector<const char*>(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+		for (auto extension : temp)
+		{
+			context.InstanceExtensions.push_back(extension);
+		}
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 
