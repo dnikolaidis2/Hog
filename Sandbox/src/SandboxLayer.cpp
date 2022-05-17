@@ -24,8 +24,14 @@ void SandboxLayer::OnAttach()
 
 	HG_PROFILE_GPU_INIT_VULKAN(&(context.Device), &(context.PhysicalDevice), &(context.GraphicsQueue), &(context.GraphicsFamilyIndex), 1, nullptr);
 
-	ShaderLibrary::LoadDirectory("assets/shaders");
-	Renderer::Initialize();
+	RenderGraph graph;
+	auto graphics = graph.AddStage(nullptr, {
+		"Graphics", Shader::Create("Basic", "basic.vertex", "basic.fragment"), RendererStageType::Graphics, {
+			{},
+		}
+	});
+
+	Renderer::Initialize(graph);
 	TextureLibrary::Initialize();
 
 	m_ImGuiLayer = CreateRef<ImGuiLayer>();
@@ -51,7 +57,6 @@ void SandboxLayer::OnDetach()
 
 	Application::Get().PopOverlay(m_ImGuiLayer);
 	Renderer::Deinitialize();
-	ShaderLibrary::Deinitialize();
 	MaterialLibrary::Deinitialize();
 	TextureLibrary::Deinitialize();
 
@@ -66,10 +71,9 @@ void SandboxLayer::OnUpdate(Timestep ts)
 
 	m_EditorCamera.OnUpdate(ts);
 
-	Renderer::GlobalShaderData data;
-	Renderer::BeginScene(m_EditorCamera, data);
+	Renderer::Begin();
 
-	Renderer::DrawObjects(m_Objects);
+	Renderer::Draw();
 }
 
 void SandboxLayer::OnImGuiRender()

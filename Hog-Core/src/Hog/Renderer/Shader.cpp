@@ -452,7 +452,6 @@ namespace Hog {
 		options.AddMacroDefinition(TEXTURE_ARRAY_SIZE_NAMESTR, sizeof(TEXTURE_ARRAY_SIZE_NAMESTR) - 1,
 			TEXTURE_ARRAY_SIZE_VALUESTR, sizeof(TEXTURE_ARRAY_SIZE_VALUESTR) - 1);
 
-
 		if (CVar_ShaderOptimizationLevel.Get() == 0)
 		{
 			options.SetOptimizationLevel(shaderc_optimization_level_zero);
@@ -514,6 +513,9 @@ namespace Hog {
 		{
 			vkDestroyShaderModule(GraphicsContext::GetDevice(), shaderModule, nullptr);
 		}
+		
+		m_Sources.clear();
+	}
 
 		m_Sources.clear();
 	}
