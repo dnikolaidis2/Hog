@@ -3,6 +3,7 @@
 #include "Hog/Renderer/RendererObject.h"
 #include "Hog/Core/Base.h"
 #include "Hog/Renderer/EditorCamera.h"
+#include "Hog/Renderer/RenderGraph.h"
 
 namespace Hog
 {
@@ -15,14 +16,13 @@ namespace Hog
 			int32_t LightMaterialIndex;
 		};
 
-		static void Initialize();
+		static void Initialize(RenderGraph renderGraph);
 		static void Deinitialize();
 
-		static void BeginScene(const EditorCamera& camera, GlobalShaderData& globalShaderData);
-		static void EndScene();
+		static void Begin();
+		static void End();
 
-		static void DrawObject(const Ref<RendererObject> object);
-		static void DrawObjects(const std::vector<Ref<RendererObject>>& objects);
+		static void Draw();
 
 		struct RendererStats
 		{

@@ -7,7 +7,7 @@
 
 #include <GLFW/glfw3.h>
 
-AutoCVar_Int CVar_ImGui("application.enableImGui", "Enables ImGui ui layer", 1, CVarFlags::EditReadOnly);
+AutoCVar_Int CVar_ImGui("application.enableImGui", "Enables ImGui ui layer", 0, CVarFlags::EditReadOnly);
 
 namespace Hog {
 

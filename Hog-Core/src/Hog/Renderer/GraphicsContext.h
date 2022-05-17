@@ -13,22 +13,22 @@ namespace Hog {
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 		void* pUserData)
 	{
-		switch(messageSeverity)
+		switch (messageSeverity)
 		{
-			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-			{
-				HG_CORE_TRACE(pCallbackData->pMessage);
-			} break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+		{
+			HG_CORE_TRACE(pCallbackData->pMessage);
+		} break;
 
-			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-			{
-				HG_CORE_WARN(pCallbackData->pMessage);
-			} break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+		{
+			HG_CORE_WARN(pCallbackData->pMessage);
+		} break;
 
-			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-			{
-				HG_CORE_ERROR(pCallbackData->pMessage);
-			} break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+		{
+			HG_CORE_ERROR(pCallbackData->pMessage);
+		} break;
 		}
 
 		return VK_FALSE;
@@ -85,7 +85,7 @@ namespace Hog {
 		static void RecreateSwapChain() { Get().RecreateSwapChainImpl(); }
 		static void WaitIdle() { Get().WaitIdleImpl(); }
 		static VkDescriptorPool GetImGuiDescriptorPool() { Get().GetImGuiDescriptorPoolImpl(); return Get().ImGuiDescriptorPool; }
-		static void DestroyImGuiDescriptorPool() { Get().DestroyImGuiDescriptorPoolImpl();}
+		static void DestroyImGuiDescriptorPool() { Get().DestroyImGuiDescriptorPoolImpl(); }
 		static VmaAllocator GetAllocator() { return Get().Allocator; }
 		static VkInstance GetInstance() { return Get().Instance; }
 		static VkPhysicalDevice GetPhysicalDevice() { return Get().PhysicalDevice; }
@@ -93,18 +93,12 @@ namespace Hog {
 		static VkExtent2D GetExtent() { return Get().SwapchainExtent; }
 		static VkSwapchainKHR GetSwapchain() { return Get().Swapchain; }
 		static VkQueue GetGraphicsQueue() { return Get().GraphicsQueue; }
-		static int GetCurrentFrame() { return Get().CurrentFrame; }
-		static int GetFrameCount() { return Get().FrameCount; }
-		static void SetCurrentFrame(int frameNumber) { Get().CurrentFrame = frameNumber; }
-		static VkCommandBuffer GetCurrentCommandBuffer() { return Get().CommandBuffers[GetCurrentFrame()]; }
-		static VkFramebuffer GetCurrentFrameBuffer() { return Get().FrameBuffers[GetCurrentFrame()]; }
-		static VkRenderPass GetRenderPass() { return Get().RenderPass; }
-		static VkFence GetCurrentCommandBufferFence() { return Get().CommandBufferFences[GetCurrentFrame()]; }
-		static VkSemaphore GetCurrentAcquireSemaphore() { return Get().AcquireSemaphores[GetCurrentFrame()]; }
-		static VkSemaphore GetCurrentRenderCompleteSemaphore() { return Get().RenderCompleteSemaphores[GetCurrentFrame()]; }
+		static VkQueue GetComputeQueue() { return Get().ComputeQueue; }
 		static VkSampleCountFlagBits GetMSAASamples() { return Get().MSAASamples; }
 		static GPUInfo* GetGPUInfo() { return Get().GPU; }
 
+		static VkCommandPool CreateCommandPool() { return Get().CreateCommandPoolImpl(); }
+		static VkCommandBuffer CreateCommandBuffer(VkCommandPool commandPool) { return Get().CreateCommandBufferImpl(commandPool); }
 		static VkFence CreateFence(bool signaled) { return Get().CreateFenceImpl(signaled); }
 
 		static void ImmediateSubmit(std::function<void(VkCommandBuffer commandBuffer)>&& function) { return Get().ImmediateSubmitImpl(std::move(function)); }
@@ -122,6 +116,8 @@ namespace Hog {
 		void DestroyImGuiDescriptorPoolImpl();
 		void ImmediateSubmitImpl(std::function<void(VkCommandBuffer commandBuffer)>&& function);
 
+		VkCommandPool CreateCommandPoolImpl();
+		VkCommandBuffer CreateCommandBufferImpl(VkCommandPool commandPool);
 		VkFence CreateFenceImpl(bool signaled);
 
 	public:
@@ -132,14 +128,10 @@ namespace Hog {
 		void SelectPhysicalDevice();
 		void CreateLogicalDeviceAndQueues();
 		void InitializeAllocator();
-		void CreateSemaphores();
 		void CreateCommandPools();
 		void CreateCommandBuffers();
 		void CreateSwapChain();
 		VkFormat ChooseSupportedFormat(VkFormat* formats, int numFormats, VkImageTiling tiling, VkFormatFeatureFlags features);
-		void CreateRenderTargets();
-		void CreateRenderPass();
-		void CreateFrameBuffers();
 
 		void CleanupSwapChain();
 
@@ -150,9 +142,6 @@ namespace Hog {
 		bool m_Initialized = false;
 
 	public:
-		int const FrameCount = 2;
-		int CurrentFrame = 0;
-
 		VkInstance Instance = VK_NULL_HANDLE;
 		VkDebugUtilsMessengerEXT DebugMessenger = VK_NULL_HANDLE;
 
@@ -180,23 +169,9 @@ namespace Hog {
 
 		std::vector<Ref<Image>> SwapchainImages;
 
-		std::vector<VkSemaphore> AcquireSemaphores;
-		std::vector<VkSemaphore> RenderCompleteSemaphores;
-
-		std::vector<VkCommandPool> CommandPools;
 		VkCommandPool UploadCommandPool;
 
-		std::vector<VkCommandBuffer> CommandBuffers;
-		std::vector<VkFence> CommandBufferFences;
-
 		VkFence UploadFence;
-
-		Ref<Image> DepthImage;
-		Ref<Image> ColorImage;
-
-		VkRenderPass RenderPass = VK_NULL_HANDLE;
-
-		std::vector<VkFramebuffer> FrameBuffers;
 
 		VkSampleCountFlagBits MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 

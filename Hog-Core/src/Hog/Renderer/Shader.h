@@ -1,54 +1,116 @@
 #pragma once
+
 #include <shaderc/shaderc.h>
+#include <yaml-cpp/yaml.h>
 #include <vulkan/vulkan.h>
 
-#include <Hog/Renderer/Pipeline.h>
+#include "Hog/Renderer/Pipeline.h"
 
 namespace Hog {
 
-	enum class ShaderType { Fragment, Vertex, Compute };
+	enum class ShaderType { Fragment, Vertex, Compute, AnyHit, RayGeneration, Intersection, Miss, ClosestHit, Mesh };
+
+	namespace Utils {
+
+		VkShaderStageFlagBits ShaderTypeToShaderStageFlag(ShaderType type);
+
+	};
+
+	struct ShaderSource
+	{
+		std::string Name;
+		std::filesystem::path FilePath;
+		std::filesystem::path CacheFilePath;
+		ShaderType Type;
+		size_t Hash;
+		std::vector<uint32_t> Code;
+
+		ShaderSource() = default;
+		ShaderSource(std::string&& name, std::filesystem::path&& filepath, ShaderType type, size_t hash, std::vector<uint32_t>&& code)
+			: Name(std::move(name)), FilePath(std::move(filepath)), Type(type), Hash(hash), Code(std::move(code)) {}
+
+		ShaderSource(const ShaderSource& shaderSource) = default;
+
+		static Ref<ShaderSource> Deserialize(YAML::Node& info);
+		void Serialize(YAML::Emitter& emitter);
+
+		inline static Ref<ShaderSource> Create(std::string&& name, std::filesystem::path&& filepath, ShaderType type, size_t hash, std::vector<uint32_t>&& code)
+		{
+			return CreateRef<ShaderSource>(std::forward<std::string>(name), std::forward<std::filesystem::path>(filepath), type, hash, std::forward<std::vector<uint32_t>>(code));
+		}
+	};
+
+	class ShaderCache
+	{
+	public:
+		static ShaderCache& Get()
+		{
+			static ShaderCache instance;
+
+			return instance;
+		}
+
+		~ShaderCache() { Deinitialize(); }
+		static void Initialize() { if (Get().m_Initialized == false) Get().InitializeImpl(); }
+		static void Deinitialize() { if (Get().m_Initialized == true) Get().DeinitializeImpl(); }
+		static Ref<ShaderSource> GetShader(const std::string& name) { return Get().GetShaderImpl(name); }
+		static Ref<ShaderSource> ReloadShader(const std::string& name) { return Get().ReloadShaderImpl(name); }
+	public:
+		ShaderCache(ShaderCache const&) = delete;
+		void operator=(ShaderCache const&) = delete;
+	private:
+		ShaderCache() = default;
+
+		void InitializeImpl();
+		void DeinitializeImpl();
+		Ref<ShaderSource> GetShaderImpl(const std::string& name);
+		Ref<ShaderSource> ReloadShaderImpl(const std::string& name);
+		void SaveToFilesystem();
+
+		static std::vector<uint32_t> CompileShader(const std::string& source, ShaderType type, const std::filesystem::path& filepath);
+	private:
+		bool m_Initialized = false;
+
+		std::unordered_map<std::string, Ref<ShaderSource>> m_ShaderCache;
+	};
 
 	class Shader
 	{
 	public:
-		static VkShaderStageFlagBits ShaderTypeToVkShaderStageFlagBit(ShaderType type);
-		static Ref<Shader> Create(const std::string& filepath);
+		static Ref<Shader> Create(const std::string& name, const std::string& vertex, const std::string& fragment);
+		static Ref<Shader> Create(const std::string& name);
 	public:
-		Shader(const std::string& filepath);
+		Shader(const std::string& name)
+			: m_Name(name) {}
 		~Shader();
 
-		Ref<GraphicsPipeline> CreateOrGetDefaultPipeline();
+		void AddStage(Ref<ShaderSource> source);
+		void AddStage(const std::string& name);
+		void Generate(VkSpecializationInfo specializationInfo);
+		void Generate(VkRenderPass, VkSpecializationInfo specializationInfo);
+		void Bind(VkCommandBuffer commandBuffer);
+		void Reaload();
 
-		VkShaderModule GetVertexShaderModule() const { return m_VertexShaderModule; }
-		VkShaderModule GetFragmentShaderModule() const { return m_FragmentShaderModule; }
+		const std::string& GetName() const { return m_Name; }
+		void SetName(const std::string& name) { m_Name = name; }
+
 		VkPipelineLayout GetPipelineLayout() const { return m_PipelineLayout; }
 		const std::array<VkDescriptorSetLayout, 4>& GetDescriptorSetLayouts() const { return m_DescriptorSetLayouts; }
 		const std::vector<VkVertexInputAttributeDescription>& GetVertexInputAttributeDescriptions() { return m_VertexInputAttributeDescriptions; }
 		VkVertexInputBindingDescription GetVertexInputBindingDescription() const { return m_VertexInputBindingDescription; }
-		const std::string& GetName() const { return m_Name; }
+
 	private:
-		std::string ReadFile(const std::string& filepath);
-		std::unordered_map<shaderc_shader_kind, std::string> PreProcess(const std::string& source);
-
-		void CompileOrGetVulkanBinaries(const std::unordered_map<shaderc_shader_kind, std::string>& shaderSources);
-
-		void Reflect(shaderc_shader_kind stage, const std::vector<uint32_t>& shaderData);
-		void CreateProgram();
-		VkShaderModule CreateShaderModule(const std::vector<uint32_t>& code);
-		void GeneratePipelineLayout();
+		void Reflect();
 	private:
-		VkDevice m_Device;
-
 		std::string m_Name;
-		std::string m_FilePath;
-
-		std::unordered_map<shaderc_shader_kind, std::vector<uint32_t>> m_VulkanSPIRV;
-
-		VkShaderModule m_VertexShaderModule;
-		VkShaderModule m_FragmentShaderModule;
+		std::unordered_map<ShaderType, Ref<ShaderSource>> m_Sources;
+		std::unordered_map<ShaderType, VkShaderModule> m_Modules;
 
 		std::array<std::vector<VkDescriptorSetLayoutBinding>, 4> m_DescriptorSetLayoutBinding;
 		std::array<VkDescriptorSetLayout, 4> m_DescriptorSetLayouts;
+
+		VkVertexInputBindingDescription m_VertexInputBindingDescription = {};
+		std::vector<VkVertexInputAttributeDescription> m_VertexInputAttributeDescriptions;
 
 		std::vector<VkPushConstantRange> m_PushConstantRanges;
 
@@ -56,30 +118,7 @@ namespace Hog {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 		};
 
-		VkVertexInputBindingDescription m_VertexInputBindingDescription = {};
-		std::vector<VkVertexInputAttributeDescription> m_VertexInputAttributeDescriptions;
-
 		VkPipelineLayout m_PipelineLayout;
-		Ref<GraphicsPipeline> m_DefaultPipeline;
-	};
-
-	class ShaderLibrary
-	{
-	public:
-		ShaderLibrary() = delete;
-
-		static void Add(const std::string& name, const Ref<Shader>& shader);
-		static void Add(const Ref<Shader>& shader);
-		static void LoadDirectory(const std::string& directory);
-		static Ref<Shader> Load(const std::string& filepath);
-		static Ref<Shader> Load(const std::string& name, const std::string& filepath);
-		static Ref<Shader> LoadOrGet(const std::string& filepath);
-
-		static Ref<Shader> Get(const std::string& name);
-
-		static void Deinitialize();
-
-		static bool Exists(const std::string& name);
+		Ref<Pipeline> m_Pipeline;
 	};
 }
-

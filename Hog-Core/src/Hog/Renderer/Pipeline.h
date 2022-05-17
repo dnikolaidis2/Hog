@@ -6,22 +6,36 @@ namespace Hog
 {
 	enum class ShaderType;
 
-	class GraphicsPipeline
+	class Pipeline
 	{
 	public:
-		GraphicsPipeline(VkDevice device, VkPipelineLayout layout, VkExtent2D swapchainExtent, VkRenderPass renderPass);
-		~GraphicsPipeline();
+		static Ref<Pipeline> CreateGraphics(VkVertexInputBindingDescription vertexInputBindingDescription, const std::vector<VkVertexInputAttributeDescription>& vertexInputAttributeDescription,
+			VkPipelineLayout layout, VkRenderPass renderPass);
+		static Ref<Pipeline> CreateCompute(VkPipelineLayout layout);
 
-		VkPipeline Create();
-		void Bind(VkCommandBuffer commandBuffer);
+		virtual ~Pipeline() = default;
+
+		virtual VkPipeline Create() = 0;
+		virtual void Bind(VkCommandBuffer commandBuffer) = 0;
+
+		void AddShaderStage(ShaderType type, VkShaderModule shaderModule, VkSpecializationInfo* specializationInfo, const char* main = "main");
 		void Destroy();
-		void AddShaderStage(ShaderType type, VkShaderModule shaderModule, const char* main = "main");
+		operator VkPipeline() const { return m_Handle; }
+	protected:
+		std::vector<VkPipelineShaderStageCreateInfo> m_ShaderStageCreateInfos;
+		VkPipeline m_Handle = VK_NULL_HANDLE;
+		bool m_Initialized = false;
+	};
 
-		operator VkPipeline() const { return PipelineHandle; }
-	private:
+	class GraphicsPipeline : public Pipeline
+	{
 	public:
-		std::vector<VkPipelineShaderStageCreateInfo> ShaderStageCreateInfos;
+		GraphicsPipeline(VkVertexInputBindingDescription vertexInputBindingDescription, const std::vector<VkVertexInputAttributeDescription>& vertexInputAttributeDescription, VkPipelineLayout layout, VkRenderPass renderPass);
+		~GraphicsPipeline() override;
 
+		virtual VkPipeline Create() override;
+		virtual void Bind(VkCommandBuffer commandBuffer) override;
+	public:
 		std::vector<VkVertexInputBindingDescription> VertexInputBindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> VertexInputAttributeDescriptions;
 
@@ -108,7 +122,7 @@ namespace Hog
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
 			.depthTestEnable = VK_TRUE,
 			.depthWriteEnable = VK_TRUE,
-			.depthCompareOp = VK_COMPARE_OP_ALWAYS,
+			.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
 			.depthBoundsTestEnable = VK_FALSE,
 			.stencilTestEnable = VK_FALSE,
 			.minDepthBounds = 0.0f, // Optional
@@ -137,11 +151,23 @@ namespace Hog
 			.basePipelineHandle = VK_NULL_HANDLE, // Optional
 			.basePipelineIndex = -1, // Optional
 		};
-
-		VkPipeline PipelineHandle;
 	private:
-		VkDevice m_Device;
 		VkPipelineLayout m_PipelineLayout;
-		bool m_Initialized = false;
+	};
+
+	class ComputePipeline : public Pipeline
+	{
+	public:
+		ComputePipeline(VkPipelineLayout layout);
+		~ComputePipeline() override;
+
+		virtual VkPipeline Create() override;
+		virtual void Bind(VkCommandBuffer commandBuffer) override;
+	public:
+		VkComputePipelineCreateInfo ComputePipelineCreateInfo = {
+			.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+		};
+	private:
+		VkPipelineLayout m_PipelineLayout;
 	};
 }

@@ -14,7 +14,7 @@
 #include "Hog/Renderer/GraphicsContext.h"
 #include "Hog/Renderer/Renderer.h"
 #include "Hog/Utils/RendererUtils.h"
-
+#include "Hog/Core/CVars.h"
 
 namespace Hog {
 
@@ -25,9 +25,9 @@ namespace Hog {
 
 	void ImGuiLayer::OnUpdate(Timestep ts)
 	{
-		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), GraphicsContext::GetCurrentCommandBuffer());
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), VK_NULL_HANDLE);
 
-		Renderer::EndScene();
+		Renderer::End();
 	}
 
 	void ImGuiLayer::OnAttach()
@@ -74,17 +74,17 @@ namespace Hog {
 		initInfo.Device = GraphicsContext::GetDevice();
 		initInfo.Queue = GraphicsContext::GetGraphicsQueue();
 		initInfo.DescriptorPool = GraphicsContext::GetImGuiDescriptorPool();
-		initInfo.MinImageCount = GraphicsContext::GetFrameCount();
-		initInfo.ImageCount = GraphicsContext::GetFrameCount();
+		initInfo.MinImageCount = *CVarSystem::Get()->GetIntCVar("renderer.frameCount");
+		initInfo.ImageCount = *CVarSystem::Get()->GetIntCVar("renderer.frameCount");
 		initInfo.MSAASamples = GraphicsContext::GetMSAASamples();
 		initInfo.CheckVkResultFn = CheckVkResult;
 
-		ImGui_ImplVulkan_Init(&initInfo, GraphicsContext::GetRenderPass());
+		ImGui_ImplVulkan_Init(&initInfo, VK_NULL_HANDLE);
 
 		GraphicsContext::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
-		{
-			ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
-		});
+			{
+				ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
+			});
 
 		ImGui_ImplVulkan_DestroyFontUploadObjects();
 
@@ -110,7 +110,7 @@ namespace Hog {
 			e.Handled |= e.IsInCategory(EventCategoryKeyboard) & io.WantCaptureKeyboard;
 		}
 	}
-	
+
 	void ImGuiLayer::Begin()
 	{
 		HG_PROFILE_FUNCTION();
@@ -149,7 +149,7 @@ namespace Hog {
 		colors[ImGuiCol_Header] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
 		colors[ImGuiCol_HeaderHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
 		colors[ImGuiCol_HeaderActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
-		
+
 		// Buttons
 		colors[ImGuiCol_Button] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
 		colors[ImGuiCol_ButtonHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
