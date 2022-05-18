@@ -16,29 +16,33 @@ void SandboxLayer::OnAttach()
 {
 	HG_PROFILE_FUNCTION()
 
-#if HG_PROFILE
-	context.EnableValidationLayers = false;
-#endif
-
 	GraphicsContext::Initialize();
-
+	
 	HG_PROFILE_GPU_INIT_VULKAN(&(context.Device), &(context.PhysicalDevice), &(context.GraphicsQueue), &(context.GraphicsFamilyIndex), 1, nullptr);
 
 	RenderGraph graph;
 	auto graphics = graph.AddStage(nullptr, {
-		"Graphics", Shader::Create("Basic", "basic.vertex", "basic.fragment"), RendererStageType::Graphics, {
-			{},
-		}
+		"ForwardGraphics", Shader::Create("Basic", "Basic.vertex", "Basic.fragment"), RendererStageType::ForwardGraphics,
+		{
+			{DataType::Float3, "a_Position"},
+			{DataType::Float3, "a_Normal"},
+			{DataType::Float2, "a_TexCoords"},
+			{DataType::Float3, "a_MaterialIndex"},
+		},
+		{
+			{"u_ViewProjection", ResourceType::Uniform, ResourceBindLocation::Vertex, nullptr, 0, 0},
+			{"u_Materials", ResourceType::Uniform, ResourceBindLocation::Fragment, nullptr, 1, 0},
+			{"u_Textures", ResourceType::SamplerArray, ResourceBindLocation::Fragment, nullptr, 2, 0},
+			{"p_Model", ResourceType::PushConstant, ResourceBindLocation::Vertex, sizeof(PushConstant), &m_PushConstant},
+		},
+		nullptr,
+		nullptr,
 	});
 
 	Renderer::Initialize(graph);
-	TextureLibrary::Initialize();
 
 	m_ImGuiLayer = CreateRef<ImGuiLayer>();
 	Application::Get().SetImGuiLayer(m_ImGuiLayer);
-
-	LoadObjFile("assets/models/sponza/sponza.obj", m_Objects);
-	// LoadObjFile("assets/models/monkey/monkey_flat.obj", m_Objects);
 
 	for (auto & obj : m_Objects)
 	{
@@ -70,8 +74,6 @@ void SandboxLayer::OnUpdate(Timestep ts)
 	HG_PROFILE_FUNCTION()
 
 	m_EditorCamera.OnUpdate(ts);
-
-	Renderer::Begin();
 
 	Renderer::Draw();
 }

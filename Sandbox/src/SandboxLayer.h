@@ -7,6 +7,11 @@ using namespace Hog;
 class SandboxLayer : public Layer
 {
 public:
+	struct PushConstant
+	{
+		glm::mat4 Model;
+	};
+
 	SandboxLayer();
 	virtual ~SandboxLayer() = default;
 
@@ -23,4 +28,6 @@ private:
 	EditorCamera m_EditorCamera;
 
 	Ref<ImGuiLayer> m_ImGuiLayer;
+
+	PushConstant m_PushConstant;
 };

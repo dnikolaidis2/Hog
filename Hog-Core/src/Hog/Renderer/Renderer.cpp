@@ -64,11 +64,11 @@ namespace Hog
 					buffer.resize(size);
 					std::memcpy(buffer.data() + offset, resource.ConstantDataPointer, resource.ConstantSize);
 
-					offset += resource.ConstantSize;
+					offset += (uint32_t)resource.ConstantSize;
 				}
 			}
 
-			specializationInfo.mapEntryCount = specializationMapEntries.size();
+			specializationInfo.mapEntryCount = (uint32_t)specializationMapEntries.size();
 			specializationInfo.pMapEntries = specializationMapEntries.data();
 			specializationInfo.dataSize = size;
 			specializationInfo.pData = buffer.data();
@@ -102,16 +102,6 @@ namespace Hog
 		}
 	}
 
-	void Renderer::Begin()
-	{
-		HG_PROFILE_FUNCTION();
-	}
-
-	void Renderer::End()
-	{
-		HG_PROFILE_FUNCTION();
-	}
-
 	void Renderer::Draw()
 	{
 		HG_PROFILE_FUNCTION();
@@ -134,7 +124,7 @@ namespace Hog
 
 			stage.Info.Shader->Bind(stage.CommandBuffer);
 			vkCmdBindDescriptorSets(stage.CommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, stage.Info.Shader->GetPipelineLayout(),
-				0, stage.DescriptorSets.size(), stage.DescriptorSets.data(), 0, 0);
+				0, (uint32_t)stage.DescriptorSets.size(), stage.DescriptorSets.data(), 0, 0);
 
 			vkCmdDispatch(stage.CommandBuffer, 32, 1, 1);
 

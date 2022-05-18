@@ -19,9 +19,6 @@ namespace Hog
 		static void Initialize(RenderGraph renderGraph);
 		static void Deinitialize();
 
-		static void Begin();
-		static void End();
-
 		static void Draw();
 
 		struct RendererStats
