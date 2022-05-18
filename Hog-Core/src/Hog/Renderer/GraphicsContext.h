@@ -100,6 +100,7 @@ namespace Hog {
 		static VkCommandPool CreateCommandPool() { return Get().CreateCommandPoolImpl(); }
 		static VkCommandBuffer CreateCommandBuffer(VkCommandPool commandPool) { return Get().CreateCommandBufferImpl(commandPool); }
 		static VkFence CreateFence(bool signaled) { return Get().CreateFenceImpl(signaled); }
+		static VkSemaphore CreateVkSemaphore() { return Get().CreateSemaphoreImpl(); }
 
 		static void ImmediateSubmit(std::function<void(VkCommandBuffer commandBuffer)>&& function) { return Get().ImmediateSubmitImpl(std::move(function)); }
 	public:
@@ -119,6 +120,7 @@ namespace Hog {
 		VkCommandPool CreateCommandPoolImpl();
 		VkCommandBuffer CreateCommandBufferImpl(VkCommandPool commandPool);
 		VkFence CreateFenceImpl(bool signaled);
+		VkSemaphore CreateSemaphoreImpl();
 
 	public:
 		void CreateInstance();

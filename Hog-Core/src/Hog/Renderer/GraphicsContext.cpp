@@ -294,6 +294,19 @@ namespace Hog {
 		return fence;
 	}
 
+	VkSemaphore GraphicsContext::CreateSemaphoreImpl()
+	{
+		VkSemaphore semaphore;
+
+		VkSemaphoreCreateInfo semaphoreCreateInfo = {
+			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+		};
+
+		CheckVkResult(vkCreateSemaphore(Device, &semaphoreCreateInfo, nullptr, &semaphore));
+
+		return semaphore;
+	}
+
 	VkCommandPool GraphicsContext::CreateCommandPoolImpl()
 	{
 		VkCommandPool commandPool;
