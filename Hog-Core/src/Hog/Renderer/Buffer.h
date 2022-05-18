@@ -109,115 +109,12 @@ namespace Hog {
 		return 0;
 	}
 
-	struct BufferElement
-	{
-		std::string Name;
-		uint32_t Location;
-		DataType Type;
-		uint32_t Size;
-		size_t Offset;
-		bool Normalized;
-
-		BufferElement() = default;
-
-		BufferElement(DataType type, const std::string& name, bool normalized = false)
-			: Name(name), Type(type), Size(ShaderDataTypeSize(type)), Offset(0), Normalized(normalized)
-		{
-		}
-
-		uint32_t GetComponentCount() const
-		{
-			switch (Type)
-			{
-				case DataType::Float:   return 1;
-				case DataType::Float2:  return 2;
-				case DataType::Float3:  return 3;
-				case DataType::Float4:  return 4;
-				case DataType::Mat3:    return 3; // 3* float3
-				case DataType::Mat4:    return 4; // 4* float4
-				case DataType::Int:     return 1;
-				case DataType::Int2:    return 2;
-				case DataType::Int3:    return 3;
-				case DataType::Int4:    return 4;
-				case DataType::Bool:    return 1;
-			}
-
-			HG_CORE_ASSERT(false, "Unknown DataType!");
-			return 0;
-		}
-	};
-
-	class BufferLayout
-	{
-	public:
-		BufferLayout() {}
-
-		BufferLayout(std::initializer_list<BufferElement> elements)
-			: m_Elements(elements)
-		{
-			CalculateOffsetsAndStride();
-		}
-
-		uint32_t GetStride() const { return m_Stride; }
-		const std::vector<BufferElement>& GetElements() const { return m_Elements; }
-
-		std::vector<BufferElement>::iterator begin() { return m_Elements.begin(); }
-		std::vector<BufferElement>::iterator end() { return m_Elements.end(); }
-		std::vector<BufferElement>::const_iterator begin() const { return m_Elements.begin(); }
-		std::vector<BufferElement>::const_iterator end() const { return m_Elements.end(); }
-	private:
-		void CalculateOffsetsAndStride()
-		{
-			size_t offset = 0;
-			m_Stride = 0;
-			for (size_t i = 0; i < m_Elements.size(); i++)
-			{
-				if (m_Elements[i].Type == DataType::Mat3)
-				{
-					auto name = m_Elements[i].Name;
-					m_Elements.insert(m_Elements.begin() + i + 1, {DataType::Float3, name, m_Elements[i].Normalized});
-					m_Elements.insert(m_Elements.begin() + i + 1, {DataType::Float3, name, m_Elements[i].Normalized});
-					m_Elements.insert(m_Elements.begin() + i + 1, {DataType::Float3, name, m_Elements[i].Normalized});
-					m_Elements.erase(m_Elements.begin() + i);
-				}
-
-				if (m_Elements[i].Type == DataType::Mat4)
-				{
-					auto name = m_Elements[i].Name;
-					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float4, name, m_Elements[i].Normalized });
-					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float4, name, m_Elements[i].Normalized });
-					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float4, name, m_Elements[i].Normalized });
-					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float4, name, m_Elements[i].Normalized });
-
-					m_Elements.erase(m_Elements.begin() + i);
-				}
-
-				auto& element = m_Elements[i];
-
-				element.Location = (uint32_t)i;
-				element.Offset = offset;
-				offset += element.Size;
-				m_Stride += element.Size;
-			}
-		}
-	private:
-		std::vector<BufferElement> m_Elements;
-		uint32_t m_Stride = 0;
-	};
-
 	struct Vertex
 	{
 		glm::vec3 Position;
 		glm::vec3 Normal;
 		glm::vec2 TexCoords;
 		int32_t MaterialIndex;
-
-		inline static const BufferLayout Layout = {
-			{DataType::Float3, "a_Position"},
-			{DataType::Float3, "a_Normal"},
-			{DataType::Float2, "a_TexCoords"},
-			{DataType::Int, "a_MaterialIndex"},
-		};
 	};
 
 	class Buffer
@@ -260,10 +157,6 @@ namespace Hog {
 	public:
 		VertexBuffer(uint32_t size);
 		~VertexBuffer() = default;
-
-		const BufferLayout& GetLayout() const { return m_Layout; }
-		void SetLayout(const BufferLayout& layout) { m_Layout = layout; }
 	private:
-		BufferLayout m_Layout;
 	};
 }

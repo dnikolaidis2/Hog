@@ -5,15 +5,117 @@
 
 namespace Hog
 {
+	struct VertexElement
+	{
+		std::string Name;
+		uint32_t Location;
+		DataType Type;
+		uint32_t Size;
+		size_t Offset;
+		bool Normalized;
+
+		VertexElement() = default;
+
+		VertexElement(DataType type, const std::string& name, bool normalized = false)
+			: Name(name), Type(type), Size(ShaderDataTypeSize(type)), Offset(0), Normalized(normalized)
+		{
+		}
+
+		uint32_t GetComponentCount() const
+		{
+			switch (Type)
+			{
+			case DataType::Float:   return 1;
+			case DataType::Float2:  return 2;
+			case DataType::Float3:  return 3;
+			case DataType::Float4:  return 4;
+			case DataType::Mat3:    return 3; // 3* float3
+			case DataType::Mat4:    return 4; // 4* float4
+			case DataType::Int:     return 1;
+			case DataType::Int2:    return 2;
+			case DataType::Int3:    return 3;
+			case DataType::Int4:    return 4;
+			case DataType::Bool:    return 1;
+			}
+
+			HG_CORE_ASSERT(false, "Unknown DataType!");
+			return 0;
+		}
+	};
+
+	class VertexInputLayout
+	{
+	public:
+		VertexInputLayout() {}
+
+		VertexInputLayout(std::initializer_list<VertexElement> elements)
+			: m_Elements(elements)
+		{
+			CalculateOffsetsAndStride();
+		}
+
+		uint32_t GetStride() const { return m_Stride; }
+		const std::vector<VertexElement>& GetElements() const { return m_Elements; }
+
+		std::vector<VertexElement>::iterator begin() { return m_Elements.begin(); }
+		std::vector<VertexElement>::iterator end() { return m_Elements.end(); }
+		std::vector<VertexElement>::const_iterator begin() const { return m_Elements.begin(); }
+		std::vector<VertexElement>::const_iterator end() const { return m_Elements.end(); }
+	private:
+		void CalculateOffsetsAndStride()
+		{
+			size_t offset = 0;
+			m_Stride = 0;
+			for (size_t i = 0; i < m_Elements.size(); i++)
+			{
+				if (m_Elements[i].Type == DataType::Mat3)
+				{
+					auto name = m_Elements[i].Name;
+					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float3, name, m_Elements[i].Normalized });
+					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float3, name, m_Elements[i].Normalized });
+					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float3, name, m_Elements[i].Normalized });
+					m_Elements.erase(m_Elements.begin() + i);
+				}
+
+				if (m_Elements[i].Type == DataType::Mat4)
+				{
+					auto name = m_Elements[i].Name;
+					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float4, name, m_Elements[i].Normalized });
+					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float4, name, m_Elements[i].Normalized });
+					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float4, name, m_Elements[i].Normalized });
+					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float4, name, m_Elements[i].Normalized });
+
+					m_Elements.erase(m_Elements.begin() + i);
+				}
+
+				auto& element = m_Elements[i];
+
+				element.Location = (uint32_t)i;
+				element.Offset = offset;
+				offset += element.Size;
+				m_Stride += element.Size;
+			}
+		}
+	private:
+		std::vector<VertexElement> m_Elements;
+		uint32_t m_Stride = 0;
+	};
+
+	enum class ResourceBindLocation
+	{
+		Compute, Vertex, Fragment, Combined,
+	};
+
 	enum class ResourceType
 	{
-		Uniform, Constant, PushConstant, Storage
+		Uniform, Constant, PushConstant, Storage, Sampler, SamplerArray
 	};
 
 	struct ResourceElement
 	{
 		std::string Name;
 		ResourceType Type;
+		ResourceBindLocation BindLocation;
 		Ref<Buffer> Buffer = nullptr;
 		uint32_t ConstantID = 0;
 		size_t ConstantSize = 0;
@@ -21,11 +123,16 @@ namespace Hog
 		uint32_t Binding = 0;
 		uint32_t Set = 0;
 
-		ResourceElement(const std::string& name, ResourceType type, Ref<Hog::Buffer> buffer, uint32_t binding, uint32_t set)
-			: Name(name), Type(type), Buffer(buffer), Binding(binding), Set(set) {}
+		ResourceElement(const std::string& name, ResourceType type, ResourceBindLocation bindLocation, Ref<Hog::Buffer> buffer, uint32_t binding, uint32_t set)
+			: Name(name), Type(type), BindLocation(bindLocation), Buffer(buffer), Binding(binding), Set(set) {}
 
-		ResourceElement(const std::string& name, ResourceType type, uint32_t constantID, size_t constantSize, void* dataPointer)
-			: Name(name), Type(type), ConstantID(constantID), ConstantSize(constantSize), ConstantDataPointer(dataPointer) {}
+		ResourceElement(const std::string& name, ResourceType type, ResourceBindLocation bindLocation, uint32_t constantID, size_t constantSize, void* dataPointer)
+			: Name(name), Type(type), BindLocation(bindLocation), ConstantID(constantID), ConstantSize(constantSize), ConstantDataPointer(dataPointer) {}
+
+		ResourceElement(const std::string& name, ResourceType type, ResourceBindLocation bindLocation, size_t constantSize, void* dataPointer)
+			: Name(name), Type(type), BindLocation(bindLocation), ConstantSize(constantSize), ConstantDataPointer(dataPointer) {}
+
+		ResourceElement() = default;
 	};
 
 	class ResourceLayout
@@ -50,7 +157,7 @@ namespace Hog
 
 	enum class RendererStageType
 	{
-		Compute, Graphics
+		Compute, ForwardGraphics, DeferredGraphics
 	};
 
 	struct RendererStage
@@ -58,7 +165,19 @@ namespace Hog
 		std::string Name;
 		Ref<Shader> Shader;
 		RendererStageType StageType;
+		VertexInputLayout VertexInputLayout;
 		ResourceLayout Resources;
+		Ref<Buffer> VertexBuffer;
+		Ref<Buffer> IndexBuffer;
+
+		RendererStage(const std::string& name, Ref<Hog::Shader> shader, RendererStageType type, std::initializer_list<ResourceElement> resources)
+			: Name(name), Shader(shader), StageType(type), VertexInputLayout({}), Resources(resources) {}
+
+		RendererStage(const std::string& name, Ref<Hog::Shader> shader, RendererStageType type, std::initializer_list<VertexElement> vertexInput,
+			std::initializer_list<ResourceElement> resources, Ref<Buffer> vertexBuffer, Ref<Buffer> indexBuffer)
+			: Name(name), Shader(shader), StageType(type), VertexInputLayout(vertexInput), Resources(resources), VertexBuffer(vertexBuffer), IndexBuffer(indexBuffer) {}
+
+		RendererStage() = default;
 	};
 
 	struct Node
