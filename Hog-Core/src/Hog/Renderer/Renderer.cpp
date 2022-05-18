@@ -13,10 +13,83 @@ AutoCVar_Int CVar_ImageMipLevels("renderer.enableMipMapping", "Enable mip mappin
 
 namespace Hog
 {
+	struct BlitStageData
+	{
+		VkRenderPass RenderPass = VK_NULL_HANDLE;
+		Ref<Shader> Shader;
+
+		void Init()
+		{
+			Shader = Hog::Shader::Create("Blit", "fullscreen.vertex", "blit.fragment");
+			CreateRenderPass();
+		}
+
+		void Cleanup()
+		{
+			Shader.reset();
+			vkDestroyRenderPass(GraphicsContext::GetDevice(), RenderPass, nullptr);
+		}
+
+		void CreateRenderPass()
+		{
+			//we define an attachment description for our main color image
+			//the attachment is loaded as "clear" when renderpass start
+			//the attachment is stored when renderpass ends
+			//the attachment layout starts as "undefined", and transitions to "Present" so its possible to display it
+			//we dont care about stencil, and dont use multisampling
+
+			VkAttachmentDescription colorAttachment = {};
+			colorAttachment.format = GraphicsContext::GetSwapchainFormat();
+			colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+			VkAttachmentReference colorAttachmentRef = {};
+			colorAttachmentRef.attachment = 0;
+			colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			//we are going to create 1 subpass, which is the minimum you can do
+			VkSubpassDescription subpass = {};
+			subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+			subpass.colorAttachmentCount = 1;
+			subpass.pColorAttachments = &colorAttachmentRef;
+
+			//1 dependency, which is from "outside" into the subpass. And we can read or write color
+			VkSubpassDependency dependency = {};
+			dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+			dependency.dstSubpass = 0;
+			dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependency.srcAccessMask = 0;
+			dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+			VkRenderPassCreateInfo render_pass_info = {};
+			render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+			//2 attachments from said array
+			render_pass_info.attachmentCount = 1;
+			render_pass_info.pAttachments = &colorAttachment;
+			render_pass_info.subpassCount = 1;
+			render_pass_info.pSubpasses = &subpass;
+			//render_pass_info.dependencyCount = 1;
+			//render_pass_info.pDependencies = &dependency;
+
+			CheckVkResult(vkCreateRenderPass(GraphicsContext::GetDevice(), &render_pass_info, nullptr, &RenderPass));
+		}
+	};
+
+	struct ImGuiStageData
+	{
+		VkRenderPass RenderPass;
+	};
+
 	struct RendererStageData
 	{
 		RendererStage Info;
-		std::vector<VkDescriptorSet> DescriptorSets;
+		VkRenderPass RenderPass;
 	};
 
 	struct FrameData
@@ -26,6 +99,28 @@ namespace Hog
 		VkFence Fence;
 		VkSemaphore PresentSemaphore;
 		VkSemaphore RenderSemaphore;
+		VkFramebuffer FrameBuffer = VK_NULL_HANDLE;
+		DescriptorAllocator DescriptorAllocator;
+
+		void Init()
+		{
+			CommandPool = GraphicsContext::CreateCommandPool();
+			CommandBuffer = GraphicsContext::CreateCommandBuffer(CommandPool);
+			Fence = GraphicsContext::CreateFence(true);
+			PresentSemaphore = GraphicsContext::CreateVkSemaphore();
+			RenderSemaphore = GraphicsContext::CreateVkSemaphore();
+			DescriptorAllocator.Init(GraphicsContext::GetDevice());
+		}
+
+		void Cleanup()
+		{
+			vkDestroyFence(GraphicsContext::GetDevice(), Fence, nullptr);
+			vkDestroyCommandPool(GraphicsContext::GetDevice(), CommandPool, nullptr);
+			vkDestroySemaphore(GraphicsContext::GetDevice(), PresentSemaphore, nullptr);
+			vkDestroySemaphore(GraphicsContext::GetDevice(), RenderSemaphore, nullptr);
+			vkDestroyFramebuffer(GraphicsContext::GetDevice(), FrameBuffer, nullptr);
+			DescriptorAllocator.Cleanup();
+		}
 	};
 
 	struct RendererData
@@ -33,11 +128,12 @@ namespace Hog
 		RenderGraph Graph;
 		std::vector<FrameData> FrameData;
 		std::vector<RendererStageData> StageData;
+		ImGuiStageData ImGuiStage;
+		BlitStageData BlitStage;
 		DescriptorLayoutCache DescriptorLayoutCache;
-		DescriptorAllocator DescriptorAllocator;
 
-		uint32_t FrameIndex;
-		uint32_t MaxFrameCount;
+		uint32_t FrameIndex = 0;
+		uint32_t MaxFrameCount = 2;
 	};
 
 	static RendererData s_Data;
@@ -46,18 +142,11 @@ namespace Hog
 	{
 		s_Data.MaxFrameCount = *CVarSystem::Get()->GetIntCVar("renderer.frameCount");
 		s_Data.FrameData.resize(s_Data.MaxFrameCount);
+		std::for_each(s_Data.FrameData.begin(), s_Data.FrameData.end(), [](FrameData& elem) {elem.Init(); });
 
-		for (int i = 0; i < s_Data.FrameData.size(); ++i)
-		{
-			s_Data.FrameData[i].CommandPool = GraphicsContext::CreateCommandPool();
-			s_Data.FrameData[i].CommandBuffer = GraphicsContext::CreateCommandBuffer(s_Data.FrameData[0].CommandPool);
-			s_Data.FrameData[i].Fence = GraphicsContext::CreateFence(true);
-			s_Data.FrameData[i].PresentSemaphore = GraphicsContext::CreateVkSemaphore();
-			s_Data.FrameData[i].RenderSemaphore = GraphicsContext::CreateVkSemaphore();
-		}
+		s_Data.BlitStage.Init();
 
 		s_Data.Graph = renderGraph;
-		s_Data.DescriptorAllocator.Init(GraphicsContext::GetDevice());
 		s_Data.DescriptorLayoutCache.Init(GraphicsContext::GetDevice());
 
 		auto stages = s_Data.Graph.GetFinalStages();
@@ -99,21 +188,6 @@ namespace Hog
 			s_Data.StageData[0].Info.Shader->Generate({});
 		}
 
-		for (const auto& resource : s_Data.StageData[0].Info.Resources)
-		{
-			if (resource.Type == ResourceType::Storage)
-			{
-				VkDescriptorSet set;
-				VkDescriptorBufferInfo bufferInfo = { resource.Buffer->GetHandle(), 0, VK_WHOLE_SIZE };
-
-				DescriptorBuilder::Begin(&s_Data.DescriptorLayoutCache, &s_Data.DescriptorAllocator)
-					.BindBuffer(resource.Binding, &bufferInfo, BufferTypeToVkDescriptorType(resource.Buffer->GetBufferType()), VK_SHADER_STAGE_COMPUTE_BIT)
-					.Build(set);
-
-				s_Data.StageData[0].DescriptorSets.push_back(set);
-			}
-		}
-
 		if (*CVarSystem::Get()->GetIntCVar("application.enableImGui"))
 		{
 			auto imGuiLayer = CreateRef<ImGuiLayer>();
@@ -149,8 +223,25 @@ namespace Hog
 			}
 
 			stage.Info.Shader->Bind(currentFrame.CommandBuffer);
+
+			std::vector<VkDescriptorSet> sets;
+			for (const auto& resource : stage.Info.Resources)
+			{
+				if (resource.Type == ResourceType::Storage)
+				{
+					VkDescriptorSet set;
+					VkDescriptorBufferInfo bufferInfo = { resource.Buffer->GetHandle(), 0, VK_WHOLE_SIZE };
+
+					DescriptorBuilder::Begin(&s_Data.DescriptorLayoutCache, &currentFrame.DescriptorAllocator)
+						.BindBuffer(resource.Binding, &bufferInfo, BufferTypeToVkDescriptorType(resource.Buffer->GetBufferType()), VK_SHADER_STAGE_COMPUTE_BIT)
+						.Build(set);
+
+					sets.push_back(set);
+				}
+			}
+
 			vkCmdBindDescriptorSets(currentFrame.CommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, stage.Info.Shader->GetPipelineLayout(),
-				0, (uint32_t)stage.DescriptorSets.size(), stage.DescriptorSets.data(), 0, 0);
+				0, (uint32_t)sets.size(), sets.data(), 0, 0);
 
 			vkCmdDispatch(currentFrame.CommandBuffer, 32, 1, 1);
 
@@ -198,17 +289,11 @@ namespace Hog
 
 	void Renderer::Deinitialize()
 	{
-		for (const auto& frame : s_Data.FrameData)
-		{
-			vkDestroyFence(GraphicsContext::GetDevice(), frame.Fence, nullptr);
-			vkDestroyCommandPool(GraphicsContext::GetDevice(), frame.CommandPool, nullptr);
-			vkDestroySemaphore(GraphicsContext::GetDevice(), frame.PresentSemaphore, nullptr);
-			vkDestroySemaphore(GraphicsContext::GetDevice(), frame.RenderSemaphore, nullptr);
-		}
-
+		std::for_each(s_Data.FrameData.begin(), s_Data.FrameData.end(), [](FrameData& elem) {elem.Cleanup(); });
+		s_Data.FrameData.clear();
+		s_Data.BlitStage.Cleanup();
 		s_Data.StageData.clear();
 		s_Data.DescriptorLayoutCache.Cleanup();
-		s_Data.DescriptorAllocator.Cleanup();
 		s_Data.Graph.Cleanup();
 	}
 

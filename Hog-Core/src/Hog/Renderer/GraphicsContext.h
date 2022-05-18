@@ -92,6 +92,7 @@ namespace Hog {
 		static VkDevice GetDevice() { return Get().Device; }
 		static VkExtent2D GetExtent() { return Get().SwapchainExtent; }
 		static VkSwapchainKHR GetSwapchain() { return Get().Swapchain; }
+		static VkFormat GetSwapchainFormat() { return Get().SwapchainFormat; }
 		static VkQueue GetQueue() { return Get().Queue; }
 		static VkSampleCountFlagBits GetMSAASamples() { return Get().MSAASamples; }
 		static GPUInfo* GetGPUInfo() { return Get().GPU; }

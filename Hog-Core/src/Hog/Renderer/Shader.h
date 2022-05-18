@@ -107,7 +107,7 @@ namespace Hog {
 		std::unordered_map<ShaderType, VkShaderModule> m_Modules;
 
 		std::array<std::vector<VkDescriptorSetLayoutBinding>, 4> m_DescriptorSetLayoutBinding;
-		std::array<VkDescriptorSetLayout, 4> m_DescriptorSetLayouts;
+		std::array<VkDescriptorSetLayout, 4> m_DescriptorSetLayouts = {VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE};
 
 		VkVertexInputBindingDescription m_VertexInputBindingDescription = {};
 		std::vector<VkVertexInputAttributeDescription> m_VertexInputAttributeDescriptions;
@@ -118,7 +118,7 @@ namespace Hog {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 		};
 
-		VkPipelineLayout m_PipelineLayout;
+		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
 		Ref<Pipeline> m_Pipeline;
 	};
 }
