@@ -92,8 +92,7 @@ namespace Hog {
 		static VkDevice GetDevice() { return Get().Device; }
 		static VkExtent2D GetExtent() { return Get().SwapchainExtent; }
 		static VkSwapchainKHR GetSwapchain() { return Get().Swapchain; }
-		static VkQueue GetGraphicsQueue() { return Get().GraphicsQueue; }
-		static VkQueue GetComputeQueue() { return Get().ComputeQueue; }
+		static VkQueue GetQueue() { return Get().Queue; }
 		static VkSampleCountFlagBits GetMSAASamples() { return Get().MSAASamples; }
 		static GPUInfo* GetGPUInfo() { return Get().GPU; }
 
@@ -151,13 +150,9 @@ namespace Hog {
 		VkPhysicalDevice PhysicalDevice = VK_NULL_HANDLE;
 		VkDevice Device = VK_NULL_HANDLE;
 
-		uint32_t GraphicsFamilyIndex;
-		uint32_t PresentFamilyIndex;
-		uint32_t ComputeFamilyIndex;
+		uint32_t QueueFamilyIndex;
 
-		VkQueue GraphicsQueue = VK_NULL_HANDLE;
-		VkQueue PresentQueue = VK_NULL_HANDLE;
-		VkQueue ComputeQueue = VK_NULL_HANDLE;
+		VkQueue Queue = VK_NULL_HANDLE;
 
 		VkSurfaceKHR Surface = VK_NULL_HANDLE;
 
@@ -233,7 +228,7 @@ namespace Hog {
 		};
 
 		std::vector<const char*> InstanceExtensions = {  };
-		std::vector<const char*> DeviceExtensions = { VK_KHR_MAINTENANCE_4_EXTENSION_NAME, VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+		std::vector<const char*> DeviceExtensions = { VK_KHR_MAINTENANCE_4_EXTENSION_NAME, VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME, VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME};
 
 		std::vector<const char*> ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 

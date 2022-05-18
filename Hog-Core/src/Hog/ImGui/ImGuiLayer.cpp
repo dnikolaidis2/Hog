@@ -70,7 +70,7 @@ namespace Hog {
 		initInfo.Instance = GraphicsContext::GetInstance();
 		initInfo.PhysicalDevice = GraphicsContext::GetPhysicalDevice();
 		initInfo.Device = GraphicsContext::GetDevice();
-		initInfo.Queue = GraphicsContext::GetGraphicsQueue();
+		initInfo.Queue = GraphicsContext::GetQueue();
 		initInfo.DescriptorPool = GraphicsContext::GetImGuiDescriptorPool();
 		initInfo.MinImageCount = *CVarSystem::Get()->GetIntCVar("renderer.frameCount");
 		initInfo.ImageCount = *CVarSystem::Get()->GetIntCVar("renderer.frameCount");

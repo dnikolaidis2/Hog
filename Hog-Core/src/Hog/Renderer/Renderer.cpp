@@ -191,7 +191,7 @@ namespace Hog
 			.pSignalSemaphoreInfos = &signalSemaphoreInfo,
 		};
 
-		CheckVkResult(vkQueueSubmit2(GraphicsContext::GetGraphicsQueue(), 1, &submitInfo, currentFrame.Fence));
+		CheckVkResult(vkQueueSubmit2(GraphicsContext::GetQueue(), 1, &submitInfo, currentFrame.Fence));
 
 		s_Data.FrameIndex = (s_Data.FrameIndex + 1) % s_Data.MaxFrameCount;
 	}

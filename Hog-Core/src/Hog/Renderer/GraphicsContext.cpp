@@ -272,7 +272,7 @@ namespace Hog {
 
 		//submit command buffer to the queue and execute it.
 		// _uploadFence will now block until the graphic commands finish execution
-		CheckVkResult(vkQueueSubmit(GraphicsQueue, 1, &submitInfo, UploadFence));
+		CheckVkResult(vkQueueSubmit(Queue, 1, &submitInfo, UploadFence));
 
 		vkWaitForFences(Device, 1, &UploadFence, true, 9999999999);
 		vkResetFences(Device, 1, &UploadFence);
@@ -314,7 +314,7 @@ namespace Hog {
 		VkCommandPoolCreateInfo commandPoolCreateInfo = {};
 		commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		commandPoolCreateInfo.queueFamilyIndex = GraphicsFamilyIndex;
+		commandPoolCreateInfo.queueFamilyIndex = QueueFamilyIndex;
 
 		CheckVkResult(vkCreateCommandPool(Device, &commandPoolCreateInfo, nullptr, &commandPool));
 
@@ -523,10 +523,7 @@ namespace Hog {
 		for (uint32_t i = 0; i < GPUs.size(); i++)
 		{
 			GPUInfo* gpu = &(GPUs[i]);
-			// This is again related to queues.  Don't worry I'll get there soon.
-			int graphicsIdx = -1;
-			int computeIdx = -1;
-			int presentIdx = -1;
+			int queueIdx = -1;
 
 			// Remember when we created our instance we got all those device extensions?
 			// Now we need to make sure our physical device supports them.
@@ -563,50 +560,14 @@ namespace Hog {
 					continue;
 				}
 
-				if (props.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-				{
-					// Got it!
-					graphicsIdx = j;
-					break;
-				}
-			}
-
-			// Find compute queue family
-			for (uint32_t j = 0; j < gpu->QueueFamilyProperties.size(); ++j)
-			{
-				VkQueueFamilyProperties& props = gpu->QueueFamilyProperties[j];
-
-				if (props.queueCount == 0)
-				{
-					continue;
-				}
-
-				if (props.queueFlags & VK_QUEUE_COMPUTE_BIT)
-				{
-					// Got it!
-					computeIdx = j;
-					break;
-				}
-			}
-
-			// Find present queue family
-			for (int j = 0; j < gpu->QueueFamilyProperties.size(); ++j)
-			{
-				VkQueueFamilyProperties& props = gpu->QueueFamilyProperties[j];
-
-				if (props.queueCount == 0)
-				{
-					continue;
-				}
-
 				// A rather perplexing call in the Vulkan API, but
 				// it is a necessity to call.
 				VkBool32 supportsPresent = VK_FALSE;
 				vkGetPhysicalDeviceSurfaceSupportKHR(gpu->Device, j, Surface, &supportsPresent);
-				if (supportsPresent)
+				if (props.queueFlags & VK_QUEUE_GRAPHICS_BIT && props.queueFlags & VK_QUEUE_COMPUTE_BIT && supportsPresent)
 				{
 					// Got it!
-					presentIdx = j;
+					queueIdx = j;
 					break;
 				}
 			}
@@ -633,11 +594,9 @@ namespace Hog {
 			}
 
 			// Did we find a device supporting both graphics and present.
-			if (graphicsIdx >= 0 && presentIdx >= 0)
+			if (queueIdx >= 0)
 			{
-				GraphicsFamilyIndex = (uint32_t)graphicsIdx;
-				PresentFamilyIndex = (uint32_t)presentIdx;
-				ComputeFamilyIndex = (uint32_t)computeIdx;
+				QueueFamilyIndex = (uint32_t)queueIdx;
 				PhysicalDevice = gpu->Device;
 				GPU = gpu;
 				if (CVar_MSAA.Get())
@@ -659,30 +618,20 @@ namespace Hog {
 		HG_PROFILE_FUNCTION();
 		// Add each family index to a list.
 		// Don't do duplicates
-		std::vector<uint32_t> uniqueIdx;
-		uniqueIdx.push_back(GraphicsFamilyIndex);
-		if (std::find(uniqueIdx.begin(), uniqueIdx.end(), PresentFamilyIndex) == uniqueIdx.end()) {
-			uniqueIdx.push_back(PresentFamilyIndex);
-		}
-		if (std::find(uniqueIdx.begin(), uniqueIdx.end(), ComputeFamilyIndex) == uniqueIdx.end()) {
-			uniqueIdx.push_back(ComputeFamilyIndex);
-		}
 
 		std::vector<VkDeviceQueueCreateInfo> devqInfo;
 
 		const float priority = 1.0f;
-		for (int i = 0; i < uniqueIdx.size(); ++i)
-		{
-			VkDeviceQueueCreateInfo qinfo = {};
-			qinfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			qinfo.queueFamilyIndex = uniqueIdx[i];
-			qinfo.queueCount = 1;
+		
+		VkDeviceQueueCreateInfo qinfo = {};
+		qinfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		qinfo.queueFamilyIndex = QueueFamilyIndex;
+		qinfo.queueCount = 1;
 
-			// Don't worry about priority
-			qinfo.pQueuePriorities = &priority;
+		// Don't worry about priority
+		qinfo.pQueuePriorities = &priority;
 
-			devqInfo.push_back(qinfo);
-		}
+		devqInfo.push_back(qinfo);
 
 		// Put it all together.
 		VkDeviceCreateInfo info = {};
@@ -707,9 +656,7 @@ namespace Hog {
 		CheckVkResult(vkCreateDevice(PhysicalDevice, &info, nullptr, &Device));
 
 		// Now get the queues from the devie we just created.
-		vkGetDeviceQueue(Device, GraphicsFamilyIndex, 0, &GraphicsQueue);
-		vkGetDeviceQueue(Device, PresentFamilyIndex, 0, &PresentQueue);
-		vkGetDeviceQueue(Device, ComputeFamilyIndex, 0, &ComputeQueue);
+		vkGetDeviceQueue(Device, QueueFamilyIndex, 0, &Queue);
 	}
 
 	void GraphicsContext::InitializeAllocator()
@@ -720,6 +667,7 @@ namespace Hog {
 		allocatorInfo.physicalDevice = PhysicalDevice;
 		allocatorInfo.device = Device;
 		allocatorInfo.instance = Instance;
+		allocatorInfo.flags |= VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
 
 		vmaCreateAllocator(&allocatorInfo, &Allocator);
 	}
@@ -739,7 +687,7 @@ namespace Hog {
 		commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 		// We'll be building command buffers to send to the graphics queue
-		commandPoolCreateInfo.queueFamilyIndex = GraphicsFamilyIndex;
+		commandPoolCreateInfo.queueFamilyIndex = QueueFamilyIndex;
 
 		CheckVkResult(vkCreateCommandPool(Device, &commandPoolCreateInfo, nullptr, &UploadCommandPool));
 	}
@@ -787,22 +735,9 @@ namespace Hog {
 		// VK_IMAGE_USAGE_TRANSFER_SRC_BIT - I'll be copying this image somewhere. ( screenshot, postprocess )
 		info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
-		// Moment of truth.  If the graphics queue family and present family don't match
-		// then we need to create the swapchain with different information.
-		if (GraphicsFamilyIndex != PresentFamilyIndex) {
-			uint32_t indices[] = { GraphicsFamilyIndex, PresentFamilyIndex };
-
-			// There are only two sharing modes.  This is the one to use
-			// if images are not exclusive to one queue.
-			info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-			info.queueFamilyIndexCount = 2;
-			info.pQueueFamilyIndices = indices;
-		}
-		else {
-			// If the indices are the same, then the queue can have exclusive
-			// access to the images.
-			info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		}
+		// If the indices are the same, then the queue can have exclusive
+		// access to the images.
+		info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 		// We just want to leave the image as is.
 		info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
