@@ -25,7 +25,12 @@ namespace Hog {
 
 	void ImGuiLayer::OnUpdate(Timestep ts)
 	{
-		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), VK_NULL_HANDLE);
+		
+	}
+
+	void ImGuiLayer::Draw(VkCommandBuffer commandBuffer)
+	{
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 	}
 
 	void ImGuiLayer::OnAttach()

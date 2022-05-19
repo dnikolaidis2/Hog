@@ -19,6 +19,8 @@ namespace Hog {
 		virtual void OnDetach() override;
 		virtual void OnEvent(Event& e) override;
 
+		void Draw(VkCommandBuffer commandBuffer);
+
 		void Begin();
 		void End();
 
