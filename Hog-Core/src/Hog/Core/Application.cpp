@@ -98,6 +98,13 @@ namespace Hog {
 
 			if (!m_Minimized)
 			{
+				{
+					HG_PROFILE_SCOPE("LayerStack OnUpdate");
+
+					for (Ref<Layer> layer : m_LayerStack)
+						layer->OnUpdate(m_Timestep);
+				}
+
 				if (m_ImGuiLayer)
 				{
 					m_ImGuiLayer->Begin();
@@ -110,12 +117,7 @@ namespace Hog {
 					m_ImGuiLayer->End();
 				}
 
-				{
-					HG_PROFILE_SCOPE("LayerStack OnUpdate");
-
-					for (Ref<Layer> layer : m_LayerStack)
-						layer->OnUpdate(m_Timestep);
-				}
+				Renderer::Draw();
 			}
 
 			m_Window->OnUpdate();

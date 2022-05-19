@@ -74,8 +74,6 @@ void SandboxLayer::OnUpdate(Timestep ts)
 	HG_PROFILE_FUNCTION()
 
 	m_EditorCamera.OnUpdate(ts);
-
-	Renderer::Draw();
 }
 
 void SandboxLayer::OnImGuiRender()
