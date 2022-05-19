@@ -1,6 +1,7 @@
 #include "hgpch.h"
 #include "Renderer.h"
 
+#include "FrameBuffer.h"
 #include "Hog/Core/Application.h"
 #include "Hog/Renderer/GraphicsContext.h"
 #include "Hog/Renderer/Buffer.h"
@@ -99,7 +100,7 @@ namespace Hog
 		VkFence Fence;
 		VkSemaphore PresentSemaphore;
 		VkSemaphore RenderSemaphore;
-		VkFramebuffer FrameBuffer = VK_NULL_HANDLE;
+		FrameBuffer FrameBuffer;
 		DescriptorAllocator DescriptorAllocator;
 
 		void Init()
@@ -120,6 +121,7 @@ namespace Hog
 			vkDestroySemaphore(GraphicsContext::GetDevice(), RenderSemaphore, nullptr);
 			vkDestroyFramebuffer(GraphicsContext::GetDevice(), FrameBuffer, nullptr);
 			DescriptorAllocator.Cleanup();
+			FrameBuffer.Cleanup();
 		}
 	};
 
@@ -142,9 +144,17 @@ namespace Hog
 	{
 		s_Data.MaxFrameCount = *CVarSystem::Get()->GetIntCVar("renderer.frameCount");
 		s_Data.FrameData.resize(s_Data.MaxFrameCount);
-		std::for_each(s_Data.FrameData.begin(), s_Data.FrameData.end(), [](FrameData& elem) {elem.Init(); });
+		std::for_each(s_Data.FrameData.begin(), s_Data.FrameData.end(), [](FrameData& elem) { elem.Init(); });
 
 		s_Data.BlitStage.Init();
+		std::vector<Ref<Image>>& swapchainImages = GraphicsContext::GetSwapchainImages();
+		
+		for (int i = 0; i < swapchainImages.size(); ++i)
+		{
+			std::vector<Ref<Image>> attachments(1);
+			attachments[0] = swapchainImages[i];
+			s_Data.FrameData[i].FrameBuffer.Create(attachments, s_Data.BlitStage.RenderPass);
+		}
 
 		s_Data.Graph = renderGraph;
 		s_Data.DescriptorLayoutCache.Init(GraphicsContext::GetDevice());
