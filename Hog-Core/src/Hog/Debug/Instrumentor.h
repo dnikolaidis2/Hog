@@ -233,10 +233,11 @@ namespace Hog {
 												   ::Hog::InstrumentationTimer timer##line(fixedName##line.Data)
 		#define HG_PROFILE_SCOPE_LINE(name, line) HG_PROFILE_SCOPE_LINE2(name, line)
 		#define HG_PROFILE_SCOPE(name) HG_PROFILE_SCOPE_LINE(name, __LINE__)
+		#define HG_PROFILE_TAG(name, ...)
 		#define HG_PROFILE_FUNCTION() HG_PROFILE_SCOPE(HG_FUNC_SIG)
 		#define HG_PROFILE_START_FRAME(name)
 
-		#define HG_PROFILE_GPU_INIT_VULKAN(devices, physical_devices, cnd_queues, cnd_queues_family, num_cmd_queus)
+		#define HG_PROFILE_GPU_INIT_VULKAN(devices, physical_devices, cnd_queues, cnd_queues_family, num_cmd_queus, functions)
 		#define HG_PROFILE_GPU_CONTEXT(command_list)
 		#define HG_PROFILE_GPU_EVENT(name)
 		#define HG_PROFILE_GPU_FLIP(swap_chain)
@@ -245,6 +246,7 @@ namespace Hog {
 		#define HG_PROFILE_SAVE_SESSION(filepath) OPTICK_SAVE_CAPTURE(filepath)
 		#define HG_PROFILE_END_SESSION() OPTICK_STOP_CAPTURE()
 		#define HG_PROFILE_SCOPE(name) OPTICK_EVENT(name)
+		#define HG_PROFILE_TAG(name, ...) OPTICK_TAG(name, __VA_ARGS__)
 		#define HG_PROFILE_FUNCTION() OPTICK_EVENT()
 		#define HG_PROFILE_START_FRAME(name) OPTICK_FRAME(name)
 
@@ -259,10 +261,11 @@ namespace Hog {
 	#define HG_PROFILE_SAVE_SESSION(filepath)
 	#define HG_PROFILE_END_SESSION()
 	#define HG_PROFILE_SCOPE(name)
+	#define HG_PROFILE_TAG(name, ...)
 	#define HG_PROFILE_FUNCTION()
 	#define HG_PROFILE_START_FRAME(name)
 
-	#define HG_PROFILE_GPU_INIT_VULKAN(devices, physical_devices, cnd_queues, cnd_queues_family, num_cmd_queus)
+	#define HG_PROFILE_GPU_INIT_VULKAN(devices, physical_devices, cnd_queues, cnd_queues_family, num_cmd_queus, functions)
 	#define HG_PROFILE_GPU_CONTEXT(command_list)
 	#define HG_PROFILE_GPU_EVENT(name)
 	#define HG_PROFILE_GPU_FLIP(swap_chain)

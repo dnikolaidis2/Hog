@@ -33,7 +33,7 @@ namespace Hog {
 	{
 		for (auto p : m_UsedPools)
 		{
-			vkResetDescriptorPool(Device, p, 0);
+			CheckVkResult(vkResetDescriptorPool(Device, p, 0));
 		}
 
 		m_FreePools = m_UsedPools;
@@ -164,7 +164,7 @@ namespace Hog {
 		}
 		else {
 			VkDescriptorSetLayout layout;
-			vkCreateDescriptorSetLayout(m_Device, info, nullptr, &layout);
+			CheckVkResult(vkCreateDescriptorSetLayout(m_Device, info, nullptr, &layout));
 
 			//m_LayoutCache.emplace()
 			//add to cache

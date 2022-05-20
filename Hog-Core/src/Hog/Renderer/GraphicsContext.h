@@ -227,6 +227,7 @@ namespace Hog {
 		VkPhysicalDeviceVulkan11Features DeviceFeatures11 = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
 			.pNext = &DeviceFeatures12,
+			.multiview = VK_TRUE,
 		};
 
 		std::vector<const char*> InstanceExtensions = {  };

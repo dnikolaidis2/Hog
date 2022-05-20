@@ -18,7 +18,7 @@ void SandboxLayer::OnAttach()
 
 	GraphicsContext::Initialize();
 	
-	HG_PROFILE_GPU_INIT_VULKAN(&(context.Device), &(context.PhysicalDevice), &(context.GraphicsQueue), &(context.GraphicsFamilyIndex), 1, nullptr);
+	HG_PROFILE_GPU_INIT_VULKAN(&(context.Device), &(context.PhysicalDevice), &(context.Queue), &(context.QueueFamilyIndex), 1, nullptr);
 
 	RenderGraph graph;
 	auto graphics = graph.AddStage(nullptr, {
@@ -41,9 +41,6 @@ void SandboxLayer::OnAttach()
 
 	Renderer::Initialize(graph);
 
-	m_ImGuiLayer = CreateRef<ImGuiLayer>();
-	Application::Get().SetImGuiLayer(m_ImGuiLayer);
-
 	for (auto & obj : m_Objects)
 	{
 		obj->SetTransform(glm::rotate(glm::mat4{ 1.0f }, glm::radians(90.0f), glm::vec3(0, 1, 0))
@@ -59,7 +56,6 @@ void SandboxLayer::OnDetach()
 
 	GraphicsContext::WaitIdle();
 
-	Application::Get().PopOverlay(m_ImGuiLayer);
 	Renderer::Deinitialize();
 	MaterialLibrary::Deinitialize();
 	TextureLibrary::Deinitialize();
