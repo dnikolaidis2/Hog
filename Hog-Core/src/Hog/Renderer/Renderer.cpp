@@ -39,67 +39,140 @@ namespace Hog
 			//the attachment layout starts as "undefined", and transitions to "Present" so its possible to display it
 			//we dont care about stencil, and dont use multisampling
 
-			VkAttachmentDescription colorAttachment = {};
-			colorAttachment.format = GraphicsContext::GetSwapchainFormat();
-			colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			VkAttachmentDescription2 colorAttachment = {
+				.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2,
+				.format = GraphicsContext::GetSwapchainFormat(),
+				.samples = VK_SAMPLE_COUNT_1_BIT,
+				.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+				.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+				.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+				.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+				.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			};
 
-			VkAttachmentReference colorAttachmentRef = {};
-			colorAttachmentRef.attachment = 0;
-			colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			VkAttachmentReference2 colorAttachmentRef = {
+				.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2,
+				.attachment = 0,
+				.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			};
 
 			//we are going to create 1 subpass, which is the minimum you can do
-			VkSubpassDescription subpass = {};
-			subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-			subpass.colorAttachmentCount = 1;
-			subpass.pColorAttachments = &colorAttachmentRef;
+			VkSubpassDescription2 subpass = {
+				.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2,
+				.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+				.colorAttachmentCount = 1,
+				.pColorAttachments = &colorAttachmentRef,
+			};
 
 			//1 dependency, which is from "outside" into the subpass. And we can read or write color
-			VkSubpassDependency dependency = {};
-			dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-			dependency.dstSubpass = 0;
-			dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependency.srcAccessMask = 0;
-			dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			VkSubpassDependency2 dependency = {
+				.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
+				.srcSubpass = VK_SUBPASS_EXTERNAL,
+				.dstSubpass = 0,
+				.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+				.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+				.srcAccessMask = 0,
+				.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+			};
 
-			VkRenderPassCreateInfo render_pass_info = {};
-			render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-			//2 attachments from said array
-			render_pass_info.attachmentCount = 1;
-			render_pass_info.pAttachments = &colorAttachment;
-			render_pass_info.subpassCount = 1;
-			render_pass_info.pSubpasses = &subpass;
-			//render_pass_info.dependencyCount = 1;
-			//render_pass_info.pDependencies = &dependency;
+			VkRenderPassCreateInfo2 renderPassInfo = {
+				.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2,
+				//2 attachments from said array
+				.attachmentCount = 1,
+				.pAttachments = &colorAttachment,
+				.subpassCount = 1,
+				.pSubpasses = &subpass,
+				//.dependencyCount = 1,
+				//.pDependencies = &dependency,
+			};
 
-			CheckVkResult(vkCreateRenderPass(GraphicsContext::GetDevice(), &render_pass_info, nullptr, &RenderPass));
+			CheckVkResult(vkCreateRenderPass2(GraphicsContext::GetDevice(), &renderPassInfo, nullptr, &RenderPass));
 		}
 	};
 
 	struct ImGuiStageData
 	{
-		VkRenderPass RenderPass;
+		VkRenderPass RenderPass = VK_NULL_HANDLE;
+		FrameBuffer FrameBuffer;
+
+		void Init()
+		{
+			CreateRenderPass();
+		}
+
+		void Cleanup()
+		{
+			vkDestroyRenderPass(GraphicsContext::GetDevice(), RenderPass, nullptr);
+			FrameBuffer.Cleanup();
+		}
+
+		void CreateRenderPass()
+		{
+			VkAttachmentDescription2 colorAttachment = {
+				.sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2,
+				.format = VK_FORMAT_B8G8R8A8_SRGB,
+				.samples = VK_SAMPLE_COUNT_1_BIT,
+				.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+				.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+				.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+				.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+				.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			};
+
+			VkAttachmentReference2 colorAttachmentRef = {
+				.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2,
+				.attachment = 0,
+				.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			};
+
+			//we are going to create 1 subpass, which is the minimum you can do
+			VkSubpassDescription2 subpass = {
+				.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2,
+				.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+				.colorAttachmentCount = 1,
+				.pColorAttachments = &colorAttachmentRef,
+			};
+
+			//1 dependency, which is from "outside" into the subpass. And we can read or write color
+			VkSubpassDependency2 dependency = {
+				.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
+				.srcSubpass = VK_SUBPASS_EXTERNAL,
+				.dstSubpass = 0,
+				.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+				.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+				.srcAccessMask = 0,
+				.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+			};
+
+			VkRenderPassCreateInfo2 renderPassInfo = {
+				.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2,
+				.attachmentCount = 1,
+				.pAttachments = &colorAttachment,
+				.subpassCount = 1,
+				.pSubpasses = &subpass,
+				//.dependencyCount = 1,
+				//.pDependencies = &dependency,
+			};
+
+			CheckVkResult(vkCreateRenderPass2(GraphicsContext::GetDevice(), &renderPassInfo, nullptr, &RenderPass));
+		}
 	};
 
 	struct RendererStageData
 	{
 		RendererStage Info;
-		VkRenderPass RenderPass;
+		VkRenderPass RenderPass = VK_NULL_HANDLE;
 	};
 
 	struct FrameData
 	{
-		VkCommandPool CommandPool;
-		VkCommandBuffer CommandBuffer;
-		VkFence Fence;
-		VkSemaphore PresentSemaphore;
-		VkSemaphore RenderSemaphore;
+		VkCommandPool CommandPool = VK_NULL_HANDLE;;
+		VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;;
+		VkFence Fence = VK_NULL_HANDLE;;
+		VkSemaphore PresentSemaphore = VK_NULL_HANDLE;;
+		VkSemaphore RenderSemaphore = VK_NULL_HANDLE;;
 		FrameBuffer FrameBuffer;
 		DescriptorAllocator DescriptorAllocator;
 
@@ -119,7 +192,6 @@ namespace Hog
 			vkDestroyCommandPool(GraphicsContext::GetDevice(), CommandPool, nullptr);
 			vkDestroySemaphore(GraphicsContext::GetDevice(), PresentSemaphore, nullptr);
 			vkDestroySemaphore(GraphicsContext::GetDevice(), RenderSemaphore, nullptr);
-			vkDestroyFramebuffer(GraphicsContext::GetDevice(), FrameBuffer, nullptr);
 			DescriptorAllocator.Cleanup();
 			FrameBuffer.Cleanup();
 		}
@@ -133,6 +205,8 @@ namespace Hog
 		ImGuiStageData ImGuiStage;
 		BlitStageData BlitStage;
 		DescriptorLayoutCache DescriptorLayoutCache;
+		Ref<Image> FinalTarget;
+		Ref<ImGuiLayer> ImGuiLayer;
 
 		uint32_t FrameIndex = 0;
 		uint32_t MaxFrameCount = 2;
@@ -154,6 +228,19 @@ namespace Hog
 			std::vector<Ref<Image>> attachments(1);
 			attachments[0] = swapchainImages[i];
 			s_Data.FrameData[i].FrameBuffer.Create(attachments, s_Data.BlitStage.RenderPass);
+		}
+		s_Data.BlitStage.Shader->Generate(s_Data.BlitStage.RenderPass, {});
+
+		GetFinalRenderTarget();
+
+		if (*CVarSystem::Get()->GetIntCVar("application.enableImGui"))
+		{
+			s_Data.ImGuiStage.Init();
+			std::vector<Ref<Image>> attachments(1);
+			attachments[0] = GetFinalRenderTarget();
+			s_Data.ImGuiStage.FrameBuffer.Create(attachments, s_Data.ImGuiStage.RenderPass);
+			s_Data.ImGuiLayer = CreateRef<ImGuiLayer>(s_Data.ImGuiStage.RenderPass);
+			Application::Get().SetImGuiLayer(s_Data.ImGuiLayer);
 		}
 
 		s_Data.Graph = renderGraph;
@@ -197,12 +284,6 @@ namespace Hog
 		{
 			s_Data.StageData[0].Info.Shader->Generate({});
 		}
-
-		if (*CVarSystem::Get()->GetIntCVar("application.enableImGui"))
-		{
-			auto imGuiLayer = CreateRef<ImGuiLayer>();
-			Application::Get().SetImGuiLayer(imGuiLayer);
-		}
 	}
 
 	void Renderer::Draw()
@@ -211,8 +292,15 @@ namespace Hog
 
 		auto& currentFrame = s_Data.FrameData[s_Data.FrameIndex];
 
+		VkExtent2D swapchainExtent = GraphicsContext::GetExtent();
+		VkClearValue clearValue = {
+			.color = { { 0.1f, 0.1f, 0.1f, 1.0f } },
+		};
+
 		CheckVkResult(vkWaitForFences(GraphicsContext::GetDevice(), 1, &currentFrame.Fence, VK_TRUE, UINT64_MAX));
 		vkResetFences(GraphicsContext::GetDevice(), 1, &currentFrame.Fence);
+
+		currentFrame.DescriptorAllocator.ResetPools();
 
 		vkAcquireNextImageKHR(GraphicsContext::GetDevice(), GraphicsContext::GetSwapchain(), UINT64_MAX, currentFrame.PresentSemaphore, VK_NULL_HANDLE, &s_Data.FrameIndex);
 
@@ -221,9 +309,14 @@ namespace Hog
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
 		CheckVkResult(vkBeginCommandBuffer(currentFrame.CommandBuffer, &beginInfo));
+		HG_PROFILE_GPU_CONTEXT(currentFrame.CommandBuffer);
+		HG_PROFILE_GPU_EVENT("Begin CommandBuffer");
 
 		for (auto& stage : s_Data.StageData)
 		{
+			HG_PROFILE_GPU_EVENT("Compute Pass");
+			HG_PROFILE_TAG("Name", stage.Info.Name.c_str());
+
 			for (auto& resource : stage.Info.Resources)
 			{
 				if (resource.Type == ResourceType::Storage)
@@ -264,9 +357,95 @@ namespace Hog
 			}
 		}
 
+		// ImGui
+		if (*CVarSystem::Get()->GetIntCVar("application.enableImGui"))
+		{
+			HG_PROFILE_GPU_EVENT("ImGui Pass");
+			HG_PROFILE_TAG("Name", "ImGui");
+			VkRenderPassBeginInfo renderPassBeginInfo = {
+				.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+				.renderPass = s_Data.ImGuiStage.RenderPass,
+				.framebuffer = static_cast<VkFramebuffer>(s_Data.ImGuiStage.FrameBuffer),
+				.renderArea = {
+					.extent = swapchainExtent
+				},
+			};
+
+			VkSubpassBeginInfo subpassBeginInfo = {
+				.sType = VK_STRUCTURE_TYPE_SUBPASS_BEGIN_INFO,
+				.contents = VK_SUBPASS_CONTENTS_INLINE,
+			};
+
+			vkCmdBeginRenderPass2(currentFrame.CommandBuffer, &renderPassBeginInfo, &subpassBeginInfo);
+
+			// Imgui draw
+			s_Data.ImGuiLayer->Draw(currentFrame.CommandBuffer);
+
+			vkCmdEndRenderPass(currentFrame.CommandBuffer);
+		}
+
+		// Copy to final target
+		{
+			HG_PROFILE_GPU_EVENT("Blit Pass");
+			HG_PROFILE_TAG("Name", "Blit");
+			VkRenderPassBeginInfo renderPassBeginInfo = {
+				.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+				.renderPass = s_Data.BlitStage.RenderPass,
+				.framebuffer = static_cast<VkFramebuffer>(currentFrame.FrameBuffer),
+				.renderArea = {
+					.extent = swapchainExtent
+				}
+			};
+
+			VkSubpassBeginInfo subpassBeginInfo = {
+				.sType = VK_STRUCTURE_TYPE_SUBPASS_BEGIN_INFO,
+				.contents = VK_SUBPASS_CONTENTS_INLINE,
+			};
+
+			vkCmdBeginRenderPass2(currentFrame.CommandBuffer, &renderPassBeginInfo, &subpassBeginInfo);
+
+			VkViewport viewport;
+			viewport.x = 0.0f;
+			viewport.y = 0.0f;
+			viewport.width = static_cast<float>(swapchainExtent.width);
+			viewport.height = static_cast<float>(swapchainExtent.height);
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+
+			VkRect2D scissor;
+			scissor.offset = { 0, 0 };
+			scissor.extent = swapchainExtent;
+
+			vkCmdSetViewport(currentFrame.CommandBuffer, 0, 1, &viewport);
+			vkCmdSetScissor(currentFrame.CommandBuffer, 0, 1, &scissor);
+
+			vkCmdSetDepthBias(currentFrame.CommandBuffer, 0, 0, 0);
+
+			s_Data.BlitStage.Shader->Bind(currentFrame.CommandBuffer);
+
+			VkDescriptorImageInfo sourceImage;
+			sourceImage.sampler = s_Data.FinalTarget->GetOrCreateSampler();
+
+			sourceImage.imageView = s_Data.FinalTarget->GetImageView();
+			sourceImage.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+			VkDescriptorSet blitSet;
+			DescriptorBuilder::Begin(&s_Data.DescriptorLayoutCache, &currentFrame.DescriptorAllocator)
+				.BindImage(0, &sourceImage, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+				.Build(blitSet);
+
+			vkCmdBindDescriptorSets(currentFrame.CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, s_Data.BlitStage.Shader->GetPipelineLayout(),
+				0, 1, &blitSet, 0, nullptr);
+
+			vkCmdDraw(currentFrame.CommandBuffer, 3, 1, 0, 0);
+
+			vkCmdEndRenderPass(currentFrame.CommandBuffer);
+		}
+
 		// end command buffer
 		CheckVkResult(vkEndCommandBuffer(currentFrame.CommandBuffer));
 
+		// Submit
 		const VkCommandBufferSubmitInfo commandBufferSubmitInfo = {
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
 			.commandBuffer = currentFrame.CommandBuffer,
@@ -294,17 +473,59 @@ namespace Hog
 
 		CheckVkResult(vkQueueSubmit2(GraphicsContext::GetQueue(), 1, &submitInfo, currentFrame.Fence));
 
+		// Present
+
+		VkPresentInfoKHR presentInfo{};
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+		presentInfo.waitSemaphoreCount = 1;
+		presentInfo.pWaitSemaphores = &currentFrame.RenderSemaphore;
+
+		VkSwapchainKHR swapChains[] = { GraphicsContext::GetSwapchain() };
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = swapChains;
+
+		presentInfo.pImageIndices = &s_Data.FrameIndex;
+
+		HG_PROFILE_GPU_FLIP(GraphicsContext::GetSwapchain());
+
+		CheckVkResult(vkQueuePresentKHR(GraphicsContext::GetQueue(), &presentInfo));
+
 		s_Data.FrameIndex = (s_Data.FrameIndex + 1) % s_Data.MaxFrameCount;
 	}
 
 	void Renderer::Deinitialize()
 	{
+		s_Data.FinalTarget.reset();
 		std::for_each(s_Data.FrameData.begin(), s_Data.FrameData.end(), [](FrameData& elem) {elem.Cleanup(); });
 		s_Data.FrameData.clear();
 		s_Data.BlitStage.Cleanup();
 		s_Data.StageData.clear();
 		s_Data.DescriptorLayoutCache.Cleanup();
 		s_Data.Graph.Cleanup();
+
+		if (*CVarSystem::Get()->GetIntCVar("application.enableImGui"))
+		{
+			Application::Get().PopOverlay(s_Data.ImGuiLayer);
+			s_Data.ImGuiLayer.reset();
+			s_Data.ImGuiStage.Cleanup();
+		}
+	}
+
+	void Renderer::SetFinalRenderTarget(Ref<Image> image)
+	{
+		s_Data.FinalTarget = image;
+	}
+
+	Ref<Image> Renderer::GetFinalRenderTarget()
+	{
+		if (!s_Data.FinalTarget)
+		{
+			VkExtent2D extent = GraphicsContext::GetExtent();
+			s_Data.FinalTarget = Image::Create(ImageType::SampledColorAttachment, extent.width, extent.height, 1, VK_FORMAT_B8G8R8A8_SRGB);
+		}
+
+		return s_Data.FinalTarget;
 	}
 
 	Renderer::RendererStats Renderer::GetStats()

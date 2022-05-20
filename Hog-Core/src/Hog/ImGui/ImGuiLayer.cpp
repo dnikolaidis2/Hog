@@ -12,14 +12,13 @@
 #include <GLFW/glfw3.h>
 
 #include "Hog/Renderer/GraphicsContext.h"
-#include "Hog/Renderer/Renderer.h"
 #include "Hog/Utils/RendererUtils.h"
 #include "Hog/Core/CVars.h"
 
 namespace Hog {
 
-	ImGuiLayer::ImGuiLayer()
-		: Layer("ImGuiLayer")
+	ImGuiLayer::ImGuiLayer(VkRenderPass renderPass)
+		: Layer("ImGuiLayer"), m_RenderPass(renderPass)
 	{
 	}
 
@@ -82,7 +81,7 @@ namespace Hog {
 		initInfo.MSAASamples = GraphicsContext::GetMSAASamples();
 		initInfo.CheckVkResultFn = CheckVkResult;
 
-		ImGui_ImplVulkan_Init(&initInfo, VK_NULL_HANDLE);
+		ImGui_ImplVulkan_Init(&initInfo, m_RenderPass);
 
 		GraphicsContext::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 			{

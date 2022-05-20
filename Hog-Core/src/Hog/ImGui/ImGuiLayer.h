@@ -11,7 +11,7 @@ namespace Hog {
 	class ImGuiLayer : public Layer
 	{
 	public:
-		ImGuiLayer();
+		ImGuiLayer(VkRenderPass renderPass);
 		~ImGuiLayer() = default;
 
 		virtual void OnUpdate(Timestep ts) override;
@@ -29,6 +29,7 @@ namespace Hog {
 		void SetDarkThemeColors();
 	private:
 		bool m_BlockEvents = true;
+		VkRenderPass m_RenderPass;
 	};
 
 }
