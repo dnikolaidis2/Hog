@@ -23,7 +23,8 @@ project "Hog-Core"
 		"vendor/glm/glm/**.hpp",
 		"vendor/glm/glm/**.inl",
 		"vendor/cgltf/**.h",
-		"vendor/cgltf/**.cpp"
+		"vendor/cgltf/**.cpp",
+		"vendor/spirv-reflect/spirv_reflect.cpp",
 	}
 
 	defines
@@ -47,8 +48,7 @@ project "Hog-Core"
 		"%{IncludeDir.tinyobjloader}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.optick}",
-		-- "%{IncludeDir.optick}/optick.h",
-		-- "%{IncludeDir.optick}/optick.config.h",
+		"%{IncludeDir.SPIRV_Reflect}",
 	}
 
 	links

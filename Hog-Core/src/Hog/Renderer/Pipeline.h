@@ -9,7 +9,7 @@ namespace Hog
 	class Pipeline
 	{
 	public:
-		static Ref<Pipeline> CreateGraphics(VkVertexInputBindingDescription vertexInputBindingDescription, const std::vector<VkVertexInputAttributeDescription>& vertexInputAttributeDescription,
+		static Ref<Pipeline> CreateGraphics(const std::vector <VkVertexInputBindingDescription>& vertexInputBindingDescription, const std::vector<VkVertexInputAttributeDescription>& vertexInputAttributeDescription,
 			VkPipelineLayout layout, VkRenderPass renderPass);
 		static Ref<Pipeline> CreateCompute(VkPipelineLayout layout);
 
@@ -30,7 +30,7 @@ namespace Hog
 	class GraphicsPipeline : public Pipeline
 	{
 	public:
-		GraphicsPipeline(VkVertexInputBindingDescription vertexInputBindingDescription, const std::vector<VkVertexInputAttributeDescription>& vertexInputAttributeDescription, VkPipelineLayout layout, VkRenderPass renderPass);
+		GraphicsPipeline(const std::vector<VkVertexInputBindingDescription>& vertexInputBindingDescription, const std::vector<VkVertexInputAttributeDescription>& vertexInputAttributeDescription, VkPipelineLayout layout, VkRenderPass renderPass);
 		~GraphicsPipeline() override;
 
 		virtual VkPipeline Create() override;

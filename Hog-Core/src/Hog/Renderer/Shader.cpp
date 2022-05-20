@@ -10,6 +10,7 @@
 #include <shaderc/shaderc.hpp>
 #include <spirv_cross/spirv_cross.hpp>
 #include <spirv_cross/spirv_glsl.hpp>
+#include <spirv_reflect.h>
 #include <vulkan/vulkan.h>
 #include <yaml-cpp/yaml.h>
 
@@ -25,6 +26,143 @@ AutoCVar_Int	CVar_ShaderOptimizationLevel("shader.optimizationLevel",
 
 namespace Hog {
 	namespace Utils {
+		// Returns the size in bytes of the provided VkFormat.
+		// As this is only intended for vertex attribute formats, not all VkFormats are supported.
+		static uint32_t FormatSize(VkFormat format)
+		{
+			uint32_t result = 0;
+			switch (format) {
+			case VK_FORMAT_UNDEFINED: result = 0; break;
+			case VK_FORMAT_R4G4_UNORM_PACK8: result = 1; break;
+			case VK_FORMAT_R4G4B4A4_UNORM_PACK16: result = 2; break;
+			case VK_FORMAT_B4G4R4A4_UNORM_PACK16: result = 2; break;
+			case VK_FORMAT_R5G6B5_UNORM_PACK16: result = 2; break;
+			case VK_FORMAT_B5G6R5_UNORM_PACK16: result = 2; break;
+			case VK_FORMAT_R5G5B5A1_UNORM_PACK16: result = 2; break;
+			case VK_FORMAT_B5G5R5A1_UNORM_PACK16: result = 2; break;
+			case VK_FORMAT_A1R5G5B5_UNORM_PACK16: result = 2; break;
+			case VK_FORMAT_R8_UNORM: result = 1; break;
+			case VK_FORMAT_R8_SNORM: result = 1; break;
+			case VK_FORMAT_R8_USCALED: result = 1; break;
+			case VK_FORMAT_R8_SSCALED: result = 1; break;
+			case VK_FORMAT_R8_UINT: result = 1; break;
+			case VK_FORMAT_R8_SINT: result = 1; break;
+			case VK_FORMAT_R8_SRGB: result = 1; break;
+			case VK_FORMAT_R8G8_UNORM: result = 2; break;
+			case VK_FORMAT_R8G8_SNORM: result = 2; break;
+			case VK_FORMAT_R8G8_USCALED: result = 2; break;
+			case VK_FORMAT_R8G8_SSCALED: result = 2; break;
+			case VK_FORMAT_R8G8_UINT: result = 2; break;
+			case VK_FORMAT_R8G8_SINT: result = 2; break;
+			case VK_FORMAT_R8G8_SRGB: result = 2; break;
+			case VK_FORMAT_R8G8B8_UNORM: result = 3; break;
+			case VK_FORMAT_R8G8B8_SNORM: result = 3; break;
+			case VK_FORMAT_R8G8B8_USCALED: result = 3; break;
+			case VK_FORMAT_R8G8B8_SSCALED: result = 3; break;
+			case VK_FORMAT_R8G8B8_UINT: result = 3; break;
+			case VK_FORMAT_R8G8B8_SINT: result = 3; break;
+			case VK_FORMAT_R8G8B8_SRGB: result = 3; break;
+			case VK_FORMAT_B8G8R8_UNORM: result = 3; break;
+			case VK_FORMAT_B8G8R8_SNORM: result = 3; break;
+			case VK_FORMAT_B8G8R8_USCALED: result = 3; break;
+			case VK_FORMAT_B8G8R8_SSCALED: result = 3; break;
+			case VK_FORMAT_B8G8R8_UINT: result = 3; break;
+			case VK_FORMAT_B8G8R8_SINT: result = 3; break;
+			case VK_FORMAT_B8G8R8_SRGB: result = 3; break;
+			case VK_FORMAT_R8G8B8A8_UNORM: result = 4; break;
+			case VK_FORMAT_R8G8B8A8_SNORM: result = 4; break;
+			case VK_FORMAT_R8G8B8A8_USCALED: result = 4; break;
+			case VK_FORMAT_R8G8B8A8_SSCALED: result = 4; break;
+			case VK_FORMAT_R8G8B8A8_UINT: result = 4; break;
+			case VK_FORMAT_R8G8B8A8_SINT: result = 4; break;
+			case VK_FORMAT_R8G8B8A8_SRGB: result = 4; break;
+			case VK_FORMAT_B8G8R8A8_UNORM: result = 4; break;
+			case VK_FORMAT_B8G8R8A8_SNORM: result = 4; break;
+			case VK_FORMAT_B8G8R8A8_USCALED: result = 4; break;
+			case VK_FORMAT_B8G8R8A8_SSCALED: result = 4; break;
+			case VK_FORMAT_B8G8R8A8_UINT: result = 4; break;
+			case VK_FORMAT_B8G8R8A8_SINT: result = 4; break;
+			case VK_FORMAT_B8G8R8A8_SRGB: result = 4; break;
+			case VK_FORMAT_A8B8G8R8_UNORM_PACK32: result = 4; break;
+			case VK_FORMAT_A8B8G8R8_SNORM_PACK32: result = 4; break;
+			case VK_FORMAT_A8B8G8R8_USCALED_PACK32: result = 4; break;
+			case VK_FORMAT_A8B8G8R8_SSCALED_PACK32: result = 4; break;
+			case VK_FORMAT_A8B8G8R8_UINT_PACK32: result = 4; break;
+			case VK_FORMAT_A8B8G8R8_SINT_PACK32: result = 4; break;
+			case VK_FORMAT_A8B8G8R8_SRGB_PACK32: result = 4; break;
+			case VK_FORMAT_A2R10G10B10_UNORM_PACK32: result = 4; break;
+			case VK_FORMAT_A2R10G10B10_SNORM_PACK32: result = 4; break;
+			case VK_FORMAT_A2R10G10B10_USCALED_PACK32: result = 4; break;
+			case VK_FORMAT_A2R10G10B10_SSCALED_PACK32: result = 4; break;
+			case VK_FORMAT_A2R10G10B10_UINT_PACK32: result = 4; break;
+			case VK_FORMAT_A2R10G10B10_SINT_PACK32: result = 4; break;
+			case VK_FORMAT_A2B10G10R10_UNORM_PACK32: result = 4; break;
+			case VK_FORMAT_A2B10G10R10_SNORM_PACK32: result = 4; break;
+			case VK_FORMAT_A2B10G10R10_USCALED_PACK32: result = 4; break;
+			case VK_FORMAT_A2B10G10R10_SSCALED_PACK32: result = 4; break;
+			case VK_FORMAT_A2B10G10R10_UINT_PACK32: result = 4; break;
+			case VK_FORMAT_A2B10G10R10_SINT_PACK32: result = 4; break;
+			case VK_FORMAT_R16_UNORM: result = 2; break;
+			case VK_FORMAT_R16_SNORM: result = 2; break;
+			case VK_FORMAT_R16_USCALED: result = 2; break;
+			case VK_FORMAT_R16_SSCALED: result = 2; break;
+			case VK_FORMAT_R16_UINT: result = 2; break;
+			case VK_FORMAT_R16_SINT: result = 2; break;
+			case VK_FORMAT_R16_SFLOAT: result = 2; break;
+			case VK_FORMAT_R16G16_UNORM: result = 4; break;
+			case VK_FORMAT_R16G16_SNORM: result = 4; break;
+			case VK_FORMAT_R16G16_USCALED: result = 4; break;
+			case VK_FORMAT_R16G16_SSCALED: result = 4; break;
+			case VK_FORMAT_R16G16_UINT: result = 4; break;
+			case VK_FORMAT_R16G16_SINT: result = 4; break;
+			case VK_FORMAT_R16G16_SFLOAT: result = 4; break;
+			case VK_FORMAT_R16G16B16_UNORM: result = 6; break;
+			case VK_FORMAT_R16G16B16_SNORM: result = 6; break;
+			case VK_FORMAT_R16G16B16_USCALED: result = 6; break;
+			case VK_FORMAT_R16G16B16_SSCALED: result = 6; break;
+			case VK_FORMAT_R16G16B16_UINT: result = 6; break;
+			case VK_FORMAT_R16G16B16_SINT: result = 6; break;
+			case VK_FORMAT_R16G16B16_SFLOAT: result = 6; break;
+			case VK_FORMAT_R16G16B16A16_UNORM: result = 8; break;
+			case VK_FORMAT_R16G16B16A16_SNORM: result = 8; break;
+			case VK_FORMAT_R16G16B16A16_USCALED: result = 8; break;
+			case VK_FORMAT_R16G16B16A16_SSCALED: result = 8; break;
+			case VK_FORMAT_R16G16B16A16_UINT: result = 8; break;
+			case VK_FORMAT_R16G16B16A16_SINT: result = 8; break;
+			case VK_FORMAT_R16G16B16A16_SFLOAT: result = 8; break;
+			case VK_FORMAT_R32_UINT: result = 4; break;
+			case VK_FORMAT_R32_SINT: result = 4; break;
+			case VK_FORMAT_R32_SFLOAT: result = 4; break;
+			case VK_FORMAT_R32G32_UINT: result = 8; break;
+			case VK_FORMAT_R32G32_SINT: result = 8; break;
+			case VK_FORMAT_R32G32_SFLOAT: result = 8; break;
+			case VK_FORMAT_R32G32B32_UINT: result = 12; break;
+			case VK_FORMAT_R32G32B32_SINT: result = 12; break;
+			case VK_FORMAT_R32G32B32_SFLOAT: result = 12; break;
+			case VK_FORMAT_R32G32B32A32_UINT: result = 16; break;
+			case VK_FORMAT_R32G32B32A32_SINT: result = 16; break;
+			case VK_FORMAT_R32G32B32A32_SFLOAT: result = 16; break;
+			case VK_FORMAT_R64_UINT: result = 8; break;
+			case VK_FORMAT_R64_SINT: result = 8; break;
+			case VK_FORMAT_R64_SFLOAT: result = 8; break;
+			case VK_FORMAT_R64G64_UINT: result = 16; break;
+			case VK_FORMAT_R64G64_SINT: result = 16; break;
+			case VK_FORMAT_R64G64_SFLOAT: result = 16; break;
+			case VK_FORMAT_R64G64B64_UINT: result = 24; break;
+			case VK_FORMAT_R64G64B64_SINT: result = 24; break;
+			case VK_FORMAT_R64G64B64_SFLOAT: result = 24; break;
+			case VK_FORMAT_R64G64B64A64_UINT: result = 32; break;
+			case VK_FORMAT_R64G64B64A64_SINT: result = 32; break;
+			case VK_FORMAT_R64G64B64A64_SFLOAT: result = 32; break;
+			case VK_FORMAT_B10G11R11_UFLOAT_PACK32: result = 4; break;
+			case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32: result = 4; break;
+
+			default:
+				break;
+			}
+			return result;
+		}
+
 		static VkFormat SpirvBaseTypeToVkFormat(const spirv_cross::SPIRType& type)
 		{
 			switch (type.basetype) {
@@ -535,24 +673,8 @@ namespace Hog {
 
 	void Shader::Generate(VkSpecializationInfo specializationInfo)
 	{
-		Reflect();
+		ReflectPipelineLayout();
 
-		for (int i = 0; i < m_DescriptorSetLayoutBinding.size(); ++i)
-		{
-			VkDescriptorSetLayoutCreateInfo layoutInfo{};
-			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			layoutInfo.bindingCount = (uint32_t)m_DescriptorSetLayoutBinding[i].size();
-			layoutInfo.pBindings = m_DescriptorSetLayoutBinding[i].data();
-
-			CheckVkResult(vkCreateDescriptorSetLayout(GraphicsContext::GetDevice(), &layoutInfo, nullptr, &m_DescriptorSetLayouts[i]));
-		}
-
-		m_PipelineLayoutCreateInfo.pushConstantRangeCount = (uint32_t)m_PushConstantRanges.size();
-		m_PipelineLayoutCreateInfo.pPushConstantRanges = m_PushConstantRanges.data();
-		m_PipelineLayoutCreateInfo.setLayoutCount = (uint32_t)m_DescriptorSetLayouts.size(); // Optional
-		m_PipelineLayoutCreateInfo.pSetLayouts = m_DescriptorSetLayouts.data(); // Optional
-
-		CheckVkResult(vkCreatePipelineLayout(GraphicsContext::GetDevice(), &m_PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 
 		m_Pipeline = Pipeline::CreateCompute(m_PipelineLayout);
 
@@ -576,25 +698,9 @@ namespace Hog {
 
 	void Shader::Generate(VkRenderPass renderPass, VkSpecializationInfo specializationInfo)
 	{
-		Reflect();
+		ReflectPipelineLayout();
 
-		for (int i = 0; i < m_DescriptorSetLayoutBinding.size(); ++i)
-		{
-			VkDescriptorSetLayoutCreateInfo layoutInfo{};
-			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			layoutInfo.bindingCount = (uint32_t)m_DescriptorSetLayoutBinding[i].size();
-			layoutInfo.pBindings = m_DescriptorSetLayoutBinding[i].data();
-
-			CheckVkResult(vkCreateDescriptorSetLayout(GraphicsContext::GetDevice(), &layoutInfo, nullptr, &m_DescriptorSetLayouts[i]));
-		}
-
-		m_PipelineLayoutCreateInfo.pushConstantRangeCount = (uint32_t)m_PushConstantRanges.size();
-		m_PipelineLayoutCreateInfo.pPushConstantRanges = m_PushConstantRanges.data();
-		m_PipelineLayoutCreateInfo.setLayoutCount = (uint32_t)m_DescriptorSetLayouts.size(); // Optional
-		m_PipelineLayoutCreateInfo.pSetLayouts = m_DescriptorSetLayouts.data(); // Optional
-
-		CheckVkResult(vkCreatePipelineLayout(GraphicsContext::GetDevice(), &m_PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
-		m_Pipeline = Pipeline::CreateGraphics(m_VertexInputBindingDescription, m_VertexInputAttributeDescriptions, m_PipelineLayout, renderPass);
+		m_Pipeline = Pipeline::CreateGraphics(m_VertexInputBindingDescriptions, m_VertexInputAttributeDescriptions, m_PipelineLayout, renderPass);
 
 		for (const auto& [stage, source] : m_Sources)
 		{
@@ -623,215 +729,122 @@ namespace Hog {
 	{
 	}
 
-	void Shader::Reflect()
+	void Shader::ReflectPipelineLayout()
 	{
 		for (const auto& [stage, source] : m_Sources)
 		{
-			spirv_cross::Compiler compiler(source->Code);
-			spirv_cross::ShaderResources resources = compiler.get_shader_resources();
+			SpvReflectShaderModule spvmodule;
+			SpvReflectResult result = spvReflectCreateShaderModule(source->Code.size() * sizeof(uint32_t), source->Code.data(), &spvmodule);
 
-			HG_CORE_TRACE("Shader::Reflect - {0} {1}", Utils::ShaderTypeToString(stage), source->FilePath);
-			HG_CORE_TRACE("    {0} uniform buffers", resources.uniform_buffers.size());
-			HG_CORE_TRACE("    {0} resources", resources.sampled_images.size());
+			uint32_t count = 0;
+			result = spvReflectEnumerateDescriptorSets(&spvmodule, &count, NULL);
+			assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
-			HG_CORE_TRACE("Uniform buffers:");
-			for (const auto& resource : resources.uniform_buffers)
+			std::vector<SpvReflectDescriptorSet*> sets(count);
+			result = spvReflectEnumerateDescriptorSets(&spvmodule, &count, sets.data());
+			assert(result == SPV_REFLECT_RESULT_SUCCESS);
+			for (size_t i_set = 0; i_set < sets.size(); ++i_set)
 			{
-				const auto& bufferType = compiler.get_type(resource.base_type_id);
-				uint32_t bufferSize;
-				if (bufferType.basetype == spirv_cross::SPIRType::Struct)
-					bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
-				else
-					bufferSize = (bufferType.width * bufferType.vecsize) / 8;
-				uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-				int memberCount = (int)bufferType.member_types.size();
-				uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
-
-				HG_CORE_TRACE("  {0}", resource.name);
-				HG_CORE_TRACE("    Size = {0}", bufferSize);
-				HG_CORE_TRACE("    Binding = {0}", binding);
-				HG_CORE_TRACE("    Members = {0}", memberCount);
-				HG_CORE_TRACE("    Set = {0}", set);
-
-				if (m_DescriptorSetLayoutBinding[set].size() < binding + 1)
+				const SpvReflectDescriptorSet& refl_set = *(sets[i_set]);
+				for (uint32_t i_binding = 0; i_binding < refl_set.binding_count; ++i_binding) 
 				{
-					m_DescriptorSetLayoutBinding[set].resize(binding + 1);
+					const SpvReflectDescriptorBinding& refl_binding = *(refl_set.bindings[i_binding]);
+
+					if (m_DescriptorSetLayoutBinding[refl_set.set].size() < refl_binding.binding + 1)
+					{
+						m_DescriptorSetLayoutBinding[refl_set.set].resize(refl_binding.binding + 1);
+					}
+
+					VkDescriptorSetLayoutBinding& layoutBinding = m_DescriptorSetLayoutBinding[refl_set.set][refl_binding.binding];
+					layoutBinding.binding = refl_binding.binding;
+					layoutBinding.descriptorType = static_cast<VkDescriptorType>(refl_binding.descriptor_type);
+					layoutBinding.descriptorCount = 1;
+					for (uint32_t i_dim = 0; i_dim < refl_binding.array.dims_count; ++i_dim) {
+						layoutBinding.descriptorCount *= refl_binding.array.dims[i_dim];
+					}
+					layoutBinding.stageFlags |= static_cast<VkShaderStageFlags>(spvmodule.shader_stage);
 				}
-
-				VkDescriptorSetLayoutBinding& layoutBinding = m_DescriptorSetLayoutBinding[set][binding];
-
-				layoutBinding.binding = binding;
-				layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				layoutBinding.descriptorCount = 1;
-				layoutBinding.stageFlags |= Utils::ShaderTypeToShaderStageFlag(stage);
 			}
 
-			HG_CORE_TRACE("Storage buffers:");
-			for (const auto& resource : resources.storage_buffers)
+			result = spvReflectEnumeratePushConstantBlocks(&spvmodule, &count, NULL);
+			assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+			std::vector<SpvReflectBlockVariable*> pconstants(count);
+			result = spvReflectEnumeratePushConstantBlocks(&spvmodule, &count, pconstants.data());
+			assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+			for (size_t i_const = 0; i_const < pconstants.size(); ++i_const)
 			{
-				const auto& bufferType = compiler.get_type(resource.base_type_id);
-				uint32_t bufferSize;
-				if (bufferType.basetype == spirv_cross::SPIRType::Struct)
-					bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
-				else
-					bufferSize = (bufferType.width * bufferType.vecsize) / 8;
-				uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-				int memberCount = (int)bufferType.member_types.size();
-				uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
-
-				HG_CORE_TRACE("  {0}", resource.name);
-				HG_CORE_TRACE("    Size = {0}", bufferSize);
-				HG_CORE_TRACE("    Binding = {0}", binding);
-				HG_CORE_TRACE("    Members = {0}", memberCount);
-				HG_CORE_TRACE("    Set = {0}", set);
-
-				if (m_DescriptorSetLayoutBinding[set].size() < binding + 1)
-				{
-					m_DescriptorSetLayoutBinding[set].resize(binding + 1);
-				}
-
-				VkDescriptorSetLayoutBinding& layoutBinding = m_DescriptorSetLayoutBinding[set][binding];
-
-				layoutBinding.binding = binding;
-				layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-				layoutBinding.descriptorCount = 1;
-				layoutBinding.stageFlags |= Utils::ShaderTypeToShaderStageFlag(stage);
-			}
-
-			HG_CORE_TRACE("Stage Inputs:");
-			for (const auto& resource : resources.stage_inputs)
-			{
-				const auto& bufferType = compiler.get_type(resource.base_type_id);
-				uint32_t bufferSize;
-				if (bufferType.basetype == spirv_cross::SPIRType::Struct)
-					bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
-				else
-					bufferSize = (bufferType.width * bufferType.vecsize) / 8;
-				uint32_t location = compiler.get_decoration(resource.id, spv::DecorationLocation);
-				uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-				uint32_t offset = compiler.get_decoration(resource.id, spv::DecorationAlignment);
-
-				HG_CORE_TRACE("  {0}", resource.name);
-				HG_CORE_TRACE("    Size = {0}", bufferSize);
-				HG_CORE_TRACE("    Location = {0}", location);
-				HG_CORE_TRACE("    Binding = {0}", binding);
-				HG_CORE_TRACE("    Offset = {0}", offset);
-				HG_CORE_TRACE("    HasDecoration = {0}", compiler.has_decoration(resource.id, spv::DecorationMatrixStride));
-			}
-
-			if (stage == ShaderType::Vertex)
-			{
-				m_VertexInputAttributeDescriptions.resize(resources.stage_inputs.size());
-
-				std::vector<uint32_t> elementSize(resources.stage_inputs.size());
-
-				for (int i = 0; i < resources.stage_inputs.size(); ++i)
-				{
-					auto id = resources.stage_inputs[i].id;
-					auto typeId = resources.stage_inputs[i].base_type_id;
-					uint32_t location = compiler.get_decoration(resources.stage_inputs[i].id, spv::DecorationLocation);
-					const auto& bufferType = compiler.get_type(typeId);
-
-					uint32_t bufferSize;
-					if (bufferType.basetype == spirv_cross::SPIRType::Struct)
-						bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
-					else
-						bufferSize = (bufferType.width * bufferType.vecsize) / 8;
-
-					elementSize[location] = bufferSize;
-					m_VertexInputAttributeDescriptions[location].binding = 0;
-					m_VertexInputAttributeDescriptions[location].location = location;
-					m_VertexInputAttributeDescriptions[location].format = Utils::SpirvBaseTypeToVkFormat(bufferType);
-					m_VertexInputAttributeDescriptions[location].offset = 0;
-				}
-
-				uint32_t offset = 0;
-				for (int i = 0; i < elementSize.size(); ++i)
-				{
-					m_VertexInputAttributeDescriptions[i].offset = offset;
-					offset += elementSize[i];
-				}
-
-				m_VertexInputBindingDescription.binding = 0;
-				m_VertexInputBindingDescription.stride = offset;
-				m_VertexInputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-			}
-
-			HG_CORE_TRACE("Stage Outputs:");
-			for (const auto& resource : resources.stage_outputs)
-			{
-				const auto& bufferType = compiler.get_type(resource.base_type_id);
-				uint32_t bufferSize;
-				if (bufferType.basetype == spirv_cross::SPIRType::Struct)
-					bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
-				else
-					bufferSize = (bufferType.width * bufferType.vecsize) / 8;
-				uint32_t location = compiler.get_decoration(resource.id, spv::DecorationLocation);
-				uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-				uint32_t offset = compiler.get_decoration(resource.id, spv::DecorationOffset);
-
-				HG_CORE_TRACE("  {0}", resource.name);
-				HG_CORE_TRACE("    Size = {0}", bufferSize);
-				HG_CORE_TRACE("    Location = {0}", location);
-				HG_CORE_TRACE("    Binding = {0}", binding);
-				HG_CORE_TRACE("    Offset = {0}", offset);
-			}
-
-			HG_CORE_TRACE("Push Constants:");
-			for (const auto& resource : resources.push_constant_buffers)
-			{
-				const auto& bufferType = compiler.get_type(resource.base_type_id);
-				uint32_t bufferSize;
-				if (bufferType.basetype == spirv_cross::SPIRType::Struct)
-					bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
-				else
-					bufferSize = (bufferType.width * bufferType.vecsize) / 8;
-				uint32_t location = compiler.get_decoration(resource.id, spv::DecorationLocation);
-				uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-				uint32_t offset = compiler.get_decoration(resource.id, spv::DecorationOffset);
-
-				HG_CORE_TRACE("  {0}", resource.name);
-				HG_CORE_TRACE("    Size = {0}", bufferSize);
-				HG_CORE_TRACE("    Location = {0}", location);
-				HG_CORE_TRACE("    Binding = {0}", binding);
-				HG_CORE_TRACE("    Offset = {0}", offset);
-				HG_CORE_TRACE("    HasOffset = {0}", compiler.has_decoration(resource.id, spv::DecorationOffset));
-
 				VkPushConstantRange pushConstant = {};
-				pushConstant.offset = 0;
-				pushConstant.size = bufferSize;
+				pushConstant.offset = pconstants[i_const]->offset;
+				pushConstant.size = pconstants[i_const]->size;
 				pushConstant.stageFlags |= Utils::ShaderTypeToShaderStageFlag(stage);
 
 				m_PushConstantRanges.push_back(pushConstant);
 			}
 
-			HG_CORE_TRACE("Sampled Images:");
-			for (const auto& resource : resources.sampled_images)
+			if (stage == ShaderType::Vertex)
 			{
-				VkDescriptorSetLayoutBinding layoutBinding = {};
+				result = spvReflectEnumerateInputVariables(&spvmodule, &count, NULL);
+				assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
-				const auto& bufferType = compiler.get_type(resource.type_id);
-				uint32_t bufferSize;
-				if (bufferType.basetype == spirv_cross::SPIRType::Struct)
-					bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
-				else
-					bufferSize = (bufferType.width * bufferType.vecsize) / 8;
-				uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-				uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
-				int memberCount = (int)bufferType.member_types.size();
+				std::vector<SpvReflectInterfaceVariable*> inputVariables(count);
+				result = spvReflectEnumerateInputVariables(&spvmodule, &count, inputVariables.data());
+				assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
-				HG_CORE_TRACE("  {0}", resource.name);
-				HG_CORE_TRACE("    Size = {0}", bufferSize);
-				HG_CORE_TRACE("    Binding = {0}", binding);
-				HG_CORE_TRACE("    Members = {0}", memberCount);
-				HG_CORE_TRACE("    Set = {0}", set);
+				VkVertexInputBindingDescription bindingDescription = {};
+				bindingDescription.binding = 0;
+				bindingDescription.stride = 0;  // computed below
+				bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-				layoutBinding.binding = binding;
-				layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				layoutBinding.descriptorCount = bufferType.array[0];
-				layoutBinding.stageFlags |= Utils::ShaderTypeToShaderStageFlag(stage);
-				m_DescriptorSetLayoutBinding[set].push_back(layoutBinding);
+				m_VertexInputAttributeDescriptions.reserve(inputVariables.size());
+				for (size_t i_var = 0; i_var < inputVariables.size(); ++i_var) {
+					const SpvReflectInterfaceVariable& refl_var = *(inputVariables[i_var]);
+					// ignore built-in variables
+					if (refl_var.decoration_flags & SPV_REFLECT_DECORATION_BUILT_IN) {
+						continue;
+					}
+					VkVertexInputAttributeDescription attr_desc{};
+					attr_desc.location = refl_var.location;
+					attr_desc.binding = bindingDescription.binding;
+					attr_desc.format = static_cast<VkFormat>(refl_var.format);
+					attr_desc.offset = 0;  // final offset computed below after sorting.
+					m_VertexInputAttributeDescriptions.push_back(attr_desc);
+				}
+				// Sort attributes by location
+				std::sort(std::begin(m_VertexInputAttributeDescriptions), std::end(m_VertexInputAttributeDescriptions),
+					[](const VkVertexInputAttributeDescription& a, const VkVertexInputAttributeDescription& b) {
+						return a.location < b.location; });
+				// Compute final offsets of each attribute, and total vertex stride.
+				for (auto& attribute : m_VertexInputAttributeDescriptions) {
+					uint32_t format_size = Utils::FormatSize(attribute.format);
+					attribute.offset = bindingDescription.stride;
+					bindingDescription.stride += format_size;
+				}
+				// Nothing further is done with attribute_descriptions or binding_description
+				// in this sample. A real application would probably derive this information from its
+				// mesh format(s); a similar mechanism could be used to ensure mesh/shader compatibility.
+				m_VertexInputBindingDescriptions.push_back(bindingDescription);
 			}
+
+			spvReflectDestroyShaderModule(&spvmodule);
 		}
+
+		for (int i = 0; i < m_DescriptorSetLayoutBinding.size(); ++i)
+		{
+			VkDescriptorSetLayoutCreateInfo layoutInfo{};
+			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			layoutInfo.bindingCount = (uint32_t)m_DescriptorSetLayoutBinding[i].size();
+			layoutInfo.pBindings = m_DescriptorSetLayoutBinding[i].data();
+
+			CheckVkResult(vkCreateDescriptorSetLayout(GraphicsContext::GetDevice(), &layoutInfo, nullptr, &m_DescriptorSetLayouts[i]));
+		}
+
+		m_PipelineLayoutCreateInfo.pushConstantRangeCount = (uint32_t)m_PushConstantRanges.size();
+		m_PipelineLayoutCreateInfo.pPushConstantRanges = m_PushConstantRanges.data();
+		m_PipelineLayoutCreateInfo.setLayoutCount = (uint32_t)m_DescriptorSetLayouts.size(); // Optional
+		m_PipelineLayoutCreateInfo.pSetLayouts = m_DescriptorSetLayouts.data(); // Optional
+
+		CheckVkResult(vkCreatePipelineLayout(GraphicsContext::GetDevice(), &m_PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 	}
 }

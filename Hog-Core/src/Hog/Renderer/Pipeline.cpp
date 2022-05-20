@@ -8,7 +8,7 @@
 
 namespace Hog
 {
-	Ref<Pipeline> Pipeline::CreateGraphics(VkVertexInputBindingDescription vertexInputBindingDescription, const std::vector<VkVertexInputAttributeDescription>& vertexInputAttributeDescription,
+	Ref<Pipeline> Pipeline::CreateGraphics(const std::vector<VkVertexInputBindingDescription>& vertexInputBindingDescription, const std::vector<VkVertexInputAttributeDescription>& vertexInputAttributeDescription,
 		VkPipelineLayout layout, VkRenderPass renderPass)
 	{
 		return CreateRef<GraphicsPipeline>(vertexInputBindingDescription, vertexInputAttributeDescription, layout, renderPass);
@@ -38,14 +38,14 @@ namespace Hog
 		m_Initialized = false;
 	}
 
-	GraphicsPipeline::GraphicsPipeline(VkVertexInputBindingDescription vertexInputBindingDescription, const std::vector<VkVertexInputAttributeDescription>& vertexInputAttributeDescription,
+	GraphicsPipeline::GraphicsPipeline(const std::vector<VkVertexInputBindingDescription>& vertexInputBindingDescription, const std::vector<VkVertexInputAttributeDescription>& vertexInputAttributeDescription,
 		VkPipelineLayout layout, VkRenderPass renderPass)
 		:m_PipelineLayout(layout)
 	{
 		GraphicsPipelineCreateInfo.renderPass = renderPass;
 		MultisamplingStateCreateInfo.rasterizationSamples = GraphicsContext::GetMSAASamples();
 
-		VertexInputBindingDescriptions.push_back(vertexInputBindingDescription);
+		VertexInputBindingDescriptions = vertexInputBindingDescription;
 		VertexInputAttributeDescriptions = vertexInputAttributeDescription;
 	}
 

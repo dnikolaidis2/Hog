@@ -97,10 +97,10 @@ namespace Hog {
 		VkPipelineLayout GetPipelineLayout() const { return m_PipelineLayout; }
 		const std::array<VkDescriptorSetLayout, 4>& GetDescriptorSetLayouts() const { return m_DescriptorSetLayouts; }
 		const std::vector<VkVertexInputAttributeDescription>& GetVertexInputAttributeDescriptions() { return m_VertexInputAttributeDescriptions; }
-		VkVertexInputBindingDescription GetVertexInputBindingDescription() const { return m_VertexInputBindingDescription; }
+		const std::vector<VkVertexInputBindingDescription>& GetVertexInputBindingDescriptions() const { return m_VertexInputBindingDescriptions; }
 
 	private:
-		void Reflect();
+		void ReflectPipelineLayout();
 	private:
 		std::string m_Name;
 		std::unordered_map<ShaderType, Ref<ShaderSource>> m_Sources;
@@ -109,7 +109,7 @@ namespace Hog {
 		std::array<std::vector<VkDescriptorSetLayoutBinding>, 4> m_DescriptorSetLayoutBinding;
 		std::array<VkDescriptorSetLayout, 4> m_DescriptorSetLayouts = {VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE};
 
-		VkVertexInputBindingDescription m_VertexInputBindingDescription = {};
+		std::vector<VkVertexInputBindingDescription> m_VertexInputBindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> m_VertexInputAttributeDescriptions;
 
 		std::vector<VkPushConstantRange> m_PushConstantRanges;

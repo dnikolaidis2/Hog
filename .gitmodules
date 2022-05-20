@@ -16,3 +16,6 @@
 [submodule "Hog-Core/vendor/optick"]
 	path = Hog-Core/vendor/optick
 	url = git@github.com:dnikolaidis2/optick.git
+[submodule "Hog-Core/vendor/spirv-reflect"]
+	path = Hog-Core/vendor/spirv-reflect
+	url = git@github.com:dnikolaidis2/SPIRV-Reflect.git

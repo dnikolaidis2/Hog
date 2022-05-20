@@ -17,6 +17,7 @@ IncludeDir["ImGui"] = "%{wks.location}/Hog-Core/vendor/ImGui"
 IncludeDir["glm"] = "%{wks.location}/Hog-Core/vendor/glm"
 IncludeDir["shaderc"] = "%{wks.location}/Hog-Core/vendor/shaderc/include"
 IncludeDir["SPIRV_Cross"] = "%{wks.location}/Hog-Core/vendor/SPIRV-Cross"
+IncludeDir["SPIRV_Reflect"] = "%{wks.location}/Hog-Core/vendor/spirv-reflect"
 IncludeDir["VulkanSDK"] = "%{VULKAN_SDK}/Include"
 IncludeDir["optick"] = "%{wks.location}/Hog-Core/vendor/optick/src"
 
