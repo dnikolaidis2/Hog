@@ -24,10 +24,10 @@ void SandboxLayer::OnAttach()
 	auto graphics = graph.AddStage(nullptr, {
 		"ForwardGraphics", Shader::Create("Basic", "Basic.vertex", "Basic.fragment"), RendererStageType::ForwardGraphics,
 		{
-			{DataType::Float3, "a_Position"},
-			{DataType::Float3, "a_Normal"},
-			{DataType::Float2, "a_TexCoords"},
-			{DataType::Float3, "a_MaterialIndex"},
+			{DataType::Defaults::Float3, "a_Position"},
+			{DataType::Defaults::Float3, "a_Normal"},
+			{DataType::Defaults::Float2, "a_TexCoords"},
+			{DataType::Defaults::Float3, "a_MaterialIndex"},
 		},
 		{
 			{"u_ViewProjection", ResourceType::Uniform, ResourceBindLocation::Vertex, nullptr, 0, 0},

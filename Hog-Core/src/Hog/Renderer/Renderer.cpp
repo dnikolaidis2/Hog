@@ -1,7 +1,7 @@
 #include "hgpch.h"
 #include "Renderer.h"
 
-#include "FrameBuffer.h"
+#include "Hog/Renderer/FrameBuffer.h"
 #include "Hog/Core/Application.h"
 #include "Hog/Renderer/GraphicsContext.h"
 #include "Hog/Renderer/Buffer.h"
@@ -164,6 +164,51 @@ namespace Hog
 	{
 		RendererStage Info;
 		VkRenderPass RenderPass = VK_NULL_HANDLE;
+
+		void Init()
+		{
+			if (Info.StageType == RendererStageType::DeferredGraphics || Info.StageType == RendererStageType::ForwardGraphics)
+			{
+				// std::vector<VkAttachmentDescription2> attachment(Info.);
+
+				VkAttachmentReference2 colorAttachmentRef = {
+					.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2,
+					.attachment = 0,
+					.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				};
+
+				//we are going to create 1 subpass, which is the minimum you can do
+				VkSubpassDescription2 subpass = {
+					.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2,
+					.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+					.colorAttachmentCount = 1,
+					.pColorAttachments = &colorAttachmentRef,
+				};
+
+				//1 dependency, which is from "outside" into the subpass. And we can read or write color
+				VkSubpassDependency2 dependency = {
+					.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2,
+					.srcSubpass = VK_SUBPASS_EXTERNAL,
+					.dstSubpass = 0,
+					.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+					.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+					.srcAccessMask = 0,
+					.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+				};
+
+				VkRenderPassCreateInfo2 renderPassInfo = {
+					.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2,
+					.attachmentCount = 1,
+					// .pAttachments = &colorAttachment,
+					.subpassCount = 1,
+					.pSubpasses = &subpass,
+					//.dependencyCount = 1,
+					//.pDependencies = &dependency,
+				};
+
+				CheckVkResult(vkCreateRenderPass2(GraphicsContext::GetDevice(), &renderPassInfo, nullptr, &RenderPass));
+			}
+		}
 	};
 
 	struct FrameData
@@ -336,7 +381,7 @@ namespace Hog
 					VkDescriptorBufferInfo bufferInfo = { resource.Buffer->GetHandle(), 0, VK_WHOLE_SIZE };
 
 					DescriptorBuilder::Begin(&s_Data.DescriptorLayoutCache, &currentFrame.DescriptorAllocator)
-						.BindBuffer(resource.Binding, &bufferInfo, BufferTypeToVkDescriptorType(resource.Buffer->GetBufferType()), VK_SHADER_STAGE_COMPUTE_BIT)
+						.BindBuffer(resource.Binding, &bufferInfo, resource.Buffer->GetBufferDescription(), VK_SHADER_STAGE_COMPUTE_BIT)
 						.Build(set);
 
 					sets.push_back(set);
@@ -522,7 +567,7 @@ namespace Hog
 		if (!s_Data.FinalTarget)
 		{
 			VkExtent2D extent = GraphicsContext::GetExtent();
-			s_Data.FinalTarget = Image::Create(ImageType::SampledColorAttachment, extent.width, extent.height, 1, VK_FORMAT_B8G8R8A8_SRGB);
+			s_Data.FinalTarget = Image::Create(ImageDescription::Defaults::SampledColorAttachment, extent.width, extent.height, 1, VK_FORMAT_B8G8R8A8_SRGB);
 		}
 
 		return s_Data.FinalTarget;

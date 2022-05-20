@@ -1,7 +1,6 @@
 #include "hgpch.h"
 #include "GraphicsContext.h"
 
-#include "vk_mem_alloc.h"
 #include "Hog/Core/CVars.h"
 #include "Hog/Core/Application.h"
 #include "Hog/Utils/RendererUtils.h"
@@ -805,7 +804,7 @@ namespace Hog {
 			info.subresourceRange.layerCount = 1;
 			info.flags = 0;
 
-			SwapchainImages[i] = Image::CreateSwapChainImage(swapchainImages[i], ImageType::RenderTarget, SwapchainFormat, SwapchainExtent, info);
+			SwapchainImages[i] = Image::CreateSwapChainImage(swapchainImages[i], ImageDescription::Defaults::RenderTarget, SwapchainFormat, SwapchainExtent, info);
 		}
 	}
 

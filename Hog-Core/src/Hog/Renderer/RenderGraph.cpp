@@ -4,6 +4,16 @@
 
 namespace Hog
 {
+	bool AttachmentLayout::ContainsType(AttachmentType type) const
+	{
+		for (const auto& elem : m_Elements)
+		{
+			if (elem.Type == type) return true;
+		}
+
+		return false;
+	}
+
 	bool ResourceLayout::ContainsType(ResourceType type) const
 	{
 		for (const auto & elem : m_Elements)

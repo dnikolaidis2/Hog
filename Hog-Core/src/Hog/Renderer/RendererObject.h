@@ -1,8 +1,8 @@
 #pragma once
 
-#include <Hog/Core/Base.h>
-#include <Hog/Renderer/Mesh.h>
-#include <Hog/Renderer/Material.h>
+#include "Hog/Core/Base.h"
+#include "Hog/Renderer/Mesh.h"
+#include "Hog/Renderer/Material.h"
 
 namespace Hog
 {

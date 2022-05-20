@@ -1,7 +1,7 @@
 #include "hgpch.h"
 #include "FrameBuffer.h"
 
-#include "GraphicsContext.h"
+#include "Hog/Renderer/GraphicsContext.h"
 #include "Hog/Utils/RendererUtils.h"
 
 

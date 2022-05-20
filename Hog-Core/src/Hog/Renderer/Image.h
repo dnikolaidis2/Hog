@@ -1,85 +1,21 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <vk_mem_alloc.h>
 
-#include "Buffer.h"
-#include "Constants.h"
-#include "vk_mem_alloc.h"
+#include "Hog/Renderer/Constants.h"
+#include "Hog/Renderer/Types.h"
 
 namespace Hog
 {
-	enum class ImageType
-	{
-		Depth,
-		RenderTarget,
-		SampledColorAttachment,
-		Texture
-	};
-
-	inline static VkImageType ImageTypeToVkImageType(ImageType type)
-	{
-		switch (type)
-		{
-			case ImageType::Depth: return VK_IMAGE_TYPE_2D;
-			case ImageType::RenderTarget: return VK_IMAGE_TYPE_2D;
-			case ImageType::SampledColorAttachment: return VK_IMAGE_TYPE_2D;
-			case ImageType::Texture: return VK_IMAGE_TYPE_2D;
-		}
-
-		HG_CORE_ASSERT(false, "Unknown ImageType!");
-		return (VkImageType)0;
-	}
-
-	inline static VkImageViewType ImageTypeToVkImageViewType(ImageType type)
-	{
-		switch (type)
-		{
-			case ImageType::Depth: return VK_IMAGE_VIEW_TYPE_2D;
-			case ImageType::RenderTarget: return VK_IMAGE_VIEW_TYPE_2D;
-			case ImageType::SampledColorAttachment: return VK_IMAGE_VIEW_TYPE_2D;
-			case ImageType::Texture: return VK_IMAGE_VIEW_TYPE_2D;
-		}
-
-		HG_CORE_ASSERT(false, "Unknown ImageType!");
-		return (VkImageViewType)0;
-	}
-
-	inline static VkImageUsageFlags ImageTypeToVkImageUsage(ImageType type)
-	{
-		switch (type)
-		{
-			case ImageType::Depth: return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-			case ImageType::RenderTarget: return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-			case ImageType::SampledColorAttachment: return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-			case ImageType::Texture: return VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-		}
-
-		HG_CORE_ASSERT(false, "Unknown ImageType!");
-		return (VkImageUsageFlags)0;
-	}
-
-	inline static VkImageAspectFlags ImageTypeToVkAspectFlag(ImageType type)
-	{
-		switch (type)
-		{
-			case ImageType::Depth: return VK_IMAGE_ASPECT_DEPTH_BIT;
-			case ImageType::RenderTarget: return VK_IMAGE_ASPECT_COLOR_BIT;
-			case ImageType::SampledColorAttachment: return VK_IMAGE_ASPECT_COLOR_BIT;
-			case ImageType::Texture: return VK_IMAGE_ASPECT_COLOR_BIT;
-		}
-
-		HG_CORE_ASSERT(false, "Unknown ImageType!");
-		return (VkImageAspectFlags)0;
-	}
-
 	class Image
 	{
 	public:
-		static Ref<Image> Create(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
-		static Ref<Image> CreateSwapChainImage(VkImage image, ImageType type, VkFormat format, VkExtent2D extent, VkImageViewCreateInfo viewCreateInfo);
+		static Ref<Image> Create(ImageDescription description, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
+		static Ref<Image> CreateSwapChainImage(VkImage image, ImageDescription description, VkFormat format, VkExtent2D extent, VkImageViewCreateInfo viewCreateInfo);
 	public:
-		Image(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
-		Image(VkImage image, ImageType type, VkFormat format, VkExtent2D extent, VkImageViewCreateInfo viewCreateInfo);
+		Image(ImageDescription description, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
+		Image(VkImage image, ImageDescription description, VkFormat format, VkExtent2D extent, VkImageViewCreateInfo viewCreateInfo);
 		~Image();
 
 		void SetData(void* data, uint32_t size);
@@ -97,7 +33,7 @@ namespace Hog
 		VkFormat m_InternalFormat = VK_FORMAT_UNDEFINED;
 		DataType m_Format;
 		VmaAllocation m_Allocation;
-		ImageType m_Type;
+		ImageDescription m_Description;
 		uint32_t m_LevelCount = 1;
 		uint32_t m_Width;
 		uint32_t m_Height;

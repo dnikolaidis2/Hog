@@ -2,118 +2,29 @@
 
 #include "Buffer.h"
 
-#include "GraphicsContext.h"
+#include "Hog/Renderer/GraphicsContext.h"
 #include "Hog/Utils/RendererUtils.h"
 
 namespace Hog
 {
-	VmaMemoryUsage BufferTypeToVmaMemoryUsage(BufferType type)
+	Buffer::Buffer(BufferDescription description, uint32_t size)
+		:m_Description(description), m_Size(size)
 	{
-		switch (type)
+		VkBufferCreateInfo buffeCreateInfo = {
+			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+			.size = size,
+			.usage = static_cast<VkBufferUsageFlags>(description),
+			.sharingMode = static_cast<VkSharingMode>(description),
+		};
+
+		VmaAllocationCreateInfo allocationCreateInfo =
 		{
-			case BufferType::CPUWritableVertexBuffer:	return VMA_MEMORY_USAGE_CPU_TO_GPU;
-			case BufferType::CPUWritableIndexBuffer:	return VMA_MEMORY_USAGE_CPU_TO_GPU;
-			case BufferType::GPUOnlyVertexBuffer:		return VMA_MEMORY_USAGE_GPU_ONLY;
-			case BufferType::TransferSourceBuffer:		return VMA_MEMORY_USAGE_CPU_ONLY;
-			case BufferType::UniformBuffer:				return VMA_MEMORY_USAGE_CPU_TO_GPU;
-			case BufferType::ReadbackStorageBuffer:		return VMA_MEMORY_USAGE_AUTO;
-		}
-
-		HG_CORE_ASSERT(false, "Unknown BufferType!");
-		return (VmaMemoryUsage)0;
-	}
-
-	VmaAllocationCreateFlags BufferTypeToVmaAllocationCreateFlags(BufferType type)
-	{
-		switch (type)
-		{
-			case BufferType::CPUWritableVertexBuffer:	return 0;
-			case BufferType::CPUWritableIndexBuffer:	return 0;
-			case BufferType::GPUOnlyVertexBuffer:		return 0;
-			case BufferType::TransferSourceBuffer:		return 0;
-			case BufferType::UniformBuffer:				return 0;
-			case BufferType::ReadbackStorageBuffer:		return VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT |
-				VMA_ALLOCATION_CREATE_MAPPED_BIT;
-		}
-
-		HG_CORE_ASSERT(false, "Unknown BufferType!");
-		return (VmaAllocationCreateFlags)0;
-	}
-
-	VkBufferUsageFlags BufferTypeToVkBufferUsageFlags(BufferType type)
-	{
-		switch (type)
-		{
-			case BufferType::CPUWritableVertexBuffer:	return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-			case BufferType::CPUWritableIndexBuffer:	return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-			case BufferType::GPUOnlyVertexBuffer:		return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | 
-				VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-			case BufferType::TransferSourceBuffer:		return VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-			case BufferType::UniformBuffer:				return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-			case BufferType::ReadbackStorageBuffer:		return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-				VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-				VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-		}
-
-		HG_CORE_ASSERT(false, "Unknown BufferType!");
-		return (VkBufferUsageFlags)0;
-	}
-
-	VkDescriptorType BufferTypeToVkDescriptorType(BufferType type)
-	{
-		switch (type)
-		{
-			case BufferType::UniformBuffer:				return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			case BufferType::ReadbackStorageBuffer:		return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-		}
-
-		HG_CORE_ASSERT(false, "Unknown BufferType!");
-		return (VkDescriptorType)0;
-	}
-
-	VkSharingMode BufferTypeToVkSharingMode(BufferType type)
-	{
-		switch (type)
-		{
-			case BufferType::CPUWritableVertexBuffer:	return VK_SHARING_MODE_EXCLUSIVE;
-			case BufferType::GPUOnlyVertexBuffer:		return VK_SHARING_MODE_EXCLUSIVE;
-			case BufferType::CPUWritableIndexBuffer:	return VK_SHARING_MODE_EXCLUSIVE;
-			case BufferType::TransferSourceBuffer:		return VK_SHARING_MODE_EXCLUSIVE;
-			case BufferType::UniformBuffer:				return VK_SHARING_MODE_EXCLUSIVE;
-			case BufferType::ReadbackStorageBuffer:		return VK_SHARING_MODE_EXCLUSIVE;
-		}
-
-		HG_CORE_ASSERT(false, "Unknown BufferType!");
-		return (VkSharingMode)0;
-	}
-
-	bool IsPersistentlyMapped(BufferType type)
-	{
-		return (bool)(BufferTypeToVmaAllocationCreateFlags(type) & VMA_ALLOCATION_CREATE_MAPPED_BIT);
-	}
-
-	bool IsTypeGPUOnly(BufferType type)
-	{
-		switch (type)
-		{
-			case BufferType::GPUOnlyVertexBuffer: return true;
-		}
-
-		return false;
-	}
-
-	Buffer::Buffer(BufferType type, uint32_t size)
-		:m_Type(type), m_Size(size)
-	{
-		m_BufferCreateInfo.size = size;
-		m_BufferCreateInfo.usage = BufferTypeToVkBufferUsageFlags(type);
-		m_BufferCreateInfo.sharingMode = BufferTypeToVkSharingMode(type);
-
-		m_AllocationCreateInfo.usage = BufferTypeToVmaMemoryUsage(type);
-		m_AllocationCreateInfo.flags = BufferTypeToVmaAllocationCreateFlags(type);
+			.flags = description.AllocationCreateFlags,
+			.usage = static_cast<VmaMemoryUsage>(description),
+		};
 
 		//allocate the buffer
-		CheckVkResult(vmaCreateBuffer(GraphicsContext::GetAllocator(), &m_BufferCreateInfo, &m_AllocationCreateInfo,
+		CheckVkResult(vmaCreateBuffer(GraphicsContext::GetAllocator(), &buffeCreateInfo, &allocationCreateInfo,
 			&m_Handle,
 			&m_Allocation,
 			&m_AllocationInfo));
@@ -124,7 +35,7 @@ namespace Hog
 		vmaDestroyBuffer(GraphicsContext::GetAllocator(), m_Handle, m_Allocation);
 	}
 
-	Ref<Buffer> Buffer::Create(BufferType type, uint32_t size)
+	Ref<Buffer> Buffer::Create(BufferDescription type, uint32_t size)
 	{
 		return CreateRef<Buffer>(type, size);
 	}
@@ -133,9 +44,9 @@ namespace Hog
 	{
 		HG_ASSERT(size <= m_Size, "Invalid write command. Tried to write more data then can fit buffer.")
 
-		if (!IsTypeGPUOnly(m_Type))
+		if (!m_Description.IsGpuOnly())
 		{
-			if (IsPersistentlyMapped(m_Type))
+			if (m_Description.IsPersistentlyMapped())
 			{
 				memcpy(m_AllocationInfo.pMappedData, data, size);
 			}
@@ -151,7 +62,7 @@ namespace Hog
 		}
 		else
 		{
-			auto buffer = Buffer::Create(BufferType::TransferSourceBuffer, size);
+			auto buffer = Buffer::Create(BufferDescription::Defaults::TransferSourceBuffer, size);
 			buffer->SetData(data, size);
 			TransferData(size, buffer);
 		}
@@ -171,7 +82,7 @@ namespace Hog
 
 	void Buffer::LockAfterWrite(VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage)
 	{
-		if (BufferTypeToVkBufferUsageFlags(m_Type) & VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
+		if (m_Description.IsTransferSrc())
 		{
 			const VkBufferMemoryBarrier2 bufferMemoryBarrier = {
 				.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
@@ -198,7 +109,7 @@ namespace Hog
 
 	void Buffer::LockBeforeRead(VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage)
 	{
-		if (BufferTypeToVkBufferUsageFlags(m_Type) & VK_BUFFER_USAGE_TRANSFER_DST_BIT)
+		if (m_Description.IsTransferDst())
 		{
 			const VkBufferMemoryBarrier2 bufferMemoryBarrier = {
 				.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
@@ -229,7 +140,7 @@ namespace Hog
 	}
 
 	VertexBuffer::VertexBuffer(uint32_t size)
-		: Buffer(BufferType::GPUOnlyVertexBuffer, size)
+		: Buffer(BufferDescription::Defaults::GPUOnlyVertexBuffer, size)
 	{
 	}
 

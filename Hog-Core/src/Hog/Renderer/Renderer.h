@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Image.h"
+#include "Hog/Renderer/Image.h"
 #include "Hog/Renderer/RenderGraph.h"
 
 namespace Hog

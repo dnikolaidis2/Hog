@@ -1,5 +1,5 @@
 #include "hgpch.h"
-#include "Hog/Renderer/OrthographicCameraController.h"
+#include "OrthographicCameraController.h"
 
 #include "Hog/Core/Input.h"
 #include "Hog/Core/KeyCodes.h"

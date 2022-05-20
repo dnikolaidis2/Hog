@@ -1,11 +1,6 @@
 #include "hgpch.h"
 #include "Shader.h"
 
-#include "Hog/Core/Timer.h"
-#include "Hog/Core/CVars.h"
-#include "Hog/Utils/Filesystem.h"
-#include "Hog/Utils/RendererUtils.h"
-#include "Hog/Renderer/GraphicsContext.h"
 
 #include <shaderc/shaderc.hpp>
 #include <spirv_cross/spirv_cross.hpp>
@@ -13,6 +8,12 @@
 #include <spirv_reflect.h>
 #include <vulkan/vulkan.h>
 #include <yaml-cpp/yaml.h>
+
+#include "Hog/Core/Timer.h"
+#include "Hog/Core/CVars.h"
+#include "Hog/Utils/Filesystem.h"
+#include "Hog/Utils/RendererUtils.h"
+#include "Hog/Renderer/GraphicsContext.h"
 
 #include "Constants.h"
 
@@ -25,359 +26,12 @@ AutoCVar_Int	CVar_ShaderOptimizationLevel("shader.optimizationLevel",
 	0, CVarFlags::None);
 
 namespace Hog {
-	namespace Utils {
-		// Returns the size in bytes of the provided VkFormat.
-		// As this is only intended for vertex attribute formats, not all VkFormats are supported.
-		static uint32_t FormatSize(VkFormat format)
-		{
-			uint32_t result = 0;
-			switch (format) {
-			case VK_FORMAT_UNDEFINED: result = 0; break;
-			case VK_FORMAT_R4G4_UNORM_PACK8: result = 1; break;
-			case VK_FORMAT_R4G4B4A4_UNORM_PACK16: result = 2; break;
-			case VK_FORMAT_B4G4R4A4_UNORM_PACK16: result = 2; break;
-			case VK_FORMAT_R5G6B5_UNORM_PACK16: result = 2; break;
-			case VK_FORMAT_B5G6R5_UNORM_PACK16: result = 2; break;
-			case VK_FORMAT_R5G5B5A1_UNORM_PACK16: result = 2; break;
-			case VK_FORMAT_B5G5R5A1_UNORM_PACK16: result = 2; break;
-			case VK_FORMAT_A1R5G5B5_UNORM_PACK16: result = 2; break;
-			case VK_FORMAT_R8_UNORM: result = 1; break;
-			case VK_FORMAT_R8_SNORM: result = 1; break;
-			case VK_FORMAT_R8_USCALED: result = 1; break;
-			case VK_FORMAT_R8_SSCALED: result = 1; break;
-			case VK_FORMAT_R8_UINT: result = 1; break;
-			case VK_FORMAT_R8_SINT: result = 1; break;
-			case VK_FORMAT_R8_SRGB: result = 1; break;
-			case VK_FORMAT_R8G8_UNORM: result = 2; break;
-			case VK_FORMAT_R8G8_SNORM: result = 2; break;
-			case VK_FORMAT_R8G8_USCALED: result = 2; break;
-			case VK_FORMAT_R8G8_SSCALED: result = 2; break;
-			case VK_FORMAT_R8G8_UINT: result = 2; break;
-			case VK_FORMAT_R8G8_SINT: result = 2; break;
-			case VK_FORMAT_R8G8_SRGB: result = 2; break;
-			case VK_FORMAT_R8G8B8_UNORM: result = 3; break;
-			case VK_FORMAT_R8G8B8_SNORM: result = 3; break;
-			case VK_FORMAT_R8G8B8_USCALED: result = 3; break;
-			case VK_FORMAT_R8G8B8_SSCALED: result = 3; break;
-			case VK_FORMAT_R8G8B8_UINT: result = 3; break;
-			case VK_FORMAT_R8G8B8_SINT: result = 3; break;
-			case VK_FORMAT_R8G8B8_SRGB: result = 3; break;
-			case VK_FORMAT_B8G8R8_UNORM: result = 3; break;
-			case VK_FORMAT_B8G8R8_SNORM: result = 3; break;
-			case VK_FORMAT_B8G8R8_USCALED: result = 3; break;
-			case VK_FORMAT_B8G8R8_SSCALED: result = 3; break;
-			case VK_FORMAT_B8G8R8_UINT: result = 3; break;
-			case VK_FORMAT_B8G8R8_SINT: result = 3; break;
-			case VK_FORMAT_B8G8R8_SRGB: result = 3; break;
-			case VK_FORMAT_R8G8B8A8_UNORM: result = 4; break;
-			case VK_FORMAT_R8G8B8A8_SNORM: result = 4; break;
-			case VK_FORMAT_R8G8B8A8_USCALED: result = 4; break;
-			case VK_FORMAT_R8G8B8A8_SSCALED: result = 4; break;
-			case VK_FORMAT_R8G8B8A8_UINT: result = 4; break;
-			case VK_FORMAT_R8G8B8A8_SINT: result = 4; break;
-			case VK_FORMAT_R8G8B8A8_SRGB: result = 4; break;
-			case VK_FORMAT_B8G8R8A8_UNORM: result = 4; break;
-			case VK_FORMAT_B8G8R8A8_SNORM: result = 4; break;
-			case VK_FORMAT_B8G8R8A8_USCALED: result = 4; break;
-			case VK_FORMAT_B8G8R8A8_SSCALED: result = 4; break;
-			case VK_FORMAT_B8G8R8A8_UINT: result = 4; break;
-			case VK_FORMAT_B8G8R8A8_SINT: result = 4; break;
-			case VK_FORMAT_B8G8R8A8_SRGB: result = 4; break;
-			case VK_FORMAT_A8B8G8R8_UNORM_PACK32: result = 4; break;
-			case VK_FORMAT_A8B8G8R8_SNORM_PACK32: result = 4; break;
-			case VK_FORMAT_A8B8G8R8_USCALED_PACK32: result = 4; break;
-			case VK_FORMAT_A8B8G8R8_SSCALED_PACK32: result = 4; break;
-			case VK_FORMAT_A8B8G8R8_UINT_PACK32: result = 4; break;
-			case VK_FORMAT_A8B8G8R8_SINT_PACK32: result = 4; break;
-			case VK_FORMAT_A8B8G8R8_SRGB_PACK32: result = 4; break;
-			case VK_FORMAT_A2R10G10B10_UNORM_PACK32: result = 4; break;
-			case VK_FORMAT_A2R10G10B10_SNORM_PACK32: result = 4; break;
-			case VK_FORMAT_A2R10G10B10_USCALED_PACK32: result = 4; break;
-			case VK_FORMAT_A2R10G10B10_SSCALED_PACK32: result = 4; break;
-			case VK_FORMAT_A2R10G10B10_UINT_PACK32: result = 4; break;
-			case VK_FORMAT_A2R10G10B10_SINT_PACK32: result = 4; break;
-			case VK_FORMAT_A2B10G10R10_UNORM_PACK32: result = 4; break;
-			case VK_FORMAT_A2B10G10R10_SNORM_PACK32: result = 4; break;
-			case VK_FORMAT_A2B10G10R10_USCALED_PACK32: result = 4; break;
-			case VK_FORMAT_A2B10G10R10_SSCALED_PACK32: result = 4; break;
-			case VK_FORMAT_A2B10G10R10_UINT_PACK32: result = 4; break;
-			case VK_FORMAT_A2B10G10R10_SINT_PACK32: result = 4; break;
-			case VK_FORMAT_R16_UNORM: result = 2; break;
-			case VK_FORMAT_R16_SNORM: result = 2; break;
-			case VK_FORMAT_R16_USCALED: result = 2; break;
-			case VK_FORMAT_R16_SSCALED: result = 2; break;
-			case VK_FORMAT_R16_UINT: result = 2; break;
-			case VK_FORMAT_R16_SINT: result = 2; break;
-			case VK_FORMAT_R16_SFLOAT: result = 2; break;
-			case VK_FORMAT_R16G16_UNORM: result = 4; break;
-			case VK_FORMAT_R16G16_SNORM: result = 4; break;
-			case VK_FORMAT_R16G16_USCALED: result = 4; break;
-			case VK_FORMAT_R16G16_SSCALED: result = 4; break;
-			case VK_FORMAT_R16G16_UINT: result = 4; break;
-			case VK_FORMAT_R16G16_SINT: result = 4; break;
-			case VK_FORMAT_R16G16_SFLOAT: result = 4; break;
-			case VK_FORMAT_R16G16B16_UNORM: result = 6; break;
-			case VK_FORMAT_R16G16B16_SNORM: result = 6; break;
-			case VK_FORMAT_R16G16B16_USCALED: result = 6; break;
-			case VK_FORMAT_R16G16B16_SSCALED: result = 6; break;
-			case VK_FORMAT_R16G16B16_UINT: result = 6; break;
-			case VK_FORMAT_R16G16B16_SINT: result = 6; break;
-			case VK_FORMAT_R16G16B16_SFLOAT: result = 6; break;
-			case VK_FORMAT_R16G16B16A16_UNORM: result = 8; break;
-			case VK_FORMAT_R16G16B16A16_SNORM: result = 8; break;
-			case VK_FORMAT_R16G16B16A16_USCALED: result = 8; break;
-			case VK_FORMAT_R16G16B16A16_SSCALED: result = 8; break;
-			case VK_FORMAT_R16G16B16A16_UINT: result = 8; break;
-			case VK_FORMAT_R16G16B16A16_SINT: result = 8; break;
-			case VK_FORMAT_R16G16B16A16_SFLOAT: result = 8; break;
-			case VK_FORMAT_R32_UINT: result = 4; break;
-			case VK_FORMAT_R32_SINT: result = 4; break;
-			case VK_FORMAT_R32_SFLOAT: result = 4; break;
-			case VK_FORMAT_R32G32_UINT: result = 8; break;
-			case VK_FORMAT_R32G32_SINT: result = 8; break;
-			case VK_FORMAT_R32G32_SFLOAT: result = 8; break;
-			case VK_FORMAT_R32G32B32_UINT: result = 12; break;
-			case VK_FORMAT_R32G32B32_SINT: result = 12; break;
-			case VK_FORMAT_R32G32B32_SFLOAT: result = 12; break;
-			case VK_FORMAT_R32G32B32A32_UINT: result = 16; break;
-			case VK_FORMAT_R32G32B32A32_SINT: result = 16; break;
-			case VK_FORMAT_R32G32B32A32_SFLOAT: result = 16; break;
-			case VK_FORMAT_R64_UINT: result = 8; break;
-			case VK_FORMAT_R64_SINT: result = 8; break;
-			case VK_FORMAT_R64_SFLOAT: result = 8; break;
-			case VK_FORMAT_R64G64_UINT: result = 16; break;
-			case VK_FORMAT_R64G64_SINT: result = 16; break;
-			case VK_FORMAT_R64G64_SFLOAT: result = 16; break;
-			case VK_FORMAT_R64G64B64_UINT: result = 24; break;
-			case VK_FORMAT_R64G64B64_SINT: result = 24; break;
-			case VK_FORMAT_R64G64B64_SFLOAT: result = 24; break;
-			case VK_FORMAT_R64G64B64A64_UINT: result = 32; break;
-			case VK_FORMAT_R64G64B64A64_SINT: result = 32; break;
-			case VK_FORMAT_R64G64B64A64_SFLOAT: result = 32; break;
-			case VK_FORMAT_B10G11R11_UFLOAT_PACK32: result = 4; break;
-			case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32: result = 4; break;
 
-			default:
-				break;
-			}
-			return result;
-		}
-
-		static VkFormat SpirvBaseTypeToVkFormat(const spirv_cross::SPIRType& type)
-		{
-			switch (type.basetype) {
-			case spirv_cross::SPIRType::SByte:
-				switch (type.vecsize) {
-				case 1: return VK_FORMAT_R8_SINT;
-				case 2: return VK_FORMAT_R8G8_SINT;
-				case 3: return VK_FORMAT_R8G8B8_SINT;
-				case 4: return VK_FORMAT_R8G8B8A8_SINT;
-				}
-				break;
-			case spirv_cross::SPIRType::UByte:
-				switch (type.vecsize) {
-				case 1: return VK_FORMAT_R8_UINT;
-				case 2: return VK_FORMAT_R8G8_UINT;
-				case 3: return VK_FORMAT_R8G8B8_UINT;
-				case 4: return VK_FORMAT_R8G8B8A8_UINT;
-				}
-				break;
-			case spirv_cross::SPIRType::Short:
-				switch (type.vecsize) {
-				case 1: return VK_FORMAT_R16_SINT;
-				case 2: return VK_FORMAT_R16G16_SINT;
-				case 3: return VK_FORMAT_R16G16B16_SINT;
-				case 4: return VK_FORMAT_R16G16B16A16_SINT;
-				}
-				break;
-			case spirv_cross::SPIRType::UShort:
-				switch (type.vecsize) {
-				case 1: return VK_FORMAT_R16_UINT;
-				case 2: return VK_FORMAT_R16G16_UINT;
-				case 3: return VK_FORMAT_R16G16B16_UINT;
-				case 4: return VK_FORMAT_R16G16B16A16_UINT;
-				}
-				break;
-			case spirv_cross::SPIRType::Half:
-				switch (type.vecsize) {
-				case 1: return VK_FORMAT_R16_SFLOAT;
-				case 2: return VK_FORMAT_R16G16_SFLOAT;
-				case 3: return VK_FORMAT_R16G16B16_SFLOAT;
-				case 4: return VK_FORMAT_R16G16B16A16_SFLOAT;
-				}
-				break;
-			case spirv_cross::SPIRType::Int:
-				switch (type.vecsize) {
-				case 1: return VK_FORMAT_R32_SINT;
-				case 2: return VK_FORMAT_R32G32_SINT;
-				case 3: return VK_FORMAT_R32G32B32_SINT;
-				case 4: return VK_FORMAT_R32G32B32A32_SINT;
-				}
-				break;
-			case spirv_cross::SPIRType::UInt:
-				switch (type.vecsize) {
-				case 1: return VK_FORMAT_R32_UINT;
-				case 2: return VK_FORMAT_R32G32_UINT;
-				case 3: return VK_FORMAT_R32G32B32_UINT;
-				case 4: return VK_FORMAT_R32G32B32A32_UINT;
-				}
-				break;
-			case spirv_cross::SPIRType::Float:
-				switch (type.vecsize) {
-				case 1: return VK_FORMAT_R32_SFLOAT;
-				case 2: return VK_FORMAT_R32G32_SFLOAT;
-				case 3: return VK_FORMAT_R32G32B32_SFLOAT;
-				case 4: return VK_FORMAT_R32G32B32A32_SFLOAT;
-				}
-				break;
-			default:
-				break;
-			}
-			return VK_FORMAT_UNDEFINED;
-		}
-
-		static VkShaderStageFlagBits ShaderStageFlagFromShaderKind(shaderc_shader_kind kind)
-		{
-			switch (kind)
-			{
-			case shaderc_glsl_vertex_shader:		return VK_SHADER_STAGE_VERTEX_BIT;
-			case shaderc_glsl_fragment_shader:		return VK_SHADER_STAGE_FRAGMENT_BIT;
-			case shaderc_glsl_compute_shader:		return VK_SHADER_STAGE_COMPUTE_BIT;
-			case shaderc_glsl_anyhit_shader:		return VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
-			case shaderc_glsl_raygen_shader:		return VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-			case shaderc_glsl_intersection_shader:	return VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
-			case shaderc_glsl_miss_shader:			return VK_SHADER_STAGE_MISS_BIT_KHR;
-			case shaderc_glsl_closesthit_shader:	return VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-			case shaderc_glsl_mesh_shader:			return VK_SHADER_STAGE_MESH_BIT_NV;
-			}
-
-			HG_CORE_ASSERT(false, "Unknown shader type!");
-			return (VkShaderStageFlagBits)0;
-		}
-
-		VkShaderStageFlagBits ShaderTypeToShaderStageFlag(ShaderType type)
-		{
-			switch (type)
-			{
-			case ShaderType::Vertex: 		return VK_SHADER_STAGE_VERTEX_BIT;
-			case ShaderType::Fragment: 		return VK_SHADER_STAGE_FRAGMENT_BIT;
-			case ShaderType::Compute: 		return VK_SHADER_STAGE_COMPUTE_BIT;
-			case ShaderType::AnyHit: 		return VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
-			case ShaderType::RayGeneration: return VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-			case ShaderType::Intersection: 	return VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
-			case ShaderType::Miss: 			return VK_SHADER_STAGE_MISS_BIT_KHR;
-			case ShaderType::ClosestHit: 	return VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-			case ShaderType::Mesh: 			return VK_SHADER_STAGE_MESH_BIT_NV;
-			}
-
-			return (VkShaderStageFlagBits)0;
-		}
-
-		static shaderc_shader_kind ShaderTypeToShaderKind(ShaderType type)
-		{
-			switch (type)
-			{
-			case ShaderType::Vertex: 		return shaderc_glsl_vertex_shader;
-			case ShaderType::Fragment: 		return shaderc_glsl_fragment_shader;
-			case ShaderType::Compute: 		return shaderc_glsl_compute_shader;
-			case ShaderType::AnyHit: 		return shaderc_glsl_anyhit_shader;
-			case ShaderType::RayGeneration: return shaderc_glsl_raygen_shader;
-			case ShaderType::Intersection: 	return shaderc_glsl_intersection_shader;
-			case ShaderType::Miss: 			return shaderc_glsl_miss_shader;
-			case ShaderType::ClosestHit: 	return shaderc_glsl_closesthit_shader;
-			case ShaderType::Mesh: 			return shaderc_glsl_mesh_shader;
-			}
-
-			HG_CORE_ASSERT(false, "Unknown shader type!");
-			return (shaderc_shader_kind)0;
-		}
-
-		static const char* ShaderTypeToString(ShaderType type)
-		{
-			switch (type)
-			{
-			case ShaderType::Vertex: 		return "Vertex";
-			case ShaderType::Fragment: 		return "Fragment";
-			case ShaderType::Compute: 		return "Compute";
-			case ShaderType::AnyHit: 		return "AnyHit";
-			case ShaderType::RayGeneration: return "RayGeneration";
-			case ShaderType::Intersection: 	return "Intersection";
-			case ShaderType::Miss: 			return "Miss";
-			case ShaderType::ClosestHit: 	return "ClosestHit";
-			case ShaderType::Mesh: 			return "Mesh";
-			}
-
-			HG_CORE_ASSERT(false, "Unknown shader type!");
-			return nullptr;
-		}
-
-		static ShaderType StringToShaderType(const std::string& str)
-		{
-			if (str == "Vertex") 		return ShaderType::Vertex;
-			if (str == "Fragment") 		return ShaderType::Fragment;
-			if (str == "Compute")		return ShaderType::Compute;
-			if (str == "AnyHit")		return ShaderType::AnyHit;
-			if (str == "RayGeneration")	return ShaderType::RayGeneration;
-			if (str == "Intersection")	return ShaderType::Intersection;
-			if (str == "Miss")			return ShaderType::Miss;
-			if (str == "ClosestHit")	return ShaderType::ClosestHit;
-			if (str == "Mesh")			return ShaderType::Mesh;
-
-			HG_CORE_ASSERT(false, "Unknown shader type!");
-			return (ShaderType)0;
-		}
-
-		static ShaderType ShaderKindToShaderType(shaderc_shader_kind kind)
-		{
-			switch (kind)
-			{
-			case shaderc_glsl_vertex_shader: 		return ShaderType::Vertex;
-			case shaderc_glsl_fragment_shader: 		return ShaderType::Fragment;
-			case shaderc_glsl_compute_shader: 		return ShaderType::Compute;
-			case shaderc_glsl_anyhit_shader: 		return ShaderType::AnyHit;
-			case shaderc_glsl_raygen_shader: 		return ShaderType::RayGeneration;
-			case shaderc_glsl_intersection_shader: 	return ShaderType::Intersection;
-			case shaderc_glsl_miss_shader: 			return ShaderType::Miss;
-			case shaderc_glsl_closesthit_shader: 	return ShaderType::ClosestHit;
-			case shaderc_glsl_mesh_shader: 			return ShaderType::Mesh;
-			}
-
-			HG_CORE_ASSERT(false, "Unknown shader type!");
-			return (ShaderType)0;
-		}
-
-		static ShaderType FileExtensionToShaderType(const std::string& extension)
-		{
-			std::string string = extension.substr(1);
-			if (string == "vertex")
-				return ShaderType::Vertex;
-			if (string == "fragment")
-				return ShaderType::Fragment;
-			if (string == "compute")
-				return ShaderType::Compute;
-			if (string == "anyhit")
-				return ShaderType::AnyHit;
-			if (string == "raygen")
-				return ShaderType::RayGeneration;
-			if (string == "intersection")
-				return ShaderType::Intersection;
-			if (string == "miss")
-				return ShaderType::Miss;
-			if (string == "closesthit")
-				return ShaderType::ClosestHit;
-			if (string == "mesh")
-				return ShaderType::Mesh;
-
-			HG_CORE_ASSERT(false, "Unknown shader type!");
-			return (ShaderType)0;
-		}
-
-		static void CreateCacheDirectoryIfNeeded()
-		{
-			const std::string cacheDirectory(CVar_ShaderCacheDir.Get());
-			if (!std::filesystem::exists(cacheDirectory))
-				std::filesystem::create_directories(cacheDirectory);
-		}
+	static void CreateCacheDirectoryIfNeeded()
+	{
+		const std::string cacheDirectory(CVar_ShaderCacheDir.Get());
+		if (!std::filesystem::exists(cacheDirectory))
+			std::filesystem::create_directories(cacheDirectory);
 	}
 
 	Ref<ShaderSource> ShaderSource::Deserialize(YAML::Node& info)
@@ -385,7 +39,7 @@ namespace Hog {
 		std::string name = info["Name"].as<std::string>();
 		std::filesystem::path filepath = std::filesystem::path(info["FilePath"].as<std::string>());
 		std::filesystem::path cacheFilepath = std::filesystem::path(info["CacheFilePath"].as<std::string>());
-		ShaderType type = Utils::StringToShaderType(info["Type"].as<std::string>());
+		ShaderType type((info["Type"].as<std::string>()));
 		size_t hash = info["Hash"].as<size_t>();
 
 		std::vector<uint32_t> code = ReadBinaryFile(cacheFilepath.string());
@@ -408,7 +62,7 @@ namespace Hog {
 			emitter << YAML::Key << "Name" << YAML::Value << Name;
 			emitter << YAML::Key << "FilePath" << YAML::Value << FilePath.string();
 			emitter << YAML::Key << "CacheFilePath" << YAML::Value << CacheFilePath.string();
-			emitter << YAML::Key << "Type" << YAML::Value << Utils::ShaderTypeToString(Type);
+			emitter << YAML::Key << "Type" << YAML::Value << static_cast<std::string>(Type);
 			emitter << YAML::Key << "Hash" << YAML::Value << Hash;
 		}
 
@@ -487,7 +141,7 @@ namespace Hog {
 		}
 
 		std::string source = ReadFile(fullPath);
-		ShaderType type = Utils::FileExtensionToShaderType(file.extension().string());
+		ShaderType type(file.extension().string().substr(1));
 
 		// Hash shader file
 		std::size_t hash = std::hash<std::string>{}(source);
@@ -536,7 +190,7 @@ namespace Hog {
 		}
 
 		std::string source = ReadFile(fullPath);
-		ShaderType type = Utils::FileExtensionToShaderType(file.extension().string());
+		ShaderType type(file.extension().string().substr(1));
 
 		// Hash shader file
 		std::size_t hash = std::hash<std::string>{}(source);
@@ -557,7 +211,7 @@ namespace Hog {
 
 	void ShaderCache::SaveToFilesystem()
 	{
-		Utils::CreateCacheDirectoryIfNeeded();
+		CreateCacheDirectoryIfNeeded();
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -606,7 +260,7 @@ namespace Hog {
 		std::vector<uint32_t> shaderData;
 
 		// Cache did not contain an up to date version of the shader
-		shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::ShaderTypeToShaderKind(type), filepath.string().c_str(), options);
+		shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, type, filepath.string().c_str(), options);
 		if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 		{
 			HG_CORE_ERROR(module.GetErrorMessage());
@@ -778,12 +432,12 @@ namespace Hog {
 				VkPushConstantRange pushConstant = {};
 				pushConstant.offset = pconstants[i_const]->offset;
 				pushConstant.size = pconstants[i_const]->size;
-				pushConstant.stageFlags |= Utils::ShaderTypeToShaderStageFlag(stage);
+				pushConstant.stageFlags |= static_cast<VkShaderStageFlags>(stage);
 
 				m_PushConstantRanges.push_back(pushConstant);
 			}
 
-			if (stage == ShaderType::Vertex)
+			if (stage == ShaderType::Defaults::Vertex)
 			{
 				result = spvReflectEnumerateInputVariables(&spvmodule, &count, NULL);
 				assert(result == SPV_REFLECT_RESULT_SUCCESS);
@@ -817,14 +471,17 @@ namespace Hog {
 						return a.location < b.location; });
 				// Compute final offsets of each attribute, and total vertex stride.
 				for (auto& attribute : m_VertexInputAttributeDescriptions) {
-					uint32_t format_size = Utils::FormatSize(attribute.format);
+					uint32_t format_size = DataType(attribute.format).TypeSize();
 					attribute.offset = bindingDescription.stride;
 					bindingDescription.stride += format_size;
 				}
 				// Nothing further is done with attribute_descriptions or binding_description
 				// in this sample. A real application would probably derive this information from its
 				// mesh format(s); a similar mechanism could be used to ensure mesh/shader compatibility.
-				m_VertexInputBindingDescriptions.push_back(bindingDescription);
+				if (!m_VertexInputAttributeDescriptions.empty())
+				{
+					m_VertexInputBindingDescriptions.push_back(bindingDescription);
+				}
 			}
 
 			spvReflectDestroyShaderModule(&spvmodule);

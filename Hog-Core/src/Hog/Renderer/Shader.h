@@ -5,16 +5,9 @@
 #include <vulkan/vulkan.h>
 
 #include "Hog/Renderer/Pipeline.h"
+#include "Hog/Renderer/Types.h"
 
 namespace Hog {
-
-	enum class ShaderType { Fragment, Vertex, Compute, AnyHit, RayGeneration, Intersection, Miss, ClosestHit, Mesh };
-
-	namespace Utils {
-
-		VkShaderStageFlagBits ShaderTypeToShaderStageFlag(ShaderType type);
-
-	};
 
 	struct ShaderSource
 	{

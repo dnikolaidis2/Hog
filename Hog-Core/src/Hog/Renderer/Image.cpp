@@ -5,29 +5,30 @@
 #include <stb_image.h>
 
 #include "Hog/Renderer/GraphicsContext.h"
+#include "Hog/Renderer/Buffer.h"
 #include "Hog/Utils/RendererUtils.h"
 #include "Hog/Core/CVars.h"
 
 namespace Hog
 {
-	Ref<Image> Image::Create(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples)
+	Ref<Image> Image::Create(ImageDescription type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples)
 	{
 		return CreateRef<Image>(type, width, height, levelCount, format, samples);
 	}
 
-	Ref<Image> Image::CreateSwapChainImage(VkImage image, ImageType type, VkFormat format, VkExtent2D extent,
+	Ref<Image> Image::CreateSwapChainImage(VkImage image, ImageDescription type, VkFormat format, VkExtent2D extent,
 	                                       VkImageViewCreateInfo viewCreateInfo)
 	{
 		return CreateRef<Image>(image, type, format, extent, viewCreateInfo);
 	}
 
-	Image::Image(ImageType type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples)
-		: m_InternalFormat(format), m_Type(type), m_Format(VkFormatToDataType(m_InternalFormat)), m_Width(width), m_Height(height), m_Allocated(true), m_LevelCount(levelCount)
+	Image::Image(ImageDescription description, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples)
+		: m_InternalFormat(format), m_Description(description), m_Format(m_InternalFormat), m_Width(width), m_Height(height), m_Allocated(true), m_LevelCount(levelCount)
 	{
 		m_ImageCreateInfo.extent = { width, height, 1 };
-		m_ImageCreateInfo.imageType = ImageTypeToVkImageType(type);
+		m_ImageCreateInfo.imageType = static_cast<VkImageType>(m_Description);
 		m_ImageCreateInfo.format = m_InternalFormat;
-		m_ImageCreateInfo.usage = ImageTypeToVkImageUsage(m_Type);
+		m_ImageCreateInfo.usage = static_cast<VkImageUsageFlags>(m_Description);
 		m_ImageCreateInfo.samples = samples;
 		m_ImageCreateInfo.mipLevels = levelCount;
 
@@ -43,9 +44,9 @@ namespace Hog
 		CreateViewForImage();
 	}
 
-	Image::Image(VkImage image, ImageType type, VkFormat format, VkExtent2D extent,
+	Image::Image(VkImage image, ImageDescription type, VkFormat format, VkExtent2D extent,
 		VkImageViewCreateInfo viewCreateInfo)
-		: m_Handle(image), m_InternalFormat(format), m_Format(VkFormatToDataType(format)), m_Type(type)
+		: m_Handle(image), m_InternalFormat(format), m_Format(format), m_Description(type)
 		, m_Width(extent.width), m_Height(extent.height), m_Allocated(false), m_ViewCreateInfo(viewCreateInfo)
 	{
 		CreateViewForImage();
@@ -63,7 +64,7 @@ namespace Hog
 
 	void Image::SetData(void* data, uint32_t size)
 	{
-		auto buffer = Buffer::Create(BufferType::TransferSourceBuffer, size);
+		auto buffer = Buffer::Create(BufferDescription::Defaults::TransferSourceBuffer, size);
 		buffer->SetData(data, size);
 
 		GraphicsContext::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
@@ -77,7 +78,7 @@ namespace Hog
 			barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 			barrier.image = m_Handle;
-			barrier.subresourceRange.aspectMask = ImageTypeToVkAspectFlag(m_Type);
+			barrier.subresourceRange.aspectMask = m_Description.ImageAspectFlags;
 			barrier.subresourceRange.baseMipLevel = 0;
 			barrier.subresourceRange.levelCount = m_LevelCount;
 			barrier.subresourceRange.layerCount = 1;
@@ -95,7 +96,7 @@ namespace Hog
 			copyRegion.bufferRowLength = 0;
 			copyRegion.bufferImageHeight = 0;
 
-			copyRegion.imageSubresource.aspectMask = ImageTypeToVkAspectFlag(m_Type);
+			copyRegion.imageSubresource.aspectMask = m_Description.ImageAspectFlags;
 			copyRegion.imageSubresource.mipLevel = 0;
 			copyRegion.imageSubresource.baseArrayLayer = 0;
 			copyRegion.imageSubresource.layerCount = 1;
@@ -205,8 +206,8 @@ namespace Hog
 	{
 		m_ViewCreateInfo.image = m_Handle;
 		m_ViewCreateInfo.format = m_InternalFormat;
-		m_ViewCreateInfo.subresourceRange.aspectMask = ImageTypeToVkAspectFlag(m_Type);
-		m_ViewCreateInfo.viewType = ImageTypeToVkImageViewType(m_Type);
+		m_ViewCreateInfo.subresourceRange.aspectMask = m_Description.ImageAspectFlags;
+		m_ViewCreateInfo.viewType = static_cast<VkImageViewType>(m_Description);
 		m_ViewCreateInfo.subresourceRange.levelCount = m_LevelCount;
 
 		CheckVkResult(vkCreateImageView(GraphicsContext::GetDevice(), &m_ViewCreateInfo, nullptr, &m_View));
@@ -250,11 +251,11 @@ namespace Hog
 
 		if (*CVarSystem::Get()->GetIntCVar("renderer.enableMipMapping"))
 		{
-			image = Image::Create(ImageType::Texture, width, height, mipLevels, format);
+			image = Image::Create(ImageDescription::Defaults::Texture, width, height, mipLevels, format);
 		}
 		else
 		{
-			image = Image::Create(ImageType::Texture, width, height, 1, format);
+			image = Image::Create(ImageDescription::Defaults::Texture, width, height, 1, format);
 		}
 
 		image->SetData(pixels, imageSize);
@@ -303,7 +304,7 @@ namespace Hog
 		uint32_t imageSize = 1 * 1 * 4;
 		unsigned char pixels0[] = { 0, 0, 0, 0 };
 
-		auto image = Image::Create(ImageType::Texture, 1, 1, 1, format);
+		auto image = Image::Create(ImageDescription::Defaults::Texture, 1, 1, 1, format);
 
 		image->SetData(pixels0, imageSize);
 
@@ -313,7 +314,7 @@ namespace Hog
 		imageSize = 1 * 1 * 4;
 		unsigned char pixels1[] = { UCHAR_MAX, UCHAR_MAX, UCHAR_MAX, UCHAR_MAX };
 
-		image = Image::Create(ImageType::Texture, 1, 1, 1, format);
+		image = Image::Create(ImageDescription::Defaults::Texture, 1, 1, 1, format);
 
 		image->SetData(pixels1, imageSize);
 
@@ -323,7 +324,7 @@ namespace Hog
 		imageSize = 1 * 1 * 4;
 		unsigned char pixels2[] = { 55, 250, 198, UCHAR_MAX };
 
-		image = Image::Create(ImageType::Texture, 1, 1, 1, format);
+		image = Image::Create(ImageDescription::Defaults::Texture, 1, 1, 1, format);
 
 		image->SetData(pixels2, imageSize);
 

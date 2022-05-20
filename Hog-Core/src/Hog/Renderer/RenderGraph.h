@@ -5,6 +5,37 @@
 
 namespace Hog
 {
+	enum class AttachmentType
+	{
+		Color, Depth
+	};
+
+	struct AttachmentElement
+	{
+		std::string Name;
+		AttachmentType Type;
+	};
+
+	class AttachmentLayout
+	{
+	public:
+		AttachmentLayout() = default;
+
+		AttachmentLayout(std::initializer_list<AttachmentElement> elements)
+			: m_Elements(elements) {}
+
+		const std::vector<AttachmentElement>& GetElements() const { return m_Elements; }
+
+		bool ContainsType(AttachmentType type) const;
+
+		std::vector<AttachmentElement>::iterator begin() { return m_Elements.begin(); }
+		std::vector<AttachmentElement>::iterator end() { return m_Elements.end(); }
+		std::vector<AttachmentElement>::const_iterator begin() const { return m_Elements.begin(); }
+		std::vector<AttachmentElement>::const_iterator end() const { return m_Elements.end(); }
+	private:
+		std::vector<AttachmentElement> m_Elements;
+	};
+
 	struct VertexElement
 	{
 		std::string Name;
@@ -17,30 +48,31 @@ namespace Hog
 		VertexElement() = default;
 
 		VertexElement(DataType type, const std::string& name, bool normalized = false)
-			: Name(name), Type(type), Size(ShaderDataTypeSize(type)), Offset(0), Normalized(normalized)
+			: Name(name), Type(type), Size(type.TypeSize()), Offset(0), Normalized(normalized)
 		{
 		}
 
-		uint32_t GetComponentCount() const
+		// TODO reaplce with function in DatType struct
+		/*uint32_t GetComponentCount() const
 		{
 			switch (Type)
 			{
-				case DataType::Float:   return 1;
-				case DataType::Float2:  return 2;
-				case DataType::Float3:  return 3;
-				case DataType::Float4:  return 4;
-				case DataType::Mat3:    return 3; // 3* float3
-				case DataType::Mat4:    return 4; // 4* float4
-				case DataType::Int:     return 1;
-				case DataType::Int2:    return 2;
-				case DataType::Int3:    return 3;
-				case DataType::Int4:    return 4;
-				case DataType::Bool:    return 1;
+				case DataType::Defaults::Float:   return 1;
+				case DataType::Defaults::Float2:  return 2;
+				case DataType::Defaults::Float3:  return 3;
+				case DataType::Defaults::Float4:  return 4;
+				case DataType::Defaults::Mat3:    return 3; // 3* float3
+				case DataType::Defaults::Mat4:    return 4; // 4* float4
+				case DataType::Defaults::Int:     return 1;
+				case DataType::Defaults::Int2:    return 2;
+				case DataType::Defaults::Int3:    return 3;
+				case DataType::Defaults::Int4:    return 4;
+				case DataType::Defaults::Bool:    return 1;
 			}
 
 			HG_CORE_ASSERT(false, "Unknown DataType!");
 			return 0;
-		}
+		}*/
 	};
 
 	class VertexInputLayout
@@ -51,7 +83,7 @@ namespace Hog
 		VertexInputLayout(std::initializer_list<VertexElement> elements)
 			: m_Elements(elements)
 		{
-			CalculateOffsetsAndStride();
+			/*CalculateOffsetsAndStride();*/
 		}
 
 		uint32_t GetStride() const { return m_Stride; }
@@ -62,28 +94,28 @@ namespace Hog
 		std::vector<VertexElement>::const_iterator begin() const { return m_Elements.begin(); }
 		std::vector<VertexElement>::const_iterator end() const { return m_Elements.end(); }
 	private:
-		void CalculateOffsetsAndStride()
+		/*void CalculateOffsetsAndStride()
 		{
 			size_t offset = 0;
 			m_Stride = 0;
 			for (size_t i = 0; i < m_Elements.size(); i++)
 			{
-				if (m_Elements[i].Type == DataType::Mat3)
+				if (m_Elements[i].Type == DataType::Defaults::Mat3)
 				{
 					auto name = m_Elements[i].Name;
-					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float3, name, m_Elements[i].Normalized });
-					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float3, name, m_Elements[i].Normalized });
-					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float3, name, m_Elements[i].Normalized });
+					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Defaults::Float3, name, m_Elements[i].Normalized });
+					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Defaults::Float3, name, m_Elements[i].Normalized });
+					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Defaults::Float3, name, m_Elements[i].Normalized });
 					m_Elements.erase(m_Elements.begin() + i);
 				}
 
-				if (m_Elements[i].Type == DataType::Mat4)
+				if (m_Elements[i].Type == DataType::Defaults::Mat4)
 				{
 					auto name = m_Elements[i].Name;
-					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float4, name, m_Elements[i].Normalized });
-					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float4, name, m_Elements[i].Normalized });
-					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float4, name, m_Elements[i].Normalized });
-					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Float4, name, m_Elements[i].Normalized });
+					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Defaults::Float4, name, m_Elements[i].Normalized });
+					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Defaults::Float4, name, m_Elements[i].Normalized });
+					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Defaults::Float4, name, m_Elements[i].Normalized });
+					m_Elements.insert(m_Elements.begin() + i + 1, { DataType::Defaults::Float4, name, m_Elements[i].Normalized });
 
 					m_Elements.erase(m_Elements.begin() + i);
 				}
@@ -95,7 +127,7 @@ namespace Hog
 				offset += element.Size;
 				m_Stride += element.Size;
 			}
-		}
+		}*/
 	private:
 		std::vector<VertexElement> m_Elements;
 		uint32_t m_Stride = 0;
@@ -169,6 +201,7 @@ namespace Hog
 		ResourceLayout Resources;
 		Ref<Buffer> VertexBuffer;
 		Ref<Buffer> IndexBuffer;
+		AttachmentLayout Attachments;
 
 		RendererStage(const std::string& name, Ref<Hog::Shader> shader, RendererStageType type, std::initializer_list<ResourceElement> resources)
 			: Name(name), Shader(shader), StageType(type), VertexInputLayout({}), Resources(resources) {}

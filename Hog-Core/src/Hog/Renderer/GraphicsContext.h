@@ -1,9 +1,9 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <vk_mem_alloc.h>
 
-#include "Image.h"
-#include "vk_mem_alloc.h"
+#include "Hog/Renderer/Image.h"
 #include "Hog/Core/Base.h"
 
 namespace Hog {

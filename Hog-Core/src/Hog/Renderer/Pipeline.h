@@ -2,10 +2,10 @@
 
 #include <vulkan/vulkan.h>
 
+#include "Hog/Renderer/Types.h"
+
 namespace Hog
 {
-	enum class ShaderType;
-
 	class Pipeline
 	{
 	public:
