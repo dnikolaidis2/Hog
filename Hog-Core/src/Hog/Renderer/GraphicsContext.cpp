@@ -133,7 +133,7 @@ namespace Hog {
 	{
 		HG_PROFILE_FUNCTION();
 
-#if HG_PROFILE
+#if HG_PROFILE || HG_DIST
 		CVar_ValidationLayers.Set(0);
 #endif
 
