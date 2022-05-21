@@ -22,6 +22,8 @@
 #include "Hog/Core/CVars.h"
 
 // ---Renderer------------------------
+
+#include "Hog/Renderer/Types.h"
 #include "Hog/Renderer/GraphicsContext.h"
 #include "Hog/Renderer/Pipeline.h"
 #include "Hog/Renderer/Shader.h"
