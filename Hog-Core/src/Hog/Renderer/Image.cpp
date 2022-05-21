@@ -11,9 +11,21 @@
 
 namespace Hog
 {
-	Ref<Image> Image::Create(ImageDescription type, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples)
+	Ref<Image> Image::Create(ImageDescription description, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples)
 	{
-		return CreateRef<Image>(type, width, height, levelCount, format, samples);
+		return CreateRef<Image>(description, width, height, levelCount, format, samples);
+	}
+
+	Ref<Image> Image::Create(ImageDescription description, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples)
+	{
+		VkExtent2D extent = GraphicsContext::GetExtent();
+		return CreateRef<Image>(description, extent.width, extent.height, levelCount, format, samples);
+	}
+
+	Ref<Image> Image::Create(ImageDescription description, uint32_t levelCount, VkSampleCountFlagBits samples)
+	{
+		VkExtent2D extent = GraphicsContext::GetExtent();
+		return CreateRef<Image>(description, extent.width, extent.height, levelCount, description, samples);
 	}
 
 	Ref<Image> Image::CreateSwapChainImage(VkImage image, ImageDescription type, VkFormat format, VkExtent2D extent,
@@ -286,9 +298,9 @@ namespace Hog
 		return s_Images[name];
 	}
 
-	std::array<Ref<Image>, TEXTURE_ARRAY_SIZE> TextureLibrary::GetLibraryArray()
+	std::vector<Ref<Image>> TextureLibrary::GetLibraryArray()
 	{
-		std::array<Ref<Image>, TEXTURE_ARRAY_SIZE> arr;
+		std::vector<Ref<Image>> arr(TEXTURE_ARRAY_SIZE);
 
 		for (const auto &[name, image]  : s_Images)
 		{

@@ -12,6 +12,8 @@ namespace Hog
 	{
 	public:
 		static Ref<Image> Create(ImageDescription description, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
+		static Ref<Image> Create(ImageDescription description, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
+		static Ref<Image> Create(ImageDescription description, uint32_t levelCount, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
 		static Ref<Image> CreateSwapChainImage(VkImage image, ImageDescription description, VkFormat format, VkExtent2D extent, VkImageViewCreateInfo viewCreateInfo);
 	public:
 		Image(ImageDescription description, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
@@ -79,7 +81,7 @@ namespace Hog
 
 		static Ref<Image> Get(const std::string& name);
 
-		static std::array<Ref<Image>, TEXTURE_ARRAY_SIZE> GetLibraryArray();
+		static std::vector<Ref<Image>> GetLibraryArray();
 
 		static void Initialize();
 		static void Deinitialize();

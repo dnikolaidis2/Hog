@@ -567,7 +567,7 @@ namespace Hog
 		if (!s_Data.FinalTarget)
 		{
 			VkExtent2D extent = GraphicsContext::GetExtent();
-			s_Data.FinalTarget = Image::Create(ImageDescription::Defaults::SampledColorAttachment, extent.width, extent.height, 1, VK_FORMAT_B8G8R8A8_SRGB);
+			s_Data.FinalTarget = Image::Create(ImageDescription::Defaults::SampledColorAttachment, 1);
 		}
 
 		return s_Data.FinalTarget;
