@@ -104,6 +104,7 @@ namespace Hog
 		enum class Defaults
 		{
 			Depth,
+			DepthStencil,
 			RenderTarget,
 			SampledColorAttachment,
 			Texture
@@ -120,6 +121,9 @@ namespace Hog
 
 		VkImageAspectFlags ImageAspectFlags;
 		//operator VkImageAspectFlags() const { return ImageAspectFlags; }
+
+		VkFormat Format;
+		operator VkFormat() const { return Format; }
 
 		ImageDescription() = default;
 		ImageDescription(Defaults options);
