@@ -83,6 +83,8 @@ namespace Hog {
 			m_CurrentPool = GrabPool();
 			m_UsedPools.push_back(m_CurrentPool);
 
+			allocInfo.descriptorPool = m_CurrentPool;
+
 			allocResult = vkAllocateDescriptorSets(Device, &allocInfo, set);
 
 			//if it still fails then we have big issues
