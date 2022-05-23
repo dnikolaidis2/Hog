@@ -16,7 +16,7 @@ namespace Hog
 
 	bool ResourceLayout::ContainsType(ResourceType type) const
 	{
-		for (const auto & elem : m_Elements)
+		for (const auto& elem : m_Elements)
 		{
 			if (elem.Type == type) return true;
 		}
@@ -26,10 +26,30 @@ namespace Hog
 
 	void RenderGraph::Cleanup()
 	{
+		std::stack<Ref<Node>> toVisit;
+		for (auto node : m_StartingPoints)
+		{
+			toVisit.push(node);
+		}
+
 		m_StartingPoints.clear();
+
+		while (!toVisit.empty())
+		{
+			Ref<Node> visiting = toVisit.top();
+			toVisit.pop();
+
+			for (auto child : visiting->ChildList)
+			{
+				child->ParentList.erase(std::find(child->ParentList.begin(), child->ParentList.end(), visiting));
+				toVisit.push(child);
+			}
+
+			visiting->Cleanup();
+		}
 	}
 
-	Ref<Node> RenderGraph::AddStage(Ref<Node> parent, RendererStage stageInfo)
+	Ref<Node> RenderGraph::AddStage(Ref<Node> parent, StageDescription stageInfo)
 	{
 		if (parent == nullptr)
 		{
@@ -44,7 +64,7 @@ namespace Hog
 		}
 	}
 
-	Ref<Node> RenderGraph::AddStage(std::vector<Ref<Node>> parents, RendererStage stageInfo)
+	Ref<Node> RenderGraph::AddStage(const std::vector<Ref<Node>>& parents, StageDescription stageInfo)
 	{
 		return Node::Create(parents, stageInfo);
 	}
@@ -58,7 +78,7 @@ namespace Hog
 			toVisit.push(node);
 		}
 
-		while(!toVisit.empty())
+		while (!toVisit.empty())
 		{
 			Ref<Node> visiting = toVisit.front();
 
@@ -105,5 +125,33 @@ namespace Hog
 		}
 
 		return stages;
+	}
+
+	bool RenderGraph::ContainsStageType(RendererStageType type) const
+	{
+		std::queue<Ref<Node>> toVisit;
+		for (auto node : m_StartingPoints)
+		{
+			toVisit.push(node);
+		}
+
+		while (!toVisit.empty())
+		{
+			Ref<Node> visiting = toVisit.front();
+
+			if (visiting->StageInfo.StageType == type)
+			{
+				return true;
+			}
+
+			for (auto child : visiting->ChildList)
+			{
+				toVisit.push(child);
+			}
+
+			toVisit.pop();
+		}
+
+		return false;
 	}
 }

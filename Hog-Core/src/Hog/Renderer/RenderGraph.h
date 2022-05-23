@@ -1,19 +1,21 @@
 #pragma once
 
+#include "Hog/Renderer/RendererObject.h"
 #include "Hog/Renderer/Shader.h"
 #include "Hog/Renderer/Buffer.h"
+#include "Hog/Renderer/Types.h"
 
 namespace Hog
 {
-	enum class AttachmentType
-	{
-		Color, Depth
-	};
-
 	struct AttachmentElement
 	{
 		std::string Name;
 		AttachmentType Type;
+		Ref<Image> Image;
+		bool Clear = false;
+		bool Present = false;
+		bool UseAsResourceNext = false;
+		VkImageLayout NextImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	};
 
 	class AttachmentLayout
@@ -25,13 +27,14 @@ namespace Hog
 			: m_Elements(elements) {}
 
 		const std::vector<AttachmentElement>& GetElements() const { return m_Elements; }
-
+		size_t size() const { return m_Elements.size(); }
 		bool ContainsType(AttachmentType type) const;
 
 		std::vector<AttachmentElement>::iterator begin() { return m_Elements.begin(); }
 		std::vector<AttachmentElement>::iterator end() { return m_Elements.end(); }
 		std::vector<AttachmentElement>::const_iterator begin() const { return m_Elements.begin(); }
 		std::vector<AttachmentElement>::const_iterator end() const { return m_Elements.end(); }
+		AttachmentElement& operator [](int i) { return m_Elements[i]; }
 	private:
 		std::vector<AttachmentElement> m_Elements;
 	};
@@ -133,35 +136,33 @@ namespace Hog
 		uint32_t m_Stride = 0;
 	};
 
-	enum class ResourceBindLocation
-	{
-		Compute, Vertex, Fragment, Combined,
-	};
-
-	enum class ResourceType
-	{
-		Uniform, Constant, PushConstant, Storage, Sampler, SamplerArray
-	};
-
 	struct ResourceElement
 	{
 		std::string Name;
 		ResourceType Type;
-		ResourceBindLocation BindLocation;
+		ShaderType BindLocation;
 		Ref<Buffer> Buffer = nullptr;
+		Ref<Image> Texture = nullptr;
+		std::vector<Ref<Image>> Images;
 		uint32_t ConstantID = 0;
 		size_t ConstantSize = 0;
 		void* ConstantDataPointer = nullptr;
 		uint32_t Binding = 0;
 		uint32_t Set = 0;
 
-		ResourceElement(const std::string& name, ResourceType type, ResourceBindLocation bindLocation, Ref<Hog::Buffer> buffer, uint32_t binding, uint32_t set)
+		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Buffer> buffer, uint32_t binding, uint32_t set)
 			: Name(name), Type(type), BindLocation(bindLocation), Buffer(buffer), Binding(binding), Set(set) {}
 
-		ResourceElement(const std::string& name, ResourceType type, ResourceBindLocation bindLocation, uint32_t constantID, size_t constantSize, void* dataPointer)
+		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Image> texture, uint32_t binding, uint32_t set)
+			: Name(name), Type(type), BindLocation(bindLocation), Texture(texture), Binding(binding), Set(set) {}
+
+		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, const std::vector<Ref<Image>>& images, uint32_t binding, uint32_t set)
+			: Name(name), Type(type), BindLocation(bindLocation), Images(images), Binding(binding), Set(set) {}
+
+		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, uint32_t constantID, size_t constantSize, void* dataPointer)
 			: Name(name), Type(type), BindLocation(bindLocation), ConstantID(constantID), ConstantSize(constantSize), ConstantDataPointer(dataPointer) {}
 
-		ResourceElement(const std::string& name, ResourceType type, ResourceBindLocation bindLocation, size_t constantSize, void* dataPointer)
+		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, size_t constantSize, void* dataPointer)
 			: Name(name), Type(type), BindLocation(bindLocation), ConstantSize(constantSize), ConstantDataPointer(dataPointer) {}
 
 		ResourceElement() = default;
@@ -183,16 +184,12 @@ namespace Hog
 		std::vector<ResourceElement>::iterator end() { return m_Elements.end(); }
 		std::vector<ResourceElement>::const_iterator begin() const { return m_Elements.begin(); }
 		std::vector<ResourceElement>::const_iterator end() const { return m_Elements.end(); }
+		const ResourceElement& operator [](int i) const { return m_Elements[i]; }
 	private:
 		std::vector<ResourceElement> m_Elements;
 	};
 
-	enum class RendererStageType
-	{
-		Compute, ForwardGraphics, DeferredGraphics
-	};
-
-	struct RendererStage
+	struct StageDescription
 	{
 		std::string Name;
 		Ref<Shader> Shader;
@@ -201,21 +198,34 @@ namespace Hog
 		ResourceLayout Resources;
 		Ref<Buffer> VertexBuffer;
 		Ref<Buffer> IndexBuffer;
+		std::vector<Ref<RendererObject>> Objects;
 		AttachmentLayout Attachments;
+		glm::ivec3 GroupCounts;
+		Ref<Buffer> DispatchBuffer;
 
-		RendererStage(const std::string& name, Ref<Hog::Shader> shader, RendererStageType type, std::initializer_list<ResourceElement> resources)
-			: Name(name), Shader(shader), StageType(type), VertexInputLayout({}), Resources(resources) {}
+		StageDescription(const std::string& name, Ref<Hog::Shader> shader, RendererStageType type, std::initializer_list<ResourceElement> resources, glm::ivec3 groupCounts)
+			: Name(name), Shader(shader), StageType(type), VertexInputLayout({}), Resources(resources), GroupCounts(groupCounts) {}
 
-		RendererStage(const std::string& name, Ref<Hog::Shader> shader, RendererStageType type, std::initializer_list<VertexElement> vertexInput,
-			std::initializer_list<ResourceElement> resources, Ref<Buffer> vertexBuffer, Ref<Buffer> indexBuffer)
-			: Name(name), Shader(shader), StageType(type), VertexInputLayout(vertexInput), Resources(resources), VertexBuffer(vertexBuffer), IndexBuffer(indexBuffer) {}
+		StageDescription(const std::string& name, RendererStageType type, std::initializer_list<AttachmentElement> attachmentElements)
+			: Name(name), StageType(type), Attachments(attachmentElements) {}
 
-		RendererStage() = default;
+		StageDescription(const std::string& name, Ref<Hog::Shader> shader, RendererStageType type, std::initializer_list<ResourceElement> resources, std::initializer_list<AttachmentElement> attachmentElements)
+			: Name(name), Shader(shader), StageType(type), Resources(resources), Attachments(attachmentElements) {}
+
+		StageDescription(const std::string& name, Ref<Hog::Shader> shader, RendererStageType type, std::initializer_list<VertexElement> vertexInput,
+			std::initializer_list<ResourceElement> resources, Ref<Buffer> vertexBuffer, Ref<Buffer> indexBuffer, std::initializer_list<AttachmentElement> attachmentElements)
+			: Name(name), Shader(shader), StageType(type), VertexInputLayout(vertexInput), Resources(resources), VertexBuffer(vertexBuffer), IndexBuffer(indexBuffer), Attachments(attachmentElements) {}
+
+		StageDescription(const std::string& name, Ref<Hog::Shader> shader, RendererStageType type, std::initializer_list<VertexElement> vertexInput,
+			std::initializer_list<ResourceElement> resources, const std::vector<Ref<RendererObject>>& objects, std::initializer_list<AttachmentElement> attachmentElements)
+			: Name(name), Shader(shader), StageType(type), VertexInputLayout(vertexInput), Resources(resources), Objects(objects), Attachments(attachmentElements) {}
+
+		StageDescription() = default;
 	};
 
 	struct Node
 	{
-		static Ref<Node> Create(std::vector<Ref<Node>> parents, RendererStage stageInfo)
+		static Ref<Node> Create(const std::vector<Ref<Node>>& parents, StageDescription stageInfo)
 		{
 			auto ref = CreateRef<Node>(stageInfo);
 
@@ -228,7 +238,7 @@ namespace Hog
 			return ref;
 		}
 
-		static Ref<Node> Create(Ref<Node> parent, RendererStage stageInfo)
+		static Ref<Node> Create(Ref<Node> parent, StageDescription stageInfo)
 		{
 			auto ref = CreateRef<Node>(stageInfo);
 			parent->AddChild(ref);
@@ -237,16 +247,16 @@ namespace Hog
 			return ref;
 		}
 
-		static Ref<Node> Create(RendererStage stageInfo)
+		static Ref<Node> Create(StageDescription stageInfo)
 		{
 			return CreateRef<Node>(stageInfo);
 		}
 
 		std::vector<Ref<Node>> ChildList;
 		std::vector<Ref<Node>> ParentList;
-		RendererStage StageInfo;
+		StageDescription StageInfo;
 
-		Node(RendererStage stageInfo)
+		Node(StageDescription stageInfo)
 			:StageInfo(stageInfo) {}
 
 		void AddChild(Ref<Node> child)
@@ -263,6 +273,12 @@ namespace Hog
 		{
 			return ChildList.empty();
 		}
+
+		void Cleanup()
+		{
+			ChildList.clear();
+			ParentList.clear();
+		}
 	};
 
 	class RenderGraph
@@ -271,10 +287,12 @@ namespace Hog
 		RenderGraph() = default;
 		void Cleanup();
 
-		Ref<Node> AddStage(Ref<Node> parent, RendererStage stageInfo);
-		Ref<Node> AddStage(std::vector<Ref<Node>> parents, RendererStage stageInfo);
+		Ref<Node> AddStage(Ref<Node> parent, StageDescription stageInfo);
+		Ref<Node> AddStage(const std::vector<Ref<Node>>& parents, StageDescription stageInfo);
 		std::vector<Ref<Node>> GetStages();
 		std::vector<Ref<Node>> GetFinalStages();
+
+		bool ContainsStageType(RendererStageType type) const;
 	private:
 		std::vector<Ref<Node>> m_StartingPoints;
 	};

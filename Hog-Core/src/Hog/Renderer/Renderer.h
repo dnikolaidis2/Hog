@@ -22,4 +22,10 @@ namespace Hog
 
 		static RendererStats GetStats();
 	};
+
+	/*class RendererStage
+	{
+	public:
+	private:
+	};*/
 }

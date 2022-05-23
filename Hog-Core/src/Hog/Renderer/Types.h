@@ -145,6 +145,7 @@ namespace Hog
 			Miss = VK_SHADER_STAGE_MISS_BIT_KHR,
 			ClosestHit = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
 			Mesh = VK_SHADER_STAGE_MESH_BIT_NV,
+			CombinedFragVert = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT,
 		};
 
 		VkShaderStageFlags Stage;
@@ -197,6 +198,21 @@ namespace Hog
 		{
 			return Stage == other.Stage;
 		}
+	};
+
+	enum class AttachmentType
+	{
+		Color, Depth, DepthStencil
+	};
+
+	enum class ResourceType
+	{
+		Uniform, Constant, PushConstant, Storage, Sampler, SamplerArray
+	};
+
+	enum class RendererStageType
+	{
+		ForwardCompute, DeferredCompute, ForwardGraphics, DeferredGraphics, Blit, ImGui
 	};
 };
 

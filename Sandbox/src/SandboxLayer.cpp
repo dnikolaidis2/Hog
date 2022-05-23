@@ -20,6 +20,13 @@ void SandboxLayer::OnAttach()
 	
 	HG_PROFILE_GPU_INIT_VULKAN(&(context.Device), &(context.PhysicalDevice), &(context.Queue), &(context.QueueFamilyIndex), 1, nullptr);
 
+	Ref<Image> colorAttachment = Renderer::GetFinalRenderTarget();
+	Ref<Image> depthAttachment = Image::Create(ImageDescription::Defaults::Depth, 1);
+
+	Ref<Buffer> ViewProjection = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(glm::mat4));
+	Ref<Buffer> Materials = Buffer::Create(BufferDescription::Defaults::UniformBuffer, (uint32_t)(sizeof(MaterialGPUData) * MATERIAL_ARRAY_SIZE));
+	std::vector<Ref<RendererObject>> rendereObjects;
+
 	RenderGraph graph;
 	auto graphics = graph.AddStage(nullptr, {
 		"ForwardGraphics", Shader::Create("Basic", "Basic.vertex", "Basic.fragment"), RendererStageType::ForwardGraphics,
@@ -30,13 +37,16 @@ void SandboxLayer::OnAttach()
 			{DataType::Defaults::Float3, "a_MaterialIndex"},
 		},
 		{
-			{"u_ViewProjection", ResourceType::Uniform, ResourceBindLocation::Vertex, nullptr, 0, 0},
-			{"u_Materials", ResourceType::Uniform, ResourceBindLocation::Fragment, nullptr, 1, 0},
-			{"u_Textures", ResourceType::SamplerArray, ResourceBindLocation::Fragment, nullptr, 2, 0},
-			{"p_Model", ResourceType::PushConstant, ResourceBindLocation::Vertex, sizeof(PushConstant), &m_PushConstant},
+			{"u_ViewProjection", ResourceType::Uniform, ShaderType::Defaults::Vertex, ViewProjection, 0, 0},
+			{"u_Materials", ResourceType::Uniform, ShaderType::Defaults::Fragment, Materials, 1, 0},
+			{"u_Textures", ResourceType::SamplerArray, ShaderType::Defaults::Fragment, TextureLibrary::GetLibraryArray(), 2, 0},
+			{"p_Model", ResourceType::PushConstant, ShaderType::Defaults::Vertex, sizeof(PushConstant), &m_PushConstant},
 		},
-		nullptr,
-		nullptr,
+		rendereObjects,
+		{
+			{"Color", AttachmentType::Color, colorAttachment},
+			{"Depth", AttachmentType::Depth, depthAttachment},
+		},
 	});
 
 	Renderer::Initialize(graph);
