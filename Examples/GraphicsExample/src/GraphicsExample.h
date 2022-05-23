@@ -4,7 +4,7 @@
 
 using namespace Hog;
 
-class SandboxLayer : public Layer
+class GraphicsExample : public Layer
 {
 public:
 	struct PushConstant
@@ -12,8 +12,8 @@ public:
 		glm::mat4 Model;
 	};
 
-	SandboxLayer();
-	virtual ~SandboxLayer() = default;
+	GraphicsExample();
+	virtual ~GraphicsExample() = default;
 
 	virtual void OnAttach() override;
 	virtual void OnDetach() override;

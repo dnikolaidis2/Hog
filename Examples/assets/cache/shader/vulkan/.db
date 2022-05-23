@@ -1,0 +1,19 @@
+ShaderCache:
+  Headless.compute:
+    Name: Headless.compute
+    FilePath: assets/shaders/Headless.compute
+    CacheFilePath: assets/cache/shader/vulkan\Headless.compute.spv
+    Type: compute
+    Hash: 1279848829903178819
+  blit.fragment:
+    Name: blit.fragment
+    FilePath: assets/shaders/blit.fragment
+    CacheFilePath: assets/cache/shader/vulkan\blit.fragment.spv
+    Type: fragment
+    Hash: 13619470912051704685
+  fullscreen.vertex:
+    Name: fullscreen.vertex
+    FilePath: assets/shaders/fullscreen.vertex
+    CacheFilePath: assets/cache/shader/vulkan\fullscreen.vertex.spv
+    Type: vertex
+    Hash: 10184502418012115671

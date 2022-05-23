@@ -1,4 +1,4 @@
-#include "SandboxLayer.h"
+#include "GraphicsExample.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -6,13 +6,13 @@
 
 static auto& context = GraphicsContext::Get();
 
-SandboxLayer::SandboxLayer()
-	: Layer("SandboxLayer")
+GraphicsExample::GraphicsExample()
+	: Layer("GraphicsExample")
 {
 
 }
 
-void SandboxLayer::OnAttach()
+void GraphicsExample::OnAttach()
 {
 	HG_PROFILE_FUNCTION()
 
@@ -60,7 +60,7 @@ void SandboxLayer::OnAttach()
 	m_EditorCamera = EditorCamera(30.0f, 1.778f, 0.1f, 10000.0f);
 }
 
-void SandboxLayer::OnDetach()
+void GraphicsExample::OnDetach()
 {
 	HG_PROFILE_FUNCTION()
 
@@ -75,27 +75,27 @@ void SandboxLayer::OnDetach()
 	GraphicsContext::Deinitialize();
 }
 
-void SandboxLayer::OnUpdate(Timestep ts)
+void GraphicsExample::OnUpdate(Timestep ts)
 {
 	HG_PROFILE_FUNCTION()
 
 	m_EditorCamera.OnUpdate(ts);
 }
 
-void SandboxLayer::OnImGuiRender()
+void GraphicsExample::OnImGuiRender()
 {
 	ImGui::ShowDemoWindow();
 }
 
-void SandboxLayer::OnEvent(Event& e)
+void GraphicsExample::OnEvent(Event& e)
 {
 	m_EditorCamera.OnEvent(e);
 
 	EventDispatcher dispatcher(e);
-	dispatcher.Dispatch<FrameBufferResizeEvent>(HG_BIND_EVENT_FN(SandboxLayer::OnResized));
+	dispatcher.Dispatch<FrameBufferResizeEvent>(HG_BIND_EVENT_FN(GraphicsExample::OnResized));
 }
 
-bool SandboxLayer::OnResized(FrameBufferResizeEvent& e)
+bool GraphicsExample::OnResized(FrameBufferResizeEvent& e)
 {
 	GraphicsContext::RecreateSwapChain();
 

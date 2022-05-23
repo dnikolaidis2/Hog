@@ -3,7 +3,7 @@ include "Dependencies.lua"
 
 workspace "Hog"
 	architecture "x86_64"
-	startproject "Sandbox"
+	-- startproject "Sandbox"
 
 	configurations
 	{
@@ -34,4 +34,4 @@ group "Dependencies"
 group ""
 
 include "Hog-Core"
-include "Sandbox"
+include "Examples"

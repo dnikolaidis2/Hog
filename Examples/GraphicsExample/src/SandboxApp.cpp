@@ -2,15 +2,15 @@
 #include <Hog.h>
 #include <Hog/Core/EntryPoint.h>
 
-#include "SandboxLayer.h"
+#include "GraphicsExample.h"
 
 class Sandbox : public Hog::Application
 {
 public:
 	Sandbox(Hog::ApplicationCommandLineArgs args)
-		: Application("Vulkan Sandbox", args)
+		: Application("Graphics Example", args)
 	{
-		PushLayer(CreateRef<SandboxLayer>());
+		PushLayer(CreateRef<GraphicsExample>());
 	}
 
 	~Sandbox()
