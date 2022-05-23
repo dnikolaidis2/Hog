@@ -22,17 +22,26 @@ namespace Hog
 
 		void SetData(void* data, uint32_t size);
 
+		void SetImageLayout(VkImageLayout layout) { m_Description.ImageLayout = layout; }
+		void LayoutBarrier(VkCommandBuffer commandBuffer, VkImageLayout newLayout);
+
 		VkImageView GetImageView() const { return m_View; }
 		VkFormat GetInternalFormat() const { return m_InternalFormat; }
 		VkSampler GetOrCreateSampler();
 		void SetGPUIndex(int32_t ind) { m_GPUIndex = ind; }
 		int32_t GetGPUIndex() const { return m_GPUIndex; }
+		const ImageDescription& GetDescription() const {return m_Description;}
+		VkSampleCountFlagBits GetSamples() const { return m_Samples; }
+		VkExtent2D GetExtent() const { return VkExtent2D(m_Width, m_Height); }
+		uint32_t GetWidth() const { return m_Width; }
+		uint32_t GetHeight() const { return m_Height; }
 	private:
 		void CreateViewForImage();
 	private:
 		VkImage m_Handle;
 		VkImageView m_View;
 		VkFormat m_InternalFormat = VK_FORMAT_UNDEFINED;
+		VkSampleCountFlagBits m_Samples = VK_SAMPLE_COUNT_1_BIT;
 		DataType m_Format;
 		VmaAllocation m_Allocation;
 		ImageDescription m_Description;

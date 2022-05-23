@@ -35,14 +35,14 @@ namespace Hog
 	}
 
 	Image::Image(ImageDescription description, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples)
-		: m_InternalFormat(format), m_Description(description), m_Format(m_InternalFormat), m_Width(width), m_Height(height), m_Allocated(true), m_LevelCount(levelCount)
+		: m_InternalFormat(format), m_Description(description), m_Format(m_InternalFormat), m_Width(width), m_Height(height), m_Allocated(true), m_LevelCount(levelCount), m_Samples(samples)
 	{
-		m_ImageCreateInfo.extent = { width, height, 1 };
+		m_ImageCreateInfo.extent = { m_Width, m_Height, 1 };
 		m_ImageCreateInfo.imageType = static_cast<VkImageType>(m_Description);
 		m_ImageCreateInfo.format = m_InternalFormat;
 		m_ImageCreateInfo.usage = static_cast<VkImageUsageFlags>(m_Description);
-		m_ImageCreateInfo.samples = samples;
-		m_ImageCreateInfo.mipLevels = levelCount;
+		m_ImageCreateInfo.samples = m_Samples;
+		m_ImageCreateInfo.mipLevels = m_LevelCount;
 
 		//for the depth image, we want to allocate it from GPU local memory
 		VmaAllocationCreateInfo imageAllocationInfo = {};
@@ -73,6 +73,8 @@ namespace Hog
 		if (m_Sampler)
 			vkDestroySampler(GraphicsContext::GetDevice(), m_Sampler, nullptr);
 	}
+
+
 
 	void Image::SetData(void* data, uint32_t size)
 	{
@@ -183,6 +185,38 @@ namespace Hog
 			vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
 				0, nullptr, 0, nullptr, 1, &barrier);
 		});
+	}
+
+	void Image::LayoutBarrier(VkCommandBuffer commandBuffer, VkImageLayout newLayout)
+	{
+		VkImageMemoryBarrier2 barrier = {
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+			.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+			.srcAccessMask = VK_ACCESS_2_NONE,
+			.dstStageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+			.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+			.oldLayout = m_Description.ImageLayout,
+			.newLayout = newLayout,
+			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.image = m_Handle,
+			.subresourceRange = {
+				.aspectMask = m_Description.ImageAspectFlags,
+				.baseMipLevel = 0,
+				.levelCount = m_LevelCount,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			},
+		};
+
+		VkDependencyInfo dependencyInfo = {
+			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+			.imageMemoryBarrierCount = 1,
+			.pImageMemoryBarriers = &barrier,
+		};
+
+		//barrier the image into the transfer-receive layout
+		vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 	}
 
 	VkSampler Image::GetOrCreateSampler()

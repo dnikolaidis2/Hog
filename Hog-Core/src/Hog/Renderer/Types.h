@@ -122,8 +122,11 @@ namespace Hog
 		VkImageAspectFlags ImageAspectFlags;
 		//operator VkImageAspectFlags() const { return ImageAspectFlags; }
 
-		VkFormat Format;
+		VkFormat Format = VK_FORMAT_UNDEFINED;
 		operator VkFormat() const { return Format; }
+
+		VkImageLayout ImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		operator VkImageLayout() const { return ImageLayout; }
 
 		ImageDescription() = default;
 		ImageDescription(Defaults options);

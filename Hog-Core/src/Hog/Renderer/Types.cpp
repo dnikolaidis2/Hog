@@ -229,6 +229,7 @@ namespace Hog
 				ImageUsageFlags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 				ImageAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 				Format = static_cast<VkFormat>(DataType::Defaults::Depth32);
+				ImageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
 			}break;
 
 			case Defaults::DepthStencil:
@@ -236,6 +237,7 @@ namespace Hog
 				ImageUsageFlags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 				ImageAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 				Format = static_cast<VkFormat>(DataType::Defaults::Depth32Stencil8);
+				ImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 			}break;
 
 			case Defaults::RenderTarget:
@@ -243,6 +245,7 @@ namespace Hog
 				ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 				ImageAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
 				Format = GraphicsContext::GetSwapchainFormat();
+				ImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			}break;
 
 			case Defaults::SampledColorAttachment:
@@ -250,6 +253,7 @@ namespace Hog
 				ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 				ImageAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
 				Format = GraphicsContext::GetSwapchainFormat();
+				ImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			}break;
 			case Defaults::Texture:
 			{
