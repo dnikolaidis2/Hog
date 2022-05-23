@@ -15,8 +15,29 @@ AutoCVar_Int CVar_ImageMipLevels("renderer.enableMipMapping", "Enable mip mappin
 namespace Hog
 {
 	struct RendererStage;
+	struct RendererFrame;
 
-	struct FrameData
+	struct RendererData
+	{
+		RenderGraph Graph;
+		std::vector<RendererFrame> Frames;
+		std::vector<RendererStage> Stages;
+		DescriptorLayoutCache DescriptorLayoutCache;
+		Ref<Image> FinalTarget;
+		Ref<ImGuiLayer> ImGuiLayer;
+
+		uint32_t FrameIndex = 0;
+		uint32_t MaxFrameCount = 2;
+
+		RendererFrame& GetCurrentFrame()
+		{
+			return Frames[FrameIndex];
+		}
+	};
+
+	static RendererData s_Data;
+
+	struct RendererFrame
 	{
 		VkCommandPool CommandPool = VK_NULL_HANDLE;
 		VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
@@ -25,6 +46,16 @@ namespace Hog
 		VkSemaphore RenderSemaphore = VK_NULL_HANDLE;
 		FrameBuffer FrameBuffer;
 		DescriptorAllocator DescriptorAllocator;
+
+		void Init()
+		{
+			CommandPool = GraphicsContext::CreateCommandPool();
+			CommandBuffer = GraphicsContext::CreateCommandBuffer(CommandPool);
+			Fence = GraphicsContext::CreateFence(true);
+			PresentSemaphore = GraphicsContext::CreateVkSemaphore();
+			RenderSemaphore = GraphicsContext::CreateVkSemaphore();
+			DescriptorAllocator.Init(GraphicsContext::GetDevice());
+		}
 
 		void Init(Ref<Image> swapchainImage, VkRenderPass renderPass)
 		{
@@ -41,6 +72,86 @@ namespace Hog
 
 		}
 
+		void BeginFrame()
+		{
+			VkExtent2D swapchainExtent = GraphicsContext::GetExtent();
+			VkClearValue clearValue = {
+				.color = { { 0.1f, 0.1f, 0.1f, 1.0f } },
+			};
+
+			CheckVkResult(vkWaitForFences(GraphicsContext::GetDevice(), 1, &Fence, VK_TRUE, UINT64_MAX));
+			vkResetFences(GraphicsContext::GetDevice(), 1, &Fence);
+
+			DescriptorAllocator.ResetPools();
+
+			vkAcquireNextImageKHR(GraphicsContext::GetDevice(), GraphicsContext::GetSwapchain(), UINT64_MAX, PresentSemaphore, VK_NULL_HANDLE, &s_Data.FrameIndex);
+
+			// begin command buffer
+			VkCommandBufferBeginInfo beginInfo{};
+			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+			CheckVkResult(vkBeginCommandBuffer(CommandBuffer, &beginInfo));
+			HG_PROFILE_GPU_CONTEXT(currentFrame.CommandBuffer);
+			HG_PROFILE_GPU_EVENT("Begin CommandBuffer");
+
+			/*s_Data.FinalTarget->LayoutBarrier(CommandBuffer, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			s_Data.FinalTarget->SetImageLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);*/
+		}
+
+		void EndFrame()
+		{
+			// end command buffer
+			CheckVkResult(vkEndCommandBuffer(CommandBuffer));
+
+			// Submit
+			const VkCommandBufferSubmitInfo commandBufferSubmitInfo = {
+				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+				.commandBuffer = CommandBuffer,
+			};
+
+			const VkSemaphoreSubmitInfo waitSemaphoreInfo = {
+				.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+				.semaphore = PresentSemaphore,
+			};
+
+			const VkSemaphoreSubmitInfo signalSemaphoreInfo = {
+				.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+				.semaphore = RenderSemaphore,
+			};
+
+			const VkSubmitInfo2 submitInfo = {
+				.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+				.waitSemaphoreInfoCount = 1,
+				.pWaitSemaphoreInfos = &waitSemaphoreInfo,
+				.commandBufferInfoCount = 1,
+				.pCommandBufferInfos = &commandBufferSubmitInfo,
+				.signalSemaphoreInfoCount = 1,
+				.pSignalSemaphoreInfos = &signalSemaphoreInfo,
+			};
+
+			CheckVkResult(vkQueueSubmit2(GraphicsContext::GetQueue(), 1, &submitInfo, Fence));
+
+			// Present
+			if (s_Data.FinalTarget)
+			{
+				VkPresentInfoKHR presentInfo{};
+				presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+				presentInfo.waitSemaphoreCount = 1;
+				presentInfo.pWaitSemaphores = &RenderSemaphore;
+
+				VkSwapchainKHR swapChains[] = { GraphicsContext::GetSwapchain() };
+				presentInfo.swapchainCount = 1;
+				presentInfo.pSwapchains = swapChains;
+
+				presentInfo.pImageIndices = &s_Data.FrameIndex;
+
+				HG_PROFILE_GPU_FLIP(GraphicsContext::GetSwapchain());
+
+				CheckVkResult(vkQueuePresentKHR(GraphicsContext::GetQueue(), &presentInfo));
+			}
+		}
+
 		void Cleanup()
 		{
 			vkDestroyFence(GraphicsContext::GetDevice(), Fence, nullptr);
@@ -51,26 +162,6 @@ namespace Hog
 			FrameBuffer.Cleanup();
 		}
 	};
-
-	struct RendererData
-	{
-		RenderGraph Graph;
-		std::vector<FrameData> Frames;
-		std::vector<RendererStage> Stages;
-		DescriptorLayoutCache DescriptorLayoutCache;
-		Ref<Image> FinalTarget;
-		Ref<ImGuiLayer> ImGuiLayer;
-
-		uint32_t FrameIndex = 0;
-		uint32_t MaxFrameCount = 2;
-
-		FrameData& GetCurrentFrame()
-		{
-			return Frames[FrameIndex];
-		}
-	};
-
-	static RendererData s_Data;
 
 	struct RendererStage
 	{
@@ -249,14 +340,6 @@ namespace Hog
 		{
 			HG_PROFILE_GPU_EVENT("ForwardCompute Pass");
 
-			for (auto& resource : Info.Resources)
-			{
-				if (resource.Type == ResourceType::Storage)
-				{
-					resource.Buffer->LockAfterWrite(commandBuffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT);
-				}
-			}
-
 			Info.Shader->Bind(commandBuffer);
 
 			std::vector<VkDescriptorSet> sets;
@@ -279,14 +362,6 @@ namespace Hog
 				0, (uint32_t)sets.size(), sets.data(), 0, 0);
 
 			vkCmdDispatch(commandBuffer, Info.GroupCounts.x, Info.GroupCounts.y, Info.GroupCounts.z);
-
-			for (auto& resource : Info.Resources)
-			{
-				if (resource.Type == ResourceType::Storage)
-				{
-					resource.Buffer->LockBeforeRead(commandBuffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT);
-				}
-			}
 		}
 
 		void ImGui(VkCommandBuffer commandBuffer)
@@ -320,7 +395,7 @@ namespace Hog
 		{
 			// Copy to final target
 			HG_PROFILE_GPU_EVENT("Blit Pass");
-			FrameData& currentFrame = s_Data.GetCurrentFrame();
+			RendererFrame& currentFrame = s_Data.GetCurrentFrame();
 			VkExtent2D extent = currentFrame.FrameBuffer.GetExtent();
 
 			VkRenderPassBeginInfo renderPassBeginInfo = {
@@ -383,9 +458,9 @@ namespace Hog
 		s_Data.MaxFrameCount = *CVarSystem::Get()->GetIntCVar("renderer.frameCount");
 
 		s_Data.Graph = renderGraph;
-		auto finalStages = renderGraph.GetFinalStages();
+		// auto finalStages = renderGraph.GetFinalStages();
 
-		// Add ImGui to RenderGraph and add it to the end
+		/*// Add ImGui to RenderGraph and add it to the end
 		Ref<Node> imGuiStage;
 		if (*CVarSystem::Get()->GetIntCVar("application.enableImGui") && !s_Data.Graph.ContainsStageType(RendererStageType::ImGui))
 		{
@@ -412,9 +487,9 @@ namespace Hog
 			{
 				blitStage = s_Data.Graph.AddStage(finalStages, blitStageDesc);
 			}
-		}
+		}*/
 
-		for (auto& parent : blitStage->ParentList)
+		/*for (auto& parent : blitStage->ParentList)
 		{
 			for (auto& attachment : parent->StageInfo.Attachments)
 			{
@@ -423,7 +498,7 @@ namespace Hog
 					attachment.UseAsResourceNext = true;
 				}
 			}
-		}
+		}*/
 
 		s_Data.DescriptorLayoutCache.Init(GraphicsContext::GetDevice());
 
@@ -452,9 +527,19 @@ namespace Hog
 		}
 
 		s_Data.Frames.resize(s_Data.MaxFrameCount);
-		for (int i = 0; i < s_Data.Frames.size(); ++i)
+		if (s_Data.FinalTarget)
 		{
-			s_Data.Frames[i].Init(GraphicsContext::GetSwapchainImages()[i], blitRenderPass);
+			for (int i = 0; i < s_Data.Frames.size(); ++i)
+			{
+				s_Data.Frames[i].Init(GraphicsContext::GetSwapchainImages()[i], blitRenderPass);
+			}
+		}
+		else
+		{
+			for (int i = 0; i < s_Data.Frames.size(); ++i)
+			{
+				s_Data.Frames[i].Init();
+			}
 		}
 	}
 
@@ -464,82 +549,14 @@ namespace Hog
 
 		auto& currentFrame = s_Data.Frames[s_Data.FrameIndex];
 
-		VkExtent2D swapchainExtent = GraphicsContext::GetExtent();
-		VkClearValue clearValue = {
-			.color = { { 0.1f, 0.1f, 0.1f, 1.0f } },
-		};
-
-		CheckVkResult(vkWaitForFences(GraphicsContext::GetDevice(), 1, &currentFrame.Fence, VK_TRUE, UINT64_MAX));
-		vkResetFences(GraphicsContext::GetDevice(), 1, &currentFrame.Fence);
-
-		currentFrame.DescriptorAllocator.ResetPools();
-
-		vkAcquireNextImageKHR(GraphicsContext::GetDevice(), GraphicsContext::GetSwapchain(), UINT64_MAX, currentFrame.PresentSemaphore, VK_NULL_HANDLE, &s_Data.FrameIndex);
-
-		// begin command buffer
-		VkCommandBufferBeginInfo beginInfo{};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-		CheckVkResult(vkBeginCommandBuffer(currentFrame.CommandBuffer, &beginInfo));
-		HG_PROFILE_GPU_CONTEXT(currentFrame.CommandBuffer);
-		HG_PROFILE_GPU_EVENT("Begin CommandBuffer");
-
-		s_Data.FinalTarget->LayoutBarrier(currentFrame.CommandBuffer, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-		s_Data.FinalTarget->SetImageLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+		currentFrame.BeginFrame();
 
 		for (auto& stage : s_Data.Stages)
 		{
 			stage.Execute(currentFrame.CommandBuffer);
 		}
 
-		// end command buffer
-		CheckVkResult(vkEndCommandBuffer(currentFrame.CommandBuffer));
-
-		// Submit
-		const VkCommandBufferSubmitInfo commandBufferSubmitInfo = {
-			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-			.commandBuffer = currentFrame.CommandBuffer,
-		};
-
-		const VkSemaphoreSubmitInfo waitSemaphoreInfo = {
-			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-			.semaphore = currentFrame.PresentSemaphore,
-		};
-
-		const VkSemaphoreSubmitInfo signalSemaphoreInfo = {
-			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-			.semaphore = currentFrame.RenderSemaphore,
-		};
-
-		const VkSubmitInfo2 submitInfo = {
-			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-			.waitSemaphoreInfoCount = 1,
-			.pWaitSemaphoreInfos = &waitSemaphoreInfo,
-			.commandBufferInfoCount = 1,
-			.pCommandBufferInfos = &commandBufferSubmitInfo,
-			.signalSemaphoreInfoCount = 1,
-			.pSignalSemaphoreInfos = &signalSemaphoreInfo,
-		};
-
-		CheckVkResult(vkQueueSubmit2(GraphicsContext::GetQueue(), 1, &submitInfo, currentFrame.Fence));
-
-		// Present
-
-		VkPresentInfoKHR presentInfo{};
-		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
-		presentInfo.waitSemaphoreCount = 1;
-		presentInfo.pWaitSemaphores = &currentFrame.RenderSemaphore;
-
-		VkSwapchainKHR swapChains[] = { GraphicsContext::GetSwapchain() };
-		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = swapChains;
-
-		presentInfo.pImageIndices = &s_Data.FrameIndex;
-
-		HG_PROFILE_GPU_FLIP(GraphicsContext::GetSwapchain());
-
-		CheckVkResult(vkQueuePresentKHR(GraphicsContext::GetQueue(), &presentInfo));
+		currentFrame.EndFrame();
 
 		s_Data.FrameIndex = (s_Data.FrameIndex + 1) % s_Data.MaxFrameCount;
 	}
@@ -547,7 +564,7 @@ namespace Hog
 	void Renderer::Deinitialize()
 	{
 		s_Data.FinalTarget.reset();
-		std::for_each(s_Data.Frames.begin(), s_Data.Frames.end(), [](FrameData& elem) {elem.Cleanup(); });
+		std::for_each(s_Data.Frames.begin(), s_Data.Frames.end(), [](RendererFrame& elem) {elem.Cleanup(); });
 		s_Data.Frames.clear();
 		std::for_each(s_Data.Stages.begin(), s_Data.Stages.end(), [](RendererStage& elem) {elem.Cleanup(); });
 		s_Data.Stages.clear();
