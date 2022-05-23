@@ -15,10 +15,6 @@ public:
 
 	void OnUpdate(Timestep ts) override;
 	virtual void OnImGuiRender() override;
-	void OnEvent(Event& e) override;
-	bool OnResized(FrameBufferResizeEvent& e);
 private:
 	Ref<Buffer> m_ComputeBuffer = nullptr;	
-
-	EditorCamera m_EditorCamera;
 };

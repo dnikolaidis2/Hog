@@ -16,7 +16,7 @@ bin-int/
 
 # Directories
 Hog-Core/vendor/VulkanSDK
-Sandbox/assets/cache
+Examples/assets/cache
 scripts/__pycache__
 
 **/.idea/**

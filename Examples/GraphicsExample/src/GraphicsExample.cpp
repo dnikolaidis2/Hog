@@ -2,7 +2,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <imgui/imgui.h>
+#include <Hog/ImGui/ImGuiHelper.h>
 
 static auto& context = GraphicsContext::Get();
 
@@ -14,7 +14,8 @@ GraphicsExample::GraphicsExample()
 
 void GraphicsExample::OnAttach()
 {
-	HG_PROFILE_FUNCTION()
+	HG_PROFILE_FUNCTION();
+	CVarSystem::Get()->SetIntCVar("application.enableImGui", 1);
 
 	GraphicsContext::Initialize();
 	
@@ -44,9 +45,19 @@ void GraphicsExample::OnAttach()
 		},
 		rendereObjects,
 		{
-			{"Color", AttachmentType::Color, colorAttachment},
-			{"Depth", AttachmentType::Depth, depthAttachment},
+			{"Color", AttachmentType::Color, colorAttachment, true},
+			{"Depth", AttachmentType::Depth, depthAttachment, true},
 		},
+	});
+
+	auto imGuiStage = graph.AddStage(graphics, {
+		"ImGuiStage", RendererStageType::ImGui, {{"ColorTarget", AttachmentType::Color, colorAttachment}}
+	});
+
+	graph.AddStage(imGuiStage, {
+		"BlitStage", Shader::Create("Blit", "fullscreen.vertex", "blit.fragment"), RendererStageType::Blit,
+		{{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, colorAttachment, 0, 0},},
+		{{"ColorTarget", AttachmentType::Color, colorAttachment, false, true},},
 	});
 
 	Renderer::Initialize(graph);
