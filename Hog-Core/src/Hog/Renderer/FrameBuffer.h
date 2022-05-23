@@ -12,10 +12,13 @@ namespace Hog {
 		void Create(std::vector<Ref<Image>>& attachments, VkRenderPass renderPass);
 		void Cleanup();
 
+		VkExtent2D GetExtent() const { return m_Extent; }
+
 		operator VkFramebuffer() { return m_Handle; }
 	private:
 		std::vector<Ref<Image>> m_Attachments;
 		VkFramebuffer m_Handle = VK_NULL_HANDLE;
+		VkExtent2D m_Extent = {};
 		bool m_UseSwapchainExtent = false;
 	};
 }

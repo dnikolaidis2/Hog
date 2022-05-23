@@ -10,6 +10,7 @@ namespace Hog
 	void FrameBuffer::Create(std::vector<Ref<Image>>& attachments, VkRenderPass renderPass, VkExtent2D extent)
 	{
 		m_Attachments = attachments;
+		m_Extent = extent;
 		std::vector<VkImageView> views(m_Attachments.size());
 		for (int i = 0; i < m_Attachments.size(); ++i)
 		{
@@ -21,8 +22,8 @@ namespace Hog
 			.renderPass = renderPass,
 			.attachmentCount = static_cast<uint32_t>(views.size()),
 			.pAttachments = views.data(),
-			.width = extent.width,
-			.height = extent.height,
+			.width = m_Extent.width,
+			.height = m_Extent.height,
 			.layers = 1,
 		};
 
@@ -39,15 +40,15 @@ namespace Hog
 			views[i] = m_Attachments[i]->GetImageView();
 		}
 
-		VkExtent2D extent = GraphicsContext::GetExtent();
+		m_Extent = GraphicsContext::GetExtent();
 
 		VkFramebufferCreateInfo framebufferCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
 			.renderPass = renderPass,
 			.attachmentCount = static_cast<uint32_t>(views.size()),
 			.pAttachments = views.data(),
-			.width = extent.width,
-			.height = extent.height,
+			.width = m_Extent.width,
+			.height = m_Extent.height,
 			.layers = 1,
 		};
 
