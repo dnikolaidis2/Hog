@@ -30,7 +30,9 @@ namespace Hog
 
 		case Defaults::TransferSourceBuffer:
 		{
-			MemoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
+			MemoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
+			AllocationCreateFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | 
+				VMA_ALLOCATION_CREATE_MAPPED_BIT;
 			BufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		}break;
 

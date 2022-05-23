@@ -18,13 +18,11 @@ namespace Hog {
 		Buffer(BufferDescription description, uint32_t size);
 		virtual ~Buffer();
 
-		void SetData(void* data, uint32_t size);
-		void TransferData(uint32_t size, const Ref<Buffer>& src);
+		void WriteData(void* data, uint32_t size);
+		void ReadData(void* data, uint32_t size);
 		const VkBuffer& GetHandle() const { return m_Handle; }
 		uint32_t GetSize() const { return m_Size; }
 		BufferDescription GetBufferDescription() const { return m_Description; }
-		void LockAfterWrite(VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage);
-		void LockBeforeRead(VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage);
 
 		operator void* () { return m_AllocationInfo.pMappedData; }
 	private:

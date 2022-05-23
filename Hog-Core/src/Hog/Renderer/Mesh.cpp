@@ -18,7 +18,7 @@ namespace Hog
 	void Mesh::Load()
 	{
 		m_VertexBuffer = VertexBuffer::Create((uint32_t)(m_Vertices.size() * sizeof(Vertex)));
-		m_VertexBuffer->SetData(m_Vertices.data(), m_VertexBuffer->GetSize());
+		m_VertexBuffer->WriteData(m_Vertices.data(), m_VertexBuffer->GetSize());
 	}
 
 	void Mesh::Destroy()

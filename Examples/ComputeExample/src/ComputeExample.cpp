@@ -25,7 +25,7 @@ void ComputeExample::OnAttach()
 	std::vector<uint32_t> tempBuffer(BufferElements);
 	std::generate(tempBuffer.begin(), tempBuffer.end(), [&n] { return n++; });
 	
-	m_ComputeBuffer->SetData(tempBuffer.data(), tempBuffer.size() * sizeof(uint32_t));
+	m_ComputeBuffer->WriteData(tempBuffer.data(), tempBuffer.size() * sizeof(uint32_t));
 
 	RenderGraph graph;
 	uint32_t bufferElements = 32;
@@ -41,7 +41,7 @@ void ComputeExample::OnAttach()
 	Renderer::Initialize(graph);
 
 	std::vector<uint32_t> computeBuffer(BufferElements);
-	std::memcpy(computeBuffer.data(), (void*)(*m_ComputeBuffer), BufferElements * sizeof(uint32_t));
+	m_ComputeBuffer->ReadData(computeBuffer.data(), BufferElements);
 
 	HG_INFO("Before fibonacci stage");
 	for (int i = 0; i < computeBuffer.size(); i++)
@@ -54,15 +54,15 @@ void ComputeExample::OnDetach()
 {
 	HG_PROFILE_FUNCTION()
 
-	GraphicsContext::WaitIdle();
-
 	std::vector<uint32_t> computeBuffer(BufferElements);
 	HG_INFO("After fibonacci stage");
-	std::memcpy(computeBuffer.data(), (void*)(*m_ComputeBuffer), BufferElements * sizeof(uint32_t));
+	m_ComputeBuffer->ReadData(computeBuffer.data(), BufferElements);
 	for (int i = 0; i < computeBuffer.size(); i++)
 	{
 		HG_TRACE("computeBuffer[{0}] = {1}", i, computeBuffer[i]);
 	}
+
+	GraphicsContext::WaitIdle();
 
 	Renderer::Deinitialize();
 

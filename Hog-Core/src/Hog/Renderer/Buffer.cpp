@@ -40,97 +40,156 @@ namespace Hog
 		return CreateRef<Buffer>(type, size);
 	}
 
-	void Buffer::SetData(void* data, uint32_t size)
+	void Buffer::WriteData(void* data, uint32_t size)
 	{
-		HG_ASSERT(size <= m_Size, "Invalid write command. Tried to write more data then can fit buffer.")
+		HG_ASSERT(size <= m_Size, "Invalid write command. Tried to write more data then can fit buffer.");
 
-		if (!m_Description.IsGpuOnly())
+		VkMemoryPropertyFlags memPropFlags;
+		vmaGetAllocationMemoryProperties(GraphicsContext::GetAllocator(), m_Allocation, &memPropFlags);
+
+		if (memPropFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
 		{
-			if (m_Description.IsPersistentlyMapped())
-			{
-				memcpy(m_AllocationInfo.pMappedData, data, size);
-			}
-			else
-			{
-				void* dstAdr;
-				vmaMapMemory(GraphicsContext::GetAllocator(), m_Allocation, &dstAdr);
+			// Allocation ended up in a mappable memory and is already mapped - write to it directly.
 
-				memcpy(dstAdr, data, size);
+			memcpy(m_AllocationInfo.pMappedData, data, m_Size);
 
-				vmaUnmapMemory(GraphicsContext::GetAllocator(), m_Allocation);
-			}
-		}
-		else
-		{
-			auto buffer = Buffer::Create(BufferDescription::Defaults::TransferSourceBuffer, size);
-			buffer->SetData(data, size);
-			TransferData(size, buffer);
-		}
-	}
-
-	void Buffer::TransferData(uint32_t size, const Ref<Buffer>& src)
-	{
-		GraphicsContext::ImmediateSubmit([=](VkCommandBuffer commandBuffer)
-		{
-			VkBufferCopy copy = {};
-			copy.dstOffset = 0;
-			copy.srcOffset = 0;
-			copy.size = src->GetSize();
-			vkCmdCopyBuffer(commandBuffer, src->GetHandle(), m_Handle, 1, &copy);
-		});
-	}
-
-	void Buffer::LockAfterWrite(VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage)
-	{
-		if (m_Description.IsTransferSrc())
-		{
-			const VkBufferMemoryBarrier2 bufferMemoryBarrier = {
+			VkBufferMemoryBarrier2 memoryBarrier = {
 				.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
 				.srcStageMask = VK_PIPELINE_STAGE_2_HOST_BIT,
 				.srcAccessMask = VK_ACCESS_2_HOST_WRITE_BIT,
-				.dstStageMask = stage,
-				.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+				.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+				.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT,
 				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 				.buffer = m_Handle,
-				.offset = 0,
-				.size = VK_WHOLE_SIZE,
+				.size = m_Size,
 			};
 
-			const VkDependencyInfo dependencyInfo = {
+			VkDependencyInfo depenedencyInfo = {
 				.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
 				.bufferMemoryBarrierCount = 1,
-				.pBufferMemoryBarriers = &bufferMemoryBarrier,
+				.pBufferMemoryBarriers = &memoryBarrier,
 			};
 
-			vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+			GraphicsContext::ImmediateSubmit([=](VkCommandBuffer commandBuffer)
+			{
+				vkCmdPipelineBarrier2(commandBuffer, &depenedencyInfo);
+			});
+		}
+		else
+		{
+			// Allocation ended up in a non-mappable memory - need to transfer.
+			auto stagingBuf = Buffer::Create(BufferDescription::Defaults::TransferSourceBuffer, m_Size);
+
+			// [Executed in runtime]:
+			stagingBuf->WriteData(data, m_Size);
+			
+			//vkCmdPipelineBarrier: VK_ACCESS_HOST_WRITE_BIT --> VK_ACCESS_TRANSFER_READ_BIT
+
+			VkBufferMemoryBarrier2 memoryBarrier = {
+				.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+				.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
+				.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+				.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+				.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT,
+				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+				.buffer = m_Handle,
+				.size = m_Size,
+			};
+
+			VkDependencyInfo depenedencyInfo = {
+				.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+				.bufferMemoryBarrierCount = 1,
+				.pBufferMemoryBarriers = &memoryBarrier,
+			};
+
+			GraphicsContext::ImmediateSubmit([=](VkCommandBuffer commandBuffer)
+			{
+				VkBufferCopy copy = {};
+				copy.dstOffset = 0;
+				copy.srcOffset = 0;
+				copy.size = stagingBuf->GetSize();
+				vkCmdCopyBuffer(commandBuffer, stagingBuf->GetHandle(), m_Handle, 1, &copy);
+
+				vkCmdPipelineBarrier2(commandBuffer, &depenedencyInfo);
+			});
 		}
 	}
 
-	void Buffer::LockBeforeRead(VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage)
+	void Buffer::ReadData(void* data, uint32_t size)
 	{
-		if (m_Description.IsTransferDst())
+		HG_ASSERT(size <= m_Size, "Invalid read command. Buffer contents do not fit in data.");
+		
+		VkMemoryPropertyFlags memPropFlags;
+		vmaGetAllocationMemoryProperties(GraphicsContext::GetAllocator(), m_Allocation, &memPropFlags);
+
+		if (memPropFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
 		{
-			const VkBufferMemoryBarrier2 bufferMemoryBarrier = {
+			// Allocation ended up in a mappable memory and is already mapped - write to it directly.
+
+			VkBufferMemoryBarrier2 memoryBarrier = {
 				.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
-				.srcStageMask = stage,
-				.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
-				.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+				.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+				.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+				.dstStageMask = VK_PIPELINE_STAGE_2_HOST_BIT,
+				.dstAccessMask = VK_ACCESS_2_HOST_READ_BIT,
+				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+				.buffer = m_Handle,
+				.size = m_Size,
+			};
+
+			VkDependencyInfo depenedencyInfo = {
+				.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+				.bufferMemoryBarrierCount = 1,
+				.pBufferMemoryBarriers = &memoryBarrier,
+			};
+
+			GraphicsContext::ImmediateSubmit([=](VkCommandBuffer commandBuffer)
+			{
+				vkCmdPipelineBarrier2(commandBuffer, &depenedencyInfo);
+			});
+
+			memcpy(data, m_AllocationInfo.pMappedData, m_Size);
+		}
+		else
+		{
+			// Allocation ended up in a non-mappable memory - need to transfer.
+			auto stagingBuf = Buffer::Create(BufferDescription::Defaults::TransferSourceBuffer, m_Size);
+
+			//vkCmdPipelineBarrier: VK_ACCESS_HOST_WRITE_BIT --> VK_ACCESS_TRANSFER_READ_BIT
+
+			VkBufferMemoryBarrier2 memoryBarrier = {
+				.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+				.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+				.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
+				.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
 				.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT,
 				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 				.buffer = m_Handle,
-				.offset = 0,
-				.size = VK_WHOLE_SIZE,
+				.size = m_Size,
 			};
 
-			const VkDependencyInfo dependencyInfo = {
+			VkDependencyInfo depenedencyInfo = {
 				.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
 				.bufferMemoryBarrierCount = 1,
-				.pBufferMemoryBarriers = &bufferMemoryBarrier,
+				.pBufferMemoryBarriers = &memoryBarrier,
 			};
 
-			vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+			GraphicsContext::ImmediateSubmit([=](VkCommandBuffer commandBuffer)
+			{
+				vkCmdPipelineBarrier2(commandBuffer, &depenedencyInfo);
+
+				VkBufferCopy copy = {};
+				copy.dstOffset = 0;
+				copy.srcOffset = 0;
+				copy.size = m_Size;
+				vkCmdCopyBuffer(commandBuffer, m_Handle, stagingBuf->GetHandle(), 1, &copy);
+			});
+
+			stagingBuf->ReadData(data, m_Size);
 		}
 	}
 
@@ -143,29 +202,4 @@ namespace Hog
 		: Buffer(BufferDescription::Defaults::GPUOnlyVertexBuffer, size)
 	{
 	}
-
-	/*VkVertexInputBindingDescription VertexBuffer::GetInputBindingDescription()
-	{
-		VkVertexInputBindingDescription bindingDescription{};
-		bindingDescription.binding = 0;
-		bindingDescription.stride = m_Layout.GetStride();
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-		return bindingDescription;
-	}
-
-	std::vector<VkVertexInputAttributeDescription> VertexBuffer::GetInputAttributeDescriptions()
-	{
-		const auto& layout = m_Layout.GetElements();
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions(layout.size());
-		for (int i = 0; i < layout.size(); ++i)
-		{
-			attributeDescriptions[i].binding = 0;
-			attributeDescriptions[i].location = layout[i].Location;
-			attributeDescriptions[i].format = DataTypeToVkFormat(layout[i].Type);
-			attributeDescriptions[i].offset = (uint32_t)layout[i].Offset;
-		}
-
-		return attributeDescriptions;
-	}*/
 }

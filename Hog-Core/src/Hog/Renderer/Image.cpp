@@ -79,7 +79,7 @@ namespace Hog
 	void Image::SetData(void* data, uint32_t size)
 	{
 		auto buffer = Buffer::Create(BufferDescription::Defaults::TransferSourceBuffer, size);
-		buffer->SetData(data, size);
+		buffer->WriteData(data, size);
 
 		GraphicsContext::ImmediateSubmit([&](VkCommandBuffer commandBuffer)
 		{
