@@ -337,7 +337,7 @@ namespace Hog
 
 	std::vector<Ref<Image>> TextureLibrary::GetLibraryArray()
 	{
-		std::vector<Ref<Image>> arr(TEXTURE_ARRAY_SIZE);
+		std::vector<Ref<Image>> arr(s_Images.size());
 
 		for (const auto &[name, image]  : s_Images)
 		{
@@ -380,7 +380,7 @@ namespace Hog
 		Add("error", image);
 	}
 
-	void TextureLibrary::Deinitialize()
+	void TextureLibrary::Cleanup()
 	{
 		s_Images.clear();
 	}

@@ -1,7 +1,9 @@
 #include "hgpch.h"
 
 #include "Material.h"
-#include <Hog/Renderer/GraphicsContext.h>
+
+#include "Hog/Renderer/GraphicsContext.h"
+#include "Hog/Renderer/Buffer.h"
 
 namespace Hog
 {
@@ -11,16 +13,11 @@ namespace Hog
 	{
 		HG_PROFILE_FUNCTION()
 
-		Ref<Shader> shaderRef = Shader::Create("Basic", "Basic.vertex", "Basic.fragment");
-		return CreateRef<Material>(name, shaderRef, data);
-	}
-
-	void Material::Bind(VkCommandBuffer commandBuffer, VkDescriptorSet* descriptorSetPtr)
-	{
-		HG_PROFILE_FUNCTION()
+		return CreateRef<Material>(name, data);
 	}
 
 	static std::unordered_map<std::string, Ref<Material>> s_Materials;
+	static Ref<Buffer> s_Buffer;
 
 	void MaterialLibrary::Add(const std::string& name, const Ref<Material>& material)
 	{
@@ -53,18 +50,7 @@ namespace Hog
 		return s_Materials[name];
 	}
 
-	std::array<MaterialGPUData, MATERIAL_ARRAY_SIZE> MaterialLibrary::GetGPUArray()
-	{
-		std::array<MaterialGPUData, MATERIAL_ARRAY_SIZE> arr;
-		for (const auto &[name, mat] : s_Materials)
-		{
-			arr[mat->GetGPUIndex()] = MaterialGPUData(mat->GetMaterialData());
-		}
-
-		return arr;
-	}
-
-	void MaterialLibrary::Deinitialize()
+	void MaterialLibrary::Clneaup()
 	{
 		s_Materials.clear();
 	}

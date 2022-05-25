@@ -16,21 +16,24 @@ void GraphicsExample::OnAttach()
 {
 	HG_PROFILE_FUNCTION();
 	CVarSystem::Get()->SetIntCVar("application.enableImGui", 1);
+	CVarSystem::Get()->SetStringCVar("shader.compilation.macros", "MATERIAL_ARRAY_SIZE=128;TEXTURE_ARRAY_SIZE=512");
 
 	GraphicsContext::Initialize();
 	
 	HG_PROFILE_GPU_INIT_VULKAN(&(context.Device), &(context.PhysicalDevice), &(context.Queue), &(context.QueueFamilyIndex), 1, nullptr);
 
+	TextureLibrary::Initialize();
+	LoadObjFile("assets/models/sponza/sponza.obj", m_Objects);
+
 	Ref<Image> colorAttachment = Renderer::GetFinalRenderTarget();
 	Ref<Image> depthAttachment = Image::Create(ImageDescription::Defaults::Depth, 1);
 
 	Ref<Buffer> ViewProjection = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(glm::mat4));
-	Ref<Buffer> Materials = Buffer::Create(BufferDescription::Defaults::UniformBuffer, (uint32_t)(sizeof(MaterialGPUData) * MATERIAL_ARRAY_SIZE));
-	std::vector<Ref<RendererObject>> rendereObjects;
+	// Ref<Buffer> Materials = Buffer::Create(BufferDescription::Defaults::UniformBuffer, (uint32_t)(sizeof(MaterialGPUData) * MaterialLibrary::GetGPUArray().size()));
 
 	RenderGraph graph;
 	auto graphics = graph.AddStage(nullptr, {
-		"ForwardGraphics", Shader::Create("Basic", "TestTriangle.vertex", "TestTriangle.fragment"), RendererStageType::ForwardGraphics,
+		"ForwardGraphics", Shader::Create("Basic", "Basic.vertex", "Basic.fragment"), RendererStageType::ForwardGraphics,
 		{
 			{DataType::Defaults::Float3, "a_Position"},
 			{DataType::Defaults::Float3, "a_Normal"},
@@ -39,11 +42,11 @@ void GraphicsExample::OnAttach()
 		},
 		{
 			{"u_ViewProjection", ResourceType::Uniform, ShaderType::Defaults::Vertex, ViewProjection, 0, 0},
-			{"u_Materials", ResourceType::Uniform, ShaderType::Defaults::Fragment, Materials, 1, 0},
-			{"u_Textures", ResourceType::SamplerArray, ShaderType::Defaults::Fragment, TextureLibrary::GetLibraryArray(), 2, 0},
+			//{"u_Materials", ResourceType::Uniform, ShaderType::Defaults::Fragment, Materials, 1, 0},
+			//{"u_Textures", ResourceType::SamplerArray, ShaderType::Defaults::Fragment, TextureLibrary::GetLibraryArray(), 2, 0},
 			{"p_Model", ResourceType::PushConstant, ShaderType::Defaults::Vertex, sizeof(PushConstant), &m_PushConstant},
 		},
-		rendereObjects,
+		m_Objects,
 		{
 			{"Color", AttachmentType::Color, colorAttachment, true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ColorAttachmentOptimal}},
 			{"Depth", AttachmentType::Depth, depthAttachment, true, {ImageLayout::DepthStencilAttachmentOptimal, ImageLayout::DepthStencilAttachmentOptimal}},
@@ -87,9 +90,9 @@ void GraphicsExample::OnDetach()
 
 	GraphicsContext::WaitIdle();
 
-	Renderer::Deinitialize();
-	MaterialLibrary::Deinitialize();
-	TextureLibrary::Deinitialize();
+	Renderer::Cleanup();
+	MaterialLibrary::Clneaup();
+	TextureLibrary::Cleanup();
 
 	m_Objects.clear();
 

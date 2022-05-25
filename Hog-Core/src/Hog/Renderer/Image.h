@@ -3,7 +3,6 @@
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
 
-#include "Hog/Renderer/Constants.h"
 #include "Hog/Renderer/Types.h"
 
 namespace Hog
@@ -93,7 +92,7 @@ namespace Hog
 		static std::vector<Ref<Image>> GetLibraryArray();
 
 		static void Initialize();
-		static void Deinitialize();
+		static void Cleanup();
 
 		static bool Exists(const std::string& name);
 	};

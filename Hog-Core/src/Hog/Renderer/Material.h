@@ -2,9 +2,6 @@
 
 #include <glm/glm.hpp>
 
-#include "Constants.h"
-#include "Hog/Renderer/Shader.h"
-#include "Hog/Renderer/Pipeline.h"
 #include "Hog/Renderer/Image.h"
 
 namespace Hog
@@ -101,22 +98,18 @@ namespace Hog
 		static Ref<Material> Create(const std::string& name, MaterialData& data);
 	public:
 
-		Material(const std::string& name, const Ref<Shader>& shader, MaterialData& data)
-			: m_Shader(shader), m_Data(data), m_Name(name)
+		Material(const std::string& name, MaterialData& data)
+			:m_Data(data), m_Name(name)
 		{}
 
 		~Material() = default;
 
-		const Ref<Shader>& GetShader() const { return m_Shader; }
 		const Ref<Image>& GetDiffuseTexture() const { return m_Data.DiffuseTexture; }
 		MaterialData& GetMaterialData() { return m_Data; }
 		void SetGPUIndex(int32_t ind) { m_GPUIndex = ind; }
 		int32_t GetGPUIndex() { return m_GPUIndex; }
-
-		void Bind(VkCommandBuffer commandBuffer, VkDescriptorSet* descriptorSetPtr);
 	private:
 		std::string m_Name;
-		Ref<Shader> m_Shader;
 		MaterialData m_Data;
 		int32_t m_GPUIndex = -1;
 	};
@@ -132,9 +125,8 @@ namespace Hog
 		static Ref<Material> CreateOrGet(const std::string& name);
 
 		static Ref<Material> Get(const std::string& name);
-		static std::array<MaterialGPUData, MATERIAL_ARRAY_SIZE> GetGPUArray();
 
-		static void Deinitialize();
+		static void Clneaup();
 
 		static bool Exists(const std::string& name);
 	};

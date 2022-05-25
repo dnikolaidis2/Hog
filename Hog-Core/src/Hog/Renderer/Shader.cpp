@@ -15,13 +15,12 @@
 #include "Hog/Utils/RendererUtils.h"
 #include "Hog/Renderer/GraphicsContext.h"
 
-#include "Constants.h"
-
 AutoCVar_String CVar_ShaderCacheDBFile("shader.cacheDBFile", "Shader cache database filename", ".db", CVarFlags::EditReadOnly);
 AutoCVar_String CVar_ShaderCacheDir("shader.cachePath", "Shader cache directory", "assets/cache/shader/vulkan", CVarFlags::EditReadOnly);
 AutoCVar_String CVar_ShaderSourceDir("shader.sourceDir", "Shader source directory", "assets/shaders/", CVarFlags::EditReadOnly);
+AutoCVar_String CVar_ShaderMacroDef("shader.compilation.macros", "Definition string for all macros in shader", "", CVarFlags::EditReadOnly);
 AutoCVar_String CVar_ShaderCompiledFileExtension("shader.compiledFileExtension", "Shader compiled file extension", ".spv", CVarFlags::EditReadOnly);
-AutoCVar_Int	CVar_ShaderOptimizationLevel("shader.optimizationLevel",
+AutoCVar_Int	CVar_ShaderOptimizationLevel("shader.compilation.optimizationLevel",
 	"Shader compilation optimization level. 0 zero optimization, 1 optimize for size, 2 optimize for performance",
 	0, CVarFlags::None);
 
@@ -239,10 +238,23 @@ namespace Hog {
 		shaderc::CompileOptions options;
 		options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
 
-		options.AddMacroDefinition(MATERIAL_ARRAY_SIZE_NAMESTR, sizeof(MATERIAL_ARRAY_SIZE_NAMESTR) - 1,
-			MATERIAL_ARRAY_SIZE_VALUESTR, sizeof(MATERIAL_ARRAY_SIZE_VALUESTR) - 1);
-		options.AddMacroDefinition(TEXTURE_ARRAY_SIZE_NAMESTR, sizeof(TEXTURE_ARRAY_SIZE_NAMESTR) - 1,
-			TEXTURE_ARRAY_SIZE_VALUESTR, sizeof(TEXTURE_ARRAY_SIZE_VALUESTR) - 1);
+		std::stringstream macroDefs(CVar_ShaderMacroDef.Get());
+		std::string macro;
+		std::vector<std::string> macros;
+		while(std::getline(macroDefs, macro, ';'))
+		{
+			macros.push_back(macro);
+		}
+
+		for (const auto & macroDef : macros)
+		{
+			std::string name, value;
+			std::stringstream stream(macroDef);
+			std::getline(stream, name, '=');
+			std::getline(stream, value, '=');
+			options.AddMacroDefinition(name.c_str(), name.size(),
+				value.c_str(), value.size());
+		}
 
 		if (CVar_ShaderOptimizationLevel.Get() == 0)
 		{
