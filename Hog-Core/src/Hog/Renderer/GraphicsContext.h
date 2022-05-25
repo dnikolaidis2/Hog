@@ -217,6 +217,27 @@ namespace Hog {
 		VkPhysicalDeviceVulkan12Features DeviceFeatures12 = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
 			.pNext = &DeviceFeatures13,
+	        .descriptorIndexing = VK_TRUE,
+	        .shaderInputAttachmentArrayDynamicIndexing = VK_TRUE,
+	        .shaderUniformTexelBufferArrayDynamicIndexing = VK_TRUE,
+	        .shaderStorageTexelBufferArrayDynamicIndexing = VK_TRUE,
+	        .shaderUniformBufferArrayNonUniformIndexing = VK_TRUE,
+	        .shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
+	        .shaderStorageBufferArrayNonUniformIndexing = VK_TRUE,
+	        .shaderStorageImageArrayNonUniformIndexing = VK_TRUE,
+	        .shaderInputAttachmentArrayNonUniformIndexing = VK_TRUE,
+	        .shaderUniformTexelBufferArrayNonUniformIndexing = VK_TRUE,
+	        .shaderStorageTexelBufferArrayNonUniformIndexing = VK_TRUE,
+	        .descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE,
+	        .descriptorBindingSampledImageUpdateAfterBind = VK_TRUE,
+	        .descriptorBindingStorageImageUpdateAfterBind = VK_TRUE,
+	        .descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE,
+	        .descriptorBindingUniformTexelBufferUpdateAfterBind = VK_TRUE,
+	        .descriptorBindingStorageTexelBufferUpdateAfterBind = VK_TRUE,
+	        .descriptorBindingUpdateUnusedWhilePending = VK_TRUE,
+	        .descriptorBindingPartiallyBound = VK_TRUE,
+	        .descriptorBindingVariableDescriptorCount = VK_TRUE,
+	        .runtimeDescriptorArray = VK_TRUE,
 		};
 
 		VkPhysicalDeviceVulkan11Features DeviceFeatures11 = {
