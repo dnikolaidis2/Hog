@@ -182,7 +182,7 @@ namespace Hog
 			: m_Elements(elements)	{}
 
 		const std::vector<ResourceElement>& GetElements() const { return m_Elements; }
-
+		size_t size() const { return m_Elements.size(); }
 		bool ContainsType(ResourceType type) const;
 
 		std::vector<ResourceElement>::iterator begin() { return m_Elements.begin(); }
