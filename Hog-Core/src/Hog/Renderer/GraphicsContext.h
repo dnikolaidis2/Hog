@@ -195,11 +195,6 @@ namespace Hog {
 			.pUserData = nullptr // Optional
 		};
 
-		// These are some features that are enabled for VkNeo
-		// If you try to make an API call down the road which 
-		// requires something be enabled, you'll more than likely
-		// get a validation message telling you what to enable.
-		// Thanks Vulkan!
 		VkPhysicalDeviceFeatures DeviceFeatures =
 		{
 			.imageCubeArray = VK_TRUE,
