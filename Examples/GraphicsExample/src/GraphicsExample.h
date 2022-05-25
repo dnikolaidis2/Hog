@@ -27,7 +27,5 @@ private:
 
 	EditorCamera m_EditorCamera;
 
-	Ref<ImGuiLayer> m_ImGuiLayer;
-
 	PushConstant m_PushConstant;
 };
