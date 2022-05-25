@@ -64,7 +64,7 @@ void ComputeExample::OnDetach()
 
 	GraphicsContext::WaitIdle();
 
-	Renderer::Deinitialize();
+	Renderer::Cleanup();
 
 	m_ComputeBuffer.reset();
 

@@ -12,7 +12,7 @@ namespace Hog
 	{
 	public:
 		static void Initialize(RenderGraph renderGraph);
-		static void Deinitialize();
+		static void Cleanup();
 		static void SetFinalRenderTarget(Ref<Image> image);
 		static Ref<Image> GetFinalRenderTarget();
 
@@ -64,5 +64,7 @@ namespace Hog
 		void ForwardCompute(VkCommandBuffer commandBuffer);
 		void ImGui(VkCommandBuffer commandBuffer);
 		void BlitStage(VkCommandBuffer commandBuffer);
+
+		void BindResources(VkCommandBuffer commandBuffer, DescriptorAllocator* allocator);
 	};
 }

@@ -99,7 +99,7 @@ namespace Hog
 		s_Data.FrameIndex = (s_Data.FrameIndex + 1) % s_Data.MaxFrameCount;
 	}
 
-	void Renderer::Deinitialize()
+	void Renderer::Cleanup()
 	{
 		s_Data.FinalTarget.reset();
 		std::for_each(s_Data.Frames.begin(), s_Data.Frames.end(), [](RendererFrame& elem) {elem.Cleanup(); });
@@ -519,7 +519,7 @@ namespace Hog
 
 		Info.Shader->Bind(commandBuffer);
 
-		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+		
 
 		vkCmdEndRenderPass(commandBuffer);
 	}
@@ -531,24 +531,7 @@ namespace Hog
 
 		Info.Shader->Bind(commandBuffer);
 
-		std::vector<VkDescriptorSet> sets;
-		for (const auto& resource : Info.Resources)
-		{
-			if (resource.Type == ResourceType::Storage)
-			{
-				VkDescriptorSet set;
-				VkDescriptorBufferInfo bufferInfo = { resource.Buffer->GetHandle(), 0, VK_WHOLE_SIZE };
-
-				DescriptorBuilder::Begin(&s_Data.DescriptorLayoutCache, &s_Data.GetCurrentFrame().DescriptorAllocator)
-					.BindBuffer(resource.Binding, &bufferInfo, resource.Buffer->GetBufferDescription(), resource.BindLocation)
-					.Build(set);
-
-				sets.push_back(set);
-			}
-		}
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, Info.Shader->GetPipelineLayout(),
-		                        0, (uint32_t)sets.size(), sets.data(), 0, 0);
+		BindResources(commandBuffer, &s_Data.GetCurrentFrame().DescriptorAllocator);
 
 		vkCmdDispatch(commandBuffer, Info.GroupCounts.x, Info.GroupCounts.y, Info.GroupCounts.z);
 	}
@@ -626,22 +609,60 @@ namespace Hog
 
 		Info.Shader->Bind(commandBuffer);
 
-		VkDescriptorImageInfo sourceImage;
-		sourceImage.sampler = Info.Resources[0].Texture->GetOrCreateSampler();
-
-		sourceImage.imageView = Info.Resources[0].Texture->GetImageView();
-		sourceImage.imageLayout = Info.Resources[0].Texture->GetDescription().ImageLayout;
-
-		VkDescriptorSet blitSet;
-		DescriptorBuilder::Begin(&s_Data.DescriptorLayoutCache, &currentFrame.DescriptorAllocator)
-			.BindImage(0, &sourceImage, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, Info.Resources[0].BindLocation)
-			.Build(blitSet);
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Info.Shader->GetPipelineLayout(),
-		                        0, 1, &blitSet, 0, nullptr);
+		BindResources(commandBuffer, &currentFrame.DescriptorAllocator);
 
 		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffer);
+	}
+
+	void RendererStage::BindResources(VkCommandBuffer commandBuffer, DescriptorAllocator* allocator)
+	{
+		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+		auto db = DescriptorBuilder::Begin(&s_Data.DescriptorLayoutCache, allocator);
+
+		for (int i = 0; i < Info.Resources.size(); i++)
+		{
+			const auto& resource = Info.Resources[i];
+			switch(resource.Type)
+			{
+				case ResourceType::Sampler:
+				{
+					VkDescriptorImageInfo sourceImage;
+					sourceImage.sampler = resource.Texture->GetOrCreateSampler();
+
+					sourceImage.imageView = resource.Texture->GetImageView();
+					sourceImage.imageLayout = resource.Texture->GetDescription().ImageLayout;
+
+					db.BindImage(0, &sourceImage, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, Info.Resources[0].BindLocation);
+				}break;
+				case ResourceType::Storage:
+				{
+					VkDescriptorBufferInfo bufferInfo = { resource.Buffer->GetHandle(), 0, VK_WHOLE_SIZE };
+
+					db.BindBuffer(resource.Binding, &bufferInfo, resource.Buffer->GetBufferDescription(), resource.BindLocation);
+				}break;
+				case ResourceType::Uniform:
+				{
+					VkDescriptorBufferInfo bufferInfo = { resource.Buffer->GetHandle(), 0, VK_WHOLE_SIZE };
+
+					db.BindBuffer(resource.Binding, &bufferInfo, resource.Buffer->GetBufferDescription(), resource.BindLocation);
+				}break;
+				case ResourceType::PushConstant:
+				{
+					vkCmdPushConstants(commandBuffer, Info.Shader->GetPipelineLayout(), resource.BindLocation, 0, static_cast<uint32_t>(resource.ConstantSize), resource.ConstantDataPointer);
+				}break;
+				case ResourceType::Constant: break;
+				case ResourceType::SamplerArray:
+				{
+
+				}break;
+			}
+		}
+
+		db.Build(descriptorSet);
+
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Info.Shader->GetPipelineLayout(),
+			0, 1, &descriptorSet, 0, nullptr);
 	}
 }
