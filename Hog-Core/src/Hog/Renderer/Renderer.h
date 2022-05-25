@@ -45,6 +45,7 @@ namespace Hog
 		VkSemaphore RenderSemaphore = VK_NULL_HANDLE;
 		FrameBuffer FrameBuffer;
 		DescriptorAllocator DescriptorAllocator;
+		Ref<Image> SwapchainImage;
 	};
 
 	class RendererStage
@@ -57,7 +58,9 @@ namespace Hog
 		StageDescription Info;
 		VkRenderPass RenderPass = VK_NULL_HANDLE;
 		FrameBuffer FrameBuffer;
+		std::vector<VkClearValue> ClearValues;
 	private:
+		void ForwardGraphics(VkCommandBuffer commandBuffer);
 		void ForwardCompute(VkCommandBuffer commandBuffer);
 		void ImGui(VkCommandBuffer commandBuffer);
 		void BlitStage(VkCommandBuffer commandBuffer);

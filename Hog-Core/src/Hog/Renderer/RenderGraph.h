@@ -13,9 +13,13 @@ namespace Hog
 		AttachmentType Type;
 		Ref<Image> Image;
 		bool Clear = false;
-		bool Present = false;
-		bool UseAsResourceNext = false;
-		VkImageLayout NextImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		BarrierDescription Barrier;
+
+		AttachmentElement() = default;
+		AttachmentElement(std::string name, AttachmentType type, Ref<Hog::Image> image, bool clear = false, BarrierDescription barrier = {})
+			: Name(name), Type(type), Image(image), Clear(clear), Barrier(barrier) {}
+		AttachmentElement(std::string name, AttachmentType type, bool clear = false, BarrierDescription barrier = {})
+			: Name(name), Type(type), Clear(clear), Barrier(barrier) {}
 	};
 
 	class AttachmentLayout
@@ -149,15 +153,16 @@ namespace Hog
 		void* ConstantDataPointer = nullptr;
 		uint32_t Binding = 0;
 		uint32_t Set = 0;
+		BarrierDescription Barrier;
 
-		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Buffer> buffer, uint32_t binding, uint32_t set)
-			: Name(name), Type(type), BindLocation(bindLocation), Buffer(buffer), Binding(binding), Set(set) {}
+		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Buffer> buffer, uint32_t binding, uint32_t set, BarrierDescription barrier = {})
+			: Name(name), Type(type), BindLocation(bindLocation), Buffer(buffer), Binding(binding), Set(set), Barrier(barrier) {}
 
-		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Image> texture, uint32_t binding, uint32_t set)
-			: Name(name), Type(type), BindLocation(bindLocation), Texture(texture), Binding(binding), Set(set) {}
+		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Image> texture, uint32_t binding, uint32_t set, BarrierDescription barrier = {})
+			: Name(name), Type(type), BindLocation(bindLocation), Texture(texture), Binding(binding), Set(set), Barrier(barrier) {}
 
-		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, const std::vector<Ref<Image>>& images, uint32_t binding, uint32_t set)
-			: Name(name), Type(type), BindLocation(bindLocation), Images(images), Binding(binding), Set(set) {}
+		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, const std::vector<Ref<Image>>& images, uint32_t binding, uint32_t set, BarrierDescription barrier = {})
+			: Name(name), Type(type), BindLocation(bindLocation), Images(images), Binding(binding), Set(set), Barrier(barrier) {}
 
 		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, uint32_t constantID, size_t constantSize, void* dataPointer)
 			: Name(name), Type(type), BindLocation(bindLocation), ConstantID(constantID), ConstantSize(constantSize), ConstantDataPointer(dataPointer) {}
@@ -200,14 +205,18 @@ namespace Hog
 		Ref<Buffer> IndexBuffer;
 		std::vector<Ref<RendererObject>> Objects;
 		AttachmentLayout Attachments;
-		glm::ivec3 GroupCounts;
+		glm::ivec3 GroupCounts = {0, 0, 0};
 		Ref<Buffer> DispatchBuffer;
+		BarrierDescription BarrierDescription;
 
 		StageDescription(const std::string& name, Ref<Hog::Shader> shader, RendererStageType type, std::initializer_list<ResourceElement> resources, glm::ivec3 groupCounts)
 			: Name(name), Shader(shader), StageType(type), VertexInputLayout({}), Resources(resources), GroupCounts(groupCounts) {}
 
 		StageDescription(const std::string& name, RendererStageType type, std::initializer_list<AttachmentElement> attachmentElements)
 			: Name(name), StageType(type), Attachments(attachmentElements) {}
+
+		StageDescription(const std::string& name, RendererStageType type, Hog::BarrierDescription description)
+			: Name(name), StageType(type), BarrierDescription(description) {}
 
 		StageDescription(const std::string& name, Ref<Hog::Shader> shader, RendererStageType type, std::initializer_list<ResourceElement> resources, std::initializer_list<AttachmentElement> attachmentElements)
 			: Name(name), Shader(shader), StageType(type), Resources(resources), Attachments(attachmentElements) {}

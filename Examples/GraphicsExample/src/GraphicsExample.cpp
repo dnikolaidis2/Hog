@@ -30,7 +30,7 @@ void GraphicsExample::OnAttach()
 
 	RenderGraph graph;
 	auto graphics = graph.AddStage(nullptr, {
-		"ForwardGraphics", Shader::Create("Basic", "Basic.vertex", "Basic.fragment"), RendererStageType::ForwardGraphics,
+		"ForwardGraphics", Shader::Create("Basic", "TestTriangle.vertex", "TestTriangle.fragment"), RendererStageType::ForwardGraphics,
 		{
 			{DataType::Defaults::Float3, "a_Position"},
 			{DataType::Defaults::Float3, "a_Normal"},
@@ -45,19 +45,29 @@ void GraphicsExample::OnAttach()
 		},
 		rendereObjects,
 		{
-			{"Color", AttachmentType::Color, colorAttachment, true},
-			{"Depth", AttachmentType::Depth, depthAttachment, true},
+			{"Color", AttachmentType::Color, colorAttachment, true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ColorAttachmentOptimal}},
+			{"Depth", AttachmentType::Depth, depthAttachment, true, {ImageLayout::DepthStencilAttachmentOptimal, ImageLayout::DepthStencilAttachmentOptimal}},
 		},
 	});
 
 	auto imGuiStage = graph.AddStage(graphics, {
-		"ImGuiStage", RendererStageType::ImGui, {{"ColorTarget", AttachmentType::Color, colorAttachment}}
+		"ImGuiStage", RendererStageType::ImGui, {
+			{"ColorTarget", AttachmentType::Color, colorAttachment, false, {
+				PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentWrite,
+				PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentRead,
+				ImageLayout::ColorAttachmentOptimal,
+				ImageLayout::ShaderReadOnlyOptimal
+			}},
+		}
 	});
 
 	graph.AddStage(imGuiStage, {
 		"BlitStage", Shader::Create("Blit", "fullscreen.vertex", "blit.fragment"), RendererStageType::Blit,
-		{{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, colorAttachment, 0, 0},},
-		{{"ColorTarget", AttachmentType::Color, colorAttachment, false, true},},
+		{{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, colorAttachment, 0, 0, {
+				PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentWrite,
+				PipelineStage::FragmentShader, AccessFlag::ShaderSampledRead,
+		}},},
+		{{"SwapchainImage", AttachmentType::Swapchain, true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::PresentSrcKHR}},},
 	});
 
 	Renderer::Initialize(graph);
