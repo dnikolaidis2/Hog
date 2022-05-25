@@ -54,6 +54,19 @@ project "GraphicsExample"
 			"{COPY} \"%{SharedLibrary.shaderc_Debug}\" \"%{cfg.targetdir}\""
 		}
 
+	filter "configurations:Asan"
+		defines "HG_ASAN"
+		defines "HG_DEBUG"
+		runtime "Debug"
+		symbols "on"
+		flags { "NoRuntimeChecks" }
+		buildoptions { "/Zi /DEBUG:FULL /Ob0 /Oy-" }
+		
+		postbuildcommands
+		{
+			"{COPY} \"%{SharedLibrary.shaderc_Debug}\" \"%{cfg.targetdir}\""
+		}
+
 	filter "configurations:Release"
 		defines "HG_RELEASE"
 		runtime "Release"

@@ -8,6 +8,7 @@ workspace "Hog"
 	configurations
 	{
 		"Debug",
+		"Asan",
 		"Release",
 		"Dist",
 		"Profile",

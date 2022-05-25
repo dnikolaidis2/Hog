@@ -78,6 +78,21 @@ project "Hog-Core"
 			"%{Library.SPIRV_Cross_GLSL_Debug}"
 		}
 
+	filter "configurations:Asan"
+		defines "HG_ASAN"
+		defines "HG_DEBUG"
+		runtime "Debug"
+		symbols "on"
+		flags { "NoRuntimeChecks" }
+		buildoptions { "/Zi /DEBUG:FULL /Ob0 /Oy-" }
+		
+		links
+		{
+			"%{Library.ShaderC_Debug}",
+			"%{Library.SPIRV_Cross_Debug}",
+			"%{Library.SPIRV_Cross_GLSL_Debug}"
+		}
+
 	filter "configurations:Release"
 		defines "HG_RELEASE"
 		runtime "Release"

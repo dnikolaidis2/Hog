@@ -43,6 +43,19 @@ project "ComputeExample"
 	filter "system:windows"
 		systemversion "latest"
 
+	filter "configurations:Asan"
+		defines "HG_ASAN"
+		defines "HG_DEBUG"
+		runtime "Debug"
+		symbols "on"
+		flags { "NoRuntimeChecks" }
+		buildoptions { "/Zi /DEBUG:FULL /Ob0 /Oy-" }
+		
+		postbuildcommands
+		{
+			"{COPY} \"%{SharedLibrary.shaderc_Debug}\" \"%{cfg.targetdir}\""
+		}
+
 	filter "configurations:Debug"
 		defines "HG_DEBUG"
 		runtime "Debug"
