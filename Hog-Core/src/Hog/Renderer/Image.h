@@ -23,7 +23,7 @@ namespace Hog
 		void SetData(void* data, uint32_t size);
 
 		void SetImageLayout(VkImageLayout layout) { m_Description.ImageLayout = layout; }
-		void LayoutBarrier(VkCommandBuffer commandBuffer, VkImageLayout newLayout);
+		void ExecuteBarrier(VkCommandBuffer commandBuffer, const BarrierDescription& description);
 
 		VkImageView GetImageView() const { return m_View; }
 		VkFormat GetInternalFormat() const { return m_InternalFormat; }

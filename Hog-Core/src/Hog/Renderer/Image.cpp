@@ -187,16 +187,17 @@ namespace Hog
 		});
 	}
 
-	void Image::LayoutBarrier(VkCommandBuffer commandBuffer, VkImageLayout newLayout)
+	void Image::ExecuteBarrier(VkCommandBuffer commandBuffer, const BarrierDescription& description)
 	{
-		VkImageMemoryBarrier2 barrier = {
+		VkImageMemoryBarrier2 memoryBarrier =
+		{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-			.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-			.srcAccessMask = VK_ACCESS_2_NONE,
-			.dstStageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-			.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-			.oldLayout = m_Description.ImageLayout,
-			.newLayout = newLayout,
+			.srcStageMask = static_cast<VkPipelineStageFlags2>(description.SrcStage),
+			.srcAccessMask = static_cast<VkAccessFlags2>(description.SrcAccessMask),
+			.dstStageMask = static_cast<VkPipelineStageFlags2>(description.DstStage),
+			.dstAccessMask = static_cast<VkAccessFlags2>(description.DstAccessMask),
+			.oldLayout = static_cast<VkImageLayout>(description.OldLayout),
+			.newLayout = static_cast<VkImageLayout>(description.NewLayout),
 			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 			.image = m_Handle,
@@ -206,17 +207,19 @@ namespace Hog
 				.levelCount = m_LevelCount,
 				.baseArrayLayer = 0,
 				.layerCount = 1,
-			},
+			}
 		};
 
-		VkDependencyInfo dependencyInfo = {
+		VkDependencyInfo info =
+		{
 			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
 			.imageMemoryBarrierCount = 1,
-			.pImageMemoryBarriers = &barrier,
+			.pImageMemoryBarriers = &memoryBarrier,
 		};
 
-		//barrier the image into the transfer-receive layout
-		vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+		vkCmdPipelineBarrier2(commandBuffer, &info);
+		
+		m_Description.ImageLayout = memoryBarrier.newLayout;
 	}
 
 	VkSampler Image::GetOrCreateSampler()
