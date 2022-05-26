@@ -18,8 +18,8 @@ namespace Hog {
 		Buffer(BufferDescription description, uint32_t size);
 		virtual ~Buffer();
 
-		void WriteData(void* data, uint32_t size);
-		void ReadData(void* data, uint32_t size);
+		void WriteData(void* data, uint32_t size, uint64_t srcOffset = 0, uint64_t dstOffset = 0);
+		void ReadData(void* data, uint32_t size, uint64_t srcOffset = 0, uint64_t dstOffset = 0);
 		const VkBuffer& GetHandle() const { return m_Handle; }
 		uint32_t GetSize() const { return m_Size; }
 		BufferDescription GetBufferDescription() const { return m_Description; }
