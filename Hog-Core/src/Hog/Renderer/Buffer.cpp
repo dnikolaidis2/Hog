@@ -40,7 +40,7 @@ namespace Hog
 		return CreateRef<Buffer>(type, size);
 	}
 
-	void Buffer::WriteData(void* data, uint32_t size, uint64_t srcOffset, uint64_t dstOffset)
+	void Buffer::WriteData(void* data, uint32_t size, uint64_t bufferOffset, uint64_t dataOffset)
 	{
 		HG_ASSERT(size <= m_Size, "Invalid write command. Tried to write more data then can fit buffer.");
 
@@ -51,7 +51,7 @@ namespace Hog
 		{
 			// Allocation ended up in a mappable memory and is already mapped - write to it directly.
 
-			memcpy((void*)((uint64_t)m_AllocationInfo.pMappedData + dstOffset), (void*)((uint64_t)data + srcOffset), size);
+			memcpy((void*)((uint64_t)m_AllocationInfo.pMappedData + bufferOffset), (void*)((uint64_t)data + dataOffset), size);
 
 			VkBufferMemoryBarrier2 memoryBarrier = {
 				.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
@@ -82,7 +82,7 @@ namespace Hog
 			auto stagingBuf = Buffer::Create(BufferDescription::Defaults::TransferSourceBuffer, size);
 
 			// [Executed in runtime]:
-			stagingBuf->WriteData(data, size, srcOffset, dstOffset);
+			stagingBuf->WriteData(data, size, 0, dataOffset);
 			
 			//vkCmdPipelineBarrier: VK_ACCESS_HOST_WRITE_BIT --> VK_ACCESS_TRANSFER_READ_BIT
 
@@ -107,8 +107,8 @@ namespace Hog
 			GraphicsContext::ImmediateSubmit([=](VkCommandBuffer commandBuffer)
 			{
 				VkBufferCopy copy = {};
-				copy.dstOffset = dstOffset;
-				copy.srcOffset = srcOffset;
+				copy.dstOffset = bufferOffset;
+				copy.srcOffset = 0;
 				copy.size = stagingBuf->GetSize();
 				vkCmdCopyBuffer(commandBuffer, stagingBuf->GetHandle(), m_Handle, 1, &copy);
 
@@ -117,7 +117,7 @@ namespace Hog
 		}
 	}
 
-	void Buffer::ReadData(void* data, uint32_t size, uint64_t srcOffset, uint64_t dstOffset)
+	void Buffer::ReadData(void* data, uint32_t size, uint64_t bufferOffset, uint64_t dataOffset)
 	{
 		HG_ASSERT(size <= m_Size, "Invalid read command. Buffer contents do not fit in data.");
 		
@@ -151,7 +151,7 @@ namespace Hog
 				vkCmdPipelineBarrier2(commandBuffer, &depenedencyInfo);
 			});
 
-			memcpy((void*)((uint64_t)data + dstOffset), (void*)((uint64_t)m_AllocationInfo.pMappedData + srcOffset), m_Size);
+			memcpy((void*)((uint64_t)data + dataOffset), (void*)((uint64_t)m_AllocationInfo.pMappedData + bufferOffset), m_Size);
 		}
 		else
 		{
@@ -183,23 +183,33 @@ namespace Hog
 				vkCmdPipelineBarrier2(commandBuffer, &depenedencyInfo);
 
 				VkBufferCopy copy = {};
-				copy.dstOffset = dstOffset;
-				copy.srcOffset = srcOffset;
+				copy.dstOffset = 0;
+				copy.srcOffset = bufferOffset;
 				copy.size = stagingBuf->GetSize();
 				vkCmdCopyBuffer(commandBuffer, m_Handle, stagingBuf->GetHandle(), 1, &copy);
 			});
 
-			stagingBuf->ReadData(data, size, srcOffset, dstOffset);
+			stagingBuf->ReadData(data, size, 0, dataOffset);
 		}
 	}
 
-	Ref<VertexBuffer> VertexBuffer::Create(uint32_t size)
+	Ref<BufferSubrange> BufferSubrange::Create(Ref<Buffer> buffer, uint64_t offset, uint32_t size)
 	{
-		return CreateRef<VertexBuffer>(size);
+		return CreateRef<BufferSubrange>(buffer, offset, size);
 	}
 
-	VertexBuffer::VertexBuffer(uint32_t size)
-		: Buffer(BufferDescription::Defaults::GPUOnlyVertexBuffer, size)
+	BufferSubrange::BufferSubrange(Ref<Buffer> buffer, uint64_t offset, uint32_t size)
+		: m_Buffer(buffer), m_Offset(offset), m_Size(size)
 	{
+	}
+
+	void BufferSubrange::WriteData(void* data, uint32_t size, uint64_t bufferOffset, uint64_t dataOffset)
+	{
+		m_Buffer->WriteData(data, size, m_Offset + bufferOffset, dataOffset);
+	}
+
+	void BufferSubrange::ReadData(void* data, uint32_t size, uint64_t bufferOffset, uint64_t dataOffset)
+	{
+		m_Buffer->ReadData(data, size, m_Offset + bufferOffset, dataOffset);
 	}
 }
