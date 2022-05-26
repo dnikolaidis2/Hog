@@ -193,22 +193,22 @@ namespace Hog
 		}
 	}
 
-	Ref<BufferSubrange> BufferSubrange::Create(Ref<Buffer> buffer, uint64_t offset, uint32_t size)
+	Ref<BufferRegion> BufferRegion::Create(Ref<Buffer> buffer, uint64_t offset, uint32_t size)
 	{
-		return CreateRef<BufferSubrange>(buffer, offset, size);
+		return CreateRef<BufferRegion>(buffer, offset, size);
 	}
 
-	BufferSubrange::BufferSubrange(Ref<Buffer> buffer, uint64_t offset, uint32_t size)
+	BufferRegion::BufferRegion(Ref<Buffer> buffer, uint64_t offset, uint32_t size)
 		: m_Buffer(buffer), m_Offset(offset), m_Size(size)
 	{
 	}
 
-	void BufferSubrange::WriteData(void* data, uint32_t size, uint64_t bufferOffset, uint64_t dataOffset)
+	void BufferRegion::WriteData(void* data, uint32_t size, uint64_t bufferOffset, uint64_t dataOffset)
 	{
 		m_Buffer->WriteData(data, size, m_Offset + bufferOffset, dataOffset);
 	}
 
-	void BufferSubrange::ReadData(void* data, uint32_t size, uint64_t bufferOffset, uint64_t dataOffset)
+	void BufferRegion::ReadData(void* data, uint32_t size, uint64_t bufferOffset, uint64_t dataOffset)
 	{
 		m_Buffer->ReadData(data, size, m_Offset + bufferOffset, dataOffset);
 	}

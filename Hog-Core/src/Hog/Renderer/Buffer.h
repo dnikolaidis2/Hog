@@ -34,12 +34,12 @@ namespace Hog {
 		uint32_t m_Size;
 	};
 
-	class BufferSubrange
+	class BufferRegion
 	{
 	public:
-		static Ref<BufferSubrange> Create(Ref<Buffer> buffer, uint64_t offset, uint32_t size);
+		static Ref<BufferRegion> Create(Ref<Buffer> buffer, uint64_t offset, uint32_t size);
 	public:
-		BufferSubrange(Ref<Buffer> buffer, uint64_t offset, uint32_t size);
+		BufferRegion(Ref<Buffer> buffer, uint64_t offset, uint32_t size);
 
 		void WriteData(void* data, uint32_t size, uint64_t bufferOffset = 0, uint64_t dataOffset = 0);
 		void ReadData(void* data, uint32_t size, uint64_t bufferOffset = 0, uint64_t dataOffset = 0);
