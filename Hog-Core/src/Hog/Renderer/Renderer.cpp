@@ -662,7 +662,7 @@ namespace Hog
 
 		db.Build(descriptorSet);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Info.Shader->GetPipelineLayout(),
+		vkCmdBindDescriptorSets(commandBuffer, ToPipelineBindPoint(Info.StageType), Info.Shader->GetPipelineLayout(),
 			0, 1, &descriptorSet, 0, nullptr);
 	}
 }

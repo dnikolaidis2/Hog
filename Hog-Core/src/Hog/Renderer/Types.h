@@ -250,6 +250,21 @@ namespace Hog
 		ForwardCompute, DeferredCompute, ForwardGraphics, DeferredGraphics, Blit, ImGui, Barrier
 	};
 
+	static inline VkPipelineBindPoint ToPipelineBindPoint(RendererStageType type)
+	{
+		switch (type)
+		{
+			case RendererStageType::ForwardCompute:		return VK_PIPELINE_BIND_POINT_COMPUTE;
+			case RendererStageType::DeferredCompute:	return VK_PIPELINE_BIND_POINT_COMPUTE;
+			case RendererStageType::ForwardGraphics:	return VK_PIPELINE_BIND_POINT_GRAPHICS;
+			case RendererStageType::DeferredGraphics:	return VK_PIPELINE_BIND_POINT_GRAPHICS;
+			case RendererStageType::Blit:				return VK_PIPELINE_BIND_POINT_GRAPHICS;
+			case RendererStageType::ImGui:				return VK_PIPELINE_BIND_POINT_GRAPHICS;
+		}
+
+		return (VkPipelineBindPoint)0;
+	}
+
 	enum class PipelineStage : VkPipelineStageFlags2
 	{
 		None = VK_PIPELINE_STAGE_2_NONE,
