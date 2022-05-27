@@ -14,7 +14,6 @@
 #include "Hog/Core/Input.h"
 #include "Hog/Core/KeyCodes.h"
 #include "Hog/Core/MouseCodes.h"
-#include "Hog/Renderer/OrthographicCameraController.h"
 
 #include <Hog/Utils/Loader.h>
 
@@ -30,11 +29,10 @@
 #include "Hog/Renderer/Buffer.h"
 #include "Hog/Renderer/Mesh.h"
 #include "Hog/Renderer/Material.h"
-#include "Hog/Renderer/RendererObject.h"
-#include "Hog/Renderer/EditorCamera.h"
 #include "Hog/Renderer/Renderer.h"
 #include "Hog/Renderer/RenderGraph.h"
 #include "Hog/Renderer/Image.h"
+#include "Hog/Renderer/EditorCamera.h"
 
 /*
 #include "Hog/Renderer/Renderer.h"

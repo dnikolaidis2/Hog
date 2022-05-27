@@ -17,6 +17,7 @@ bin-int/
 # Directories
 Hog-Core/vendor/VulkanSDK
 Examples/assets/cache
+Examples/assets/models/sponza**
 scripts/__pycache__
 
 **/.idea/**
