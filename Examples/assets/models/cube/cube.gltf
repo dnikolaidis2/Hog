@@ -8,12 +8,16 @@
         {
             "name" : "Scene",
             "nodes" : [
-                1,
+                0,
                 2
             ]
         }
     ],
     "nodes" : [
+        {
+            "mesh" : 0,
+            "name" : "Cube"
+        },
         {
             "camera" : 0,
             "name" : "Camera_Orientation",
@@ -26,7 +30,7 @@
         },
         {
             "children" : [
-                0
+                1
             ],
             "name" : "Camera",
             "rotation" : [
@@ -40,10 +44,6 @@
                 4.958309173583984,
                 6.925790786743164
             ]
-        },
-        {
-            "mesh" : 0,
-            "name" : "Cube"
         }
     ],
     "cameras" : [
@@ -61,22 +61,22 @@
     "materials" : [
         {
             "doubleSided" : true,
-            "name" : "Material.001",
+            "name" : "Material",
             "pbrMetallicRoughness" : {
                 "baseColorFactor" : [
                     0.8000000715255737,
-                    0.06808368861675262,
-                    0.06273561716079712,
+                    0.20996829867362976,
+                    0.05979672074317932,
                     1
                 ],
                 "metallicFactor" : 0,
-                "roughnessFactor" : 0.5
+                "roughnessFactor" : 0.4000000059604645
             }
         }
     ],
     "meshes" : [
         {
-            "name" : "Cube.001",
+            "name" : "Cube",
             "primitives" : [
                 {
                     "attributes" : {
