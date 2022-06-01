@@ -129,6 +129,11 @@ namespace Hog
 		return s_Data.FinalTarget;
 	}
 
+	DescriptorLayoutCache* Renderer::GetDescriptorLayoutCache()
+	{
+		return &(s_Data.DescriptorLayoutCache);
+	}
+
 	Renderer::RendererStats Renderer::GetStats()
 	{
 		return RendererStats();
@@ -519,7 +524,28 @@ namespace Hog
 
 		Info.Shader->Bind(commandBuffer);
 
-		
+		BindResources(commandBuffer, &s_Data.GetCurrentFrame().DescriptorAllocator);
+
+		for (auto && mesh : Info.Meshes)
+		{
+			glm::mat4 modelMat = mesh->GetModelMatrix();
+			for (int i = 0; i < Info.Resources.size(); i++)
+			{
+				const auto& resource = Info.Resources[i];
+
+				switch (resource.Type)
+				{
+					case ResourceType::PushConstant:
+					{
+						std::memcpy(resource.ConstantDataPointer, &modelMat, resource.ConstantSize);
+						vkCmdPushConstants(commandBuffer, Info.Shader->GetPipelineLayout(), resource.BindLocation, 0, static_cast<uint32_t>(resource.ConstantSize), resource.ConstantDataPointer);
+					}break;
+					default: break;
+				}
+			}
+
+			mesh->Draw(commandBuffer);
+		}
 
 		vkCmdEndRenderPass(commandBuffer);
 	}
@@ -619,43 +645,65 @@ namespace Hog
 	void RendererStage::BindResources(VkCommandBuffer commandBuffer, DescriptorAllocator* allocator)
 	{
 		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-		auto db = DescriptorBuilder::Begin(&s_Data.DescriptorLayoutCache, allocator);
+		auto db = DescriptorBuilder::Begin(Renderer::GetDescriptorLayoutCache(), allocator);
+		std::vector<VkDescriptorImageInfo*> imageInfos;
+		std::vector<VkDescriptorBufferInfo*> bufferInfos;
 
 		for (int i = 0; i < Info.Resources.size(); i++)
 		{
 			const auto& resource = Info.Resources[i];
+
 			switch(resource.Type)
 			{
 				case ResourceType::Sampler:
 				{
-					VkDescriptorImageInfo sourceImage;
-					sourceImage.sampler = resource.Texture->GetOrCreateSampler();
+					VkDescriptorImageInfo* sourceImage = new VkDescriptorImageInfo;
+					sourceImage->sampler = resource.Texture->GetOrCreateSampler();
 
-					sourceImage.imageView = resource.Texture->GetImageView();
-					sourceImage.imageLayout = resource.Texture->GetDescription().ImageLayout;
-
-					db.BindImage(0, &sourceImage, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, Info.Resources[0].BindLocation);
+					sourceImage->imageView = resource.Texture->GetImageView();
+					sourceImage->imageLayout = resource.Texture->GetDescription().ImageLayout;
+					imageInfos.push_back(sourceImage);
+					
+					db.BindImage(resource.Binding, imageInfos.back(), VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, resource.BindLocation);
 				}break;
 				case ResourceType::Storage:
 				{
-					VkDescriptorBufferInfo bufferInfo = { resource.Buffer->GetHandle(), 0, VK_WHOLE_SIZE };
+					VkDescriptorBufferInfo* bufferInfo = new VkDescriptorBufferInfo;
+					bufferInfo->buffer = resource.Buffer->GetHandle();
+					bufferInfo->offset = 0;
+					bufferInfo->range = VK_WHOLE_SIZE;
+					bufferInfos.push_back(bufferInfo);
 
-					db.BindBuffer(resource.Binding, &bufferInfo, resource.Buffer->GetBufferDescription(), resource.BindLocation);
+					db.BindBuffer(resource.Binding, bufferInfos.back(), resource.Buffer->GetBufferDescription(), resource.BindLocation);
 				}break;
 				case ResourceType::Uniform:
 				{
-					VkDescriptorBufferInfo bufferInfo = { resource.Buffer->GetHandle(), 0, VK_WHOLE_SIZE };
+					VkDescriptorBufferInfo* bufferInfo = new VkDescriptorBufferInfo;
+					bufferInfo->buffer = resource.Buffer->GetHandle();
+					bufferInfo->offset = 0;
+					bufferInfo->range = VK_WHOLE_SIZE;
+					bufferInfos.push_back(bufferInfo);
 
-					db.BindBuffer(resource.Binding, &bufferInfo, resource.Buffer->GetBufferDescription(), resource.BindLocation);
+					db.BindBuffer(resource.Binding, bufferInfos.back(), resource.Buffer->GetBufferDescription(), resource.BindLocation);
 				}break;
 				case ResourceType::PushConstant:
 				{
-					vkCmdPushConstants(commandBuffer, Info.Shader->GetPipelineLayout(), resource.BindLocation, 0, static_cast<uint32_t>(resource.ConstantSize), resource.ConstantDataPointer);
 				}break;
 				case ResourceType::Constant: break;
 				case ResourceType::SamplerArray:
 				{
+					VkDescriptorImageInfo* imageInfosLocal = new VkDescriptorImageInfo[resource.Images.size()];
+					for (int i = 0; i < resource.Images.size(); ++i)
+					{
+						imageInfosLocal[i].sampler = resource.Images[i]->GetOrCreateSampler();
 
+						imageInfosLocal[i].imageView = resource.Images[i]->GetImageView();
+						imageInfosLocal[i].imageLayout = resource.Images[i]->GetDescription().ImageLayout;
+					}
+
+					imageInfos.push_back(imageInfosLocal);
+
+					db.BindImage(resource.Binding, imageInfos.back(), VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, resource.BindLocation, resource.Images.size(), resource.ArrayMaxCount);
 				}break;
 			}
 		}
@@ -664,5 +712,15 @@ namespace Hog
 
 		vkCmdBindDescriptorSets(commandBuffer, ToPipelineBindPoint(Info.StageType), Info.Shader->GetPipelineLayout(),
 			0, 1, &descriptorSet, 0, nullptr);
+
+		for (size_t i = 0; i < imageInfos.size(); i++)
+		{
+			delete imageInfos[i];
+		}
+
+		for (size_t i = 0; i < bufferInfos.size(); i++)
+		{
+			delete bufferInfos[i];
+		}
 	}
 }

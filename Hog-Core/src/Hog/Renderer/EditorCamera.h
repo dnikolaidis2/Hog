@@ -23,6 +23,7 @@ namespace Hog {
 
 		inline void SetViewportSize(float width, float height) { m_ViewportWidth = width; m_ViewportHeight = height; UpdateProjection(); }
 
+		void SetViewMatrix(const glm::mat4& view) { m_ViewMatrix = view; }
 		const glm::mat4& GetViewMatrix() const { return m_ViewMatrix; }
 		glm::mat4 GetViewProjection() const { return m_Projection * m_ViewMatrix; }
 

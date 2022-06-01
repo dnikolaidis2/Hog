@@ -51,7 +51,18 @@ namespace Hog
 		{
 			// Allocation ended up in a mappable memory and is already mapped - write to it directly.
 
-			memcpy((void*)((uint64_t)m_AllocationInfo.pMappedData + bufferOffset), (void*)((uint64_t)data + dataOffset), size);
+			void* memoryLocation = nullptr;
+
+			if (!m_AllocationInfo.pMappedData)
+			{
+				vmaMapMemory(GraphicsContext::GetAllocator(), m_Allocation, &memoryLocation);
+			}
+			else
+			{
+				memoryLocation = m_AllocationInfo.pMappedData;
+			}
+
+			memcpy((void*)((uint64_t)memoryLocation + bufferOffset), (void*)((uint64_t)data + dataOffset), size);
 
 			VkBufferMemoryBarrier2 memoryBarrier = {
 				.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
@@ -71,10 +82,15 @@ namespace Hog
 				.pBufferMemoryBarriers = &memoryBarrier,
 			};
 
-			GraphicsContext::ImmediateSubmit([=](VkCommandBuffer commandBuffer)
+			GraphicsContext::ImmediateSubmit([depenedencyInfo](VkCommandBuffer commandBuffer)
 			{
 				vkCmdPipelineBarrier2(commandBuffer, &depenedencyInfo);
 			});
+
+			if (memoryLocation != m_AllocationInfo.pMappedData)
+			{
+				vmaUnmapMemory(GraphicsContext::GetAllocator(), m_Allocation);
+			}
 		}
 		else
 		{
@@ -191,6 +207,14 @@ namespace Hog
 
 			stagingBuf->ReadData(data, size, 0, dataOffset);
 		}
+	}
+
+	VkDeviceAddress Buffer::GetBufferDeviceAddress()
+	{
+		VkBufferDeviceAddressInfoKHR bufferDeviceAI{};
+		bufferDeviceAI.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+		bufferDeviceAI.buffer = m_Handle;
+		return vkGetBufferDeviceAddressKHR(GraphicsContext::GetDevice(), &bufferDeviceAI);
 	}
 
 	Ref<BufferRegion> BufferRegion::Create(Ref<Buffer> buffer, uint64_t offset, uint32_t size)

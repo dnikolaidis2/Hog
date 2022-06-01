@@ -2,11 +2,15 @@
 
 #include "Material.h"
 
+#include "Hog/Core/CVars.h"
 #include "Hog/Renderer/GraphicsContext.h"
 #include "Hog/Renderer/Buffer.h"
 
+AutoCVar_Int CVar_MaterialArraySize("material.array.size", "Material array size", 128);
+
 namespace Hog
 {
+
 	static auto& context = GraphicsContext::Get();
 
 	Ref<Material> Material::Create(const std::string& name, MaterialData& data)
@@ -50,9 +54,28 @@ namespace Hog
 		return s_Materials[name];
 	}
 
+	Ref<Buffer> MaterialLibrary::GetBuffer()
+	{
+		s_Buffer = Buffer::Create(BufferDescription::Defaults::UniformBuffer, CVar_MaterialArraySize.Get() * sizeof(MaterialGPUData));
+
+		std::vector<MaterialGPUData> GPUData(s_Materials.size());
+
+		int i = 0;
+		for (auto & [name, material]: s_Materials)
+		{
+			GPUData[material->GetGPUIndex()] = MaterialGPUData(material->GetMaterialData());
+			i++;
+		}
+
+		s_Buffer->WriteData(GPUData.data(), GPUData.size() * sizeof(MaterialGPUData));
+
+		return s_Buffer;
+	}
+
 	void MaterialLibrary::Clneaup()
 	{
 		s_Materials.clear();
+		s_Buffer.reset();
 	}
 
 	bool MaterialLibrary::Exists(const std::string& name)

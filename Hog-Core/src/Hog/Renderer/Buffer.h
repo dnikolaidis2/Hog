@@ -24,6 +24,8 @@ namespace Hog {
 		uint32_t GetSize() const { return m_Size; }
 		BufferDescription GetBufferDescription() const { return m_Description; }
 
+		VkDeviceAddress GetBufferDeviceAddress();
+
 		operator void* () { return m_AllocationInfo.pMappedData; }
 	private:
 		VkBuffer m_Handle;
@@ -43,6 +45,8 @@ namespace Hog {
 
 		void WriteData(void* data, uint32_t size, uint64_t bufferOffset = 0, uint64_t dataOffset = 0);
 		void ReadData(void* data, uint32_t size, uint64_t bufferOffset = 0, uint64_t dataOffset = 0);
+		uint32_t GetSize() const { return m_Size; }
+		uint64_t GetOffset() const { return m_Offset; }
 	private:
 		Ref<Buffer> m_Buffer;
 		uint64_t m_Offset;

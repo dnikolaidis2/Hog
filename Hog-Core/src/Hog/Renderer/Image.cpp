@@ -185,6 +185,8 @@ namespace Hog
 			vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
 				0, nullptr, 0, nullptr, 1, &barrier);
 		});
+
+		m_Description.ImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	}
 
 	void Image::ExecuteBarrier(VkCommandBuffer commandBuffer, const BarrierDescription& description)
@@ -278,11 +280,9 @@ namespace Hog
 		if (path.has_filename())
 			name = path.filename().string();
 
-		HG_CORE_ASSERT(!Exists(name), "Image already exists!");
-
 		int width, height, channels;
 
-		stbi_set_flip_vertically_on_load(true);
+		stbi_set_flip_vertically_on_load(false);
 
 		stbi_uc* pixels = stbi_load(path.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
 

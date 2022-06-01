@@ -42,6 +42,14 @@ namespace Hog
 		MaxEnum = VK_IMAGE_LAYOUT_MAX_ENUM,
 	};
 
+	/*
+	vec3f Position;
+	vec3f Normal;
+	vec2f TexCoords;
+	int32 MaterialIndex;
+	*/
+
+
 	struct Vertex
 	{
 		glm::vec3 Position;
@@ -58,8 +66,13 @@ namespace Hog
 			GPUOnlyVertexBuffer,
 			TransferSourceBuffer,
 			CPUWritableIndexBuffer,
+			VertexBuffer,
+			IndexBuffer,
 			UniformBuffer,
 			ReadbackStorageBuffer,
+			AccelerationStructureBuildInput,
+			AccelerationStructure,
+			AccelerationStructureScratchBuffer,
 		};
 
 		VmaMemoryUsage MemoryUsage = VMA_MEMORY_USAGE_AUTO;

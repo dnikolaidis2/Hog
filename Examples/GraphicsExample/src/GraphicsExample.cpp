@@ -1,7 +1,7 @@
 #include "GraphicsExample.h"
 
-#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <Hog/ImGui/ImGuiHelper.h>
 
 static auto& context = GraphicsContext::Get();
@@ -15,21 +15,25 @@ GraphicsExample::GraphicsExample()
 void GraphicsExample::OnAttach()
 {
 	HG_PROFILE_FUNCTION();
-	CVarSystem::Get()->SetIntCVar("application.enableImGui", 1);
+	CVarSystem::Get()->SetIntCVar("application.enableImGui", 0);
+	CVarSystem::Get()->SetIntCVar("renderer.enableMipMapping", 1);
 	CVarSystem::Get()->SetStringCVar("shader.compilation.macros", "MATERIAL_ARRAY_SIZE=128;TEXTURE_ARRAY_SIZE=512");
+	CVarSystem::Get()->SetIntCVar("material.array.size", 128);
 
 	GraphicsContext::Initialize();
-	
+
 	HG_PROFILE_GPU_INIT_VULKAN(&(context.Device), &(context.PhysicalDevice), &(context.Queue), &(context.QueueFamilyIndex), 1, nullptr);
 
 	TextureLibrary::Initialize();
-	LoadObjFile("assets/models/sponza/sponza.obj", m_Objects);
+
+	// LoadGltfFile("assets/models/sponza-intel/NewSponza_Main_Blender_glTF.gltf", m_Meshes, m_Cameras);
+	LoadGltfFile("assets/models/sponza/sponza.gltf", m_Meshes, m_Cameras);
+	// LoadGltfFile("assets/models/cube/cube.gltf", m_Meshes, m_Cameras);
 
 	Ref<Image> colorAttachment = Renderer::GetFinalRenderTarget();
 	Ref<Image> depthAttachment = Image::Create(ImageDescription::Defaults::Depth, 1);
 
-	Ref<Buffer> ViewProjection = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(glm::mat4));
-	// Ref<Buffer> Materials = Buffer::Create(BufferDescription::Defaults::UniformBuffer, (uint32_t)(sizeof(MaterialGPUData) * MaterialLibrary::GetGPUArray().size()));
+	m_ViewProjection = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(glm::mat4));
 
 	RenderGraph graph;
 	auto graphics = graph.AddStage(nullptr, {
@@ -41,30 +45,30 @@ void GraphicsExample::OnAttach()
 			{DataType::Defaults::Float3, "a_MaterialIndex"},
 		},
 		{
-			{"u_ViewProjection", ResourceType::Uniform, ShaderType::Defaults::Vertex, ViewProjection, 0, 0},
-			//{"u_Materials", ResourceType::Uniform, ShaderType::Defaults::Fragment, Materials, 1, 0},
-			//{"u_Textures", ResourceType::SamplerArray, ShaderType::Defaults::Fragment, TextureLibrary::GetLibraryArray(), 2, 0},
+			{"u_ViewProjection", ResourceType::Uniform, ShaderType::Defaults::Vertex, m_ViewProjection, 0, 0},
+			{"u_Materials", ResourceType::Uniform, ShaderType::Defaults::Fragment, MaterialLibrary::GetBuffer(), 1, 0},
+			{"u_Textures", ResourceType::SamplerArray, ShaderType::Defaults::Fragment, TextureLibrary::GetLibraryArray(), 2, 0, 512},
 			{"p_Model", ResourceType::PushConstant, ShaderType::Defaults::Vertex, sizeof(PushConstant), &m_PushConstant},
 		},
-		m_Objects,
+		m_Meshes,
 		{
-			{"Color", AttachmentType::Color, colorAttachment, true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ColorAttachmentOptimal}},
+			{"Color", AttachmentType::Color, colorAttachment, true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
 			{"Depth", AttachmentType::Depth, depthAttachment, true, {ImageLayout::DepthStencilAttachmentOptimal, ImageLayout::DepthStencilAttachmentOptimal}},
 		},
 	});
 
-	auto imGuiStage = graph.AddStage(graphics, {
-		"ImGuiStage", RendererStageType::ImGui, {
-			{"ColorTarget", AttachmentType::Color, colorAttachment, false, {
-				PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentWrite,
-				PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentRead,
-				ImageLayout::ColorAttachmentOptimal,
-				ImageLayout::ShaderReadOnlyOptimal
-			}},
-		}
-	});
+	//auto imGuiStage = graph.AddStage(graphics, {
+	//	"ImGuiStage", RendererStageType::ImGui, {
+	//		{"ColorTarget", AttachmentType::Color, colorAttachment, false, {
+	//			PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentWrite,
+	//			PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentRead,
+	//			ImageLayout::ColorAttachmentOptimal,
+	//			ImageLayout::ShaderReadOnlyOptimal
+	//		}},
+	//	}
+	//});
 
-	graph.AddStage(imGuiStage, {
+	graph.AddStage(graphics, {
 		"BlitStage", Shader::Create("Blit", "fullscreen.vertex", "blit.fragment"), RendererStageType::Blit,
 		{{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, colorAttachment, 0, 0, {
 				PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentWrite,
@@ -74,12 +78,6 @@ void GraphicsExample::OnAttach()
 	});
 
 	Renderer::Initialize(graph);
-
-	for (auto & obj : m_Objects)
-	{
-		obj->SetTransform(glm::rotate(glm::mat4{ 1.0f }, glm::radians(90.0f), glm::vec3(0, 1, 0))
-			* glm::rotate(glm::mat4{ 1.0f }, glm::radians(180.0f), glm::vec3(1, 0, 0)));
-	}
 
 	m_EditorCamera = EditorCamera(30.0f, 1.778f, 0.1f, 10000.0f);
 }
@@ -94,16 +92,19 @@ void GraphicsExample::OnDetach()
 	MaterialLibrary::Clneaup();
 	TextureLibrary::Cleanup();
 
-	m_Objects.clear();
+	m_Meshes.clear();
+	m_ViewProjection.reset();
 
 	GraphicsContext::Deinitialize();
 }
 
 void GraphicsExample::OnUpdate(Timestep ts)
 {
-	HG_PROFILE_FUNCTION()
+	HG_PROFILE_FUNCTION();
 
 	m_EditorCamera.OnUpdate(ts);
+	glm::mat4 viewProj = m_Cameras[0];
+	m_ViewProjection->WriteData(&viewProj, sizeof(viewProj));
 }
 
 void GraphicsExample::OnImGuiRender()

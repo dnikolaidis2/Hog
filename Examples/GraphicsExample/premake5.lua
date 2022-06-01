@@ -16,7 +16,8 @@ project "GraphicsExample"
 
 	defines
 	{
-		
+		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
+		"GLM_FORCE_LEFT_HANDED",
 	}
 
 	includedirs
@@ -47,7 +48,6 @@ project "GraphicsExample"
 		defines "HG_DEBUG"
 		runtime "Debug"
 		symbols "on"
-		-- editAndContinue "Off"
 		
 		postbuildcommands
 		{
@@ -60,6 +60,7 @@ project "GraphicsExample"
 		runtime "Debug"
 		symbols "on"
 		flags { "NoRuntimeChecks" }
+		editAndContinue "Off"
 		buildoptions { "/Zi /DEBUG:FULL /Ob0 /Oy-" }
 		
 		postbuildcommands

@@ -221,15 +221,16 @@ namespace Hog {
 	}
 
 
-	Hog::DescriptorBuilder& DescriptorBuilder::BindImage(uint32_t binding, VkDescriptorImageInfo* imageInfo, VkDescriptorType type, VkShaderStageFlags stageFlags)
+	Hog::DescriptorBuilder& DescriptorBuilder::BindImage(uint32_t binding, VkDescriptorImageInfo* imageInfo, VkDescriptorType type, VkShaderStageFlags stageFlags, uint32_t descriptorCount, uint32_t descriptorBindingCount)
 	{
 		VkDescriptorSetLayoutBinding newBinding{};
 
-		newBinding.descriptorCount = 1;
+		newBinding.descriptorCount = descriptorBindingCount;
 		newBinding.descriptorType = type;
 		newBinding.pImmutableSamplers = nullptr;
 		newBinding.stageFlags = stageFlags;
 		newBinding.binding = binding;
+		
 
 		m_Bindings.push_back(newBinding);
 
@@ -237,7 +238,7 @@ namespace Hog {
 		newWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		newWrite.pNext = nullptr;
 
-		newWrite.descriptorCount = 1;
+		newWrite.descriptorCount = descriptorCount;
 		newWrite.descriptorType = type;
 		newWrite.pImageInfo = imageInfo;
 		newWrite.dstBinding = binding;

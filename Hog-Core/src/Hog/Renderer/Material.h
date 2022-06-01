@@ -2,6 +2,7 @@
 
 #include <glm/glm.hpp>
 
+#include "Hog/Renderer/Buffer.h"
 #include "Hog/Renderer/Image.h"
 
 namespace Hog
@@ -15,7 +16,7 @@ namespace Hog
 
 		float AmbientStrength = 0.0f;
 		glm::vec3 AmbientColor = glm::vec3(0.0f);
-		glm::vec3 DiffuseColor = glm::vec3(0.0f);
+		glm::vec4 DiffuseColor = glm::vec4(0.0f);
 
 		float Specularity = 0.0f;
 		glm::vec3 SpecularColor = glm::vec3(0.0f);
@@ -32,13 +33,34 @@ namespace Hog
 		Ref<Image> DisplacementMap;
 	};
 
+	/*
+	vec3f AmbientColor;
+	int32 AmbientTexture;
+	vec3f DiffuseColor;
+	int32 DiffuseTexture;
+	vec3f SpecularColor;
+	int32 SpecularTexture;
+	int32 SpecularHighlightTexture;
+	float Specularity;
+	float IOR;
+	float Dissolve;
+	vec3f EmissiveColor;
+	int32 AlphaMap;
+	vec3f TransmittanceFilter;
+	int32 BumpMap;
+	int32 DisplacementMap;
+	int32 IlluminationModel;
+	float EmissiveStrength;
+	float AmbientStrength;
+	*/
+
+
 	struct MaterialGPUData
 	{
 		glm::vec3 AmbientColor = glm::vec3(0.0f);
-		int32_t AmbientTexture = 0;
-
-		glm::vec3 DiffuseColor = glm::vec3(0.0f);
 		int32_t DiffuseTexture = -1;
+
+		glm::vec4 DiffuseColor = glm::vec4(0.0f);
 
 		glm::vec3 SpecularColor = glm::vec3(0.0f);
 		int32_t SpecularTexture = 0;
@@ -74,8 +96,6 @@ namespace Hog
 				EmissiveStrength(data.EmissiveStrength),
 				AmbientStrength(data.AmbientStrength)
 		{
-			if (data.AmbientTexture)
-				AmbientTexture = data.AmbientTexture->GetGPUIndex();
 			if (data.DiffuseTexture) 
 				DiffuseTexture = data.DiffuseTexture->GetGPUIndex();
 			if (data.SpecularTexture) 
@@ -91,6 +111,8 @@ namespace Hog
 		}
 		MaterialGPUData(const MaterialGPUData& data) = default;
 	};
+
+	constexpr size_t tcest = sizeof(MaterialGPUData);
 
 	class Material
 	{
@@ -125,6 +147,7 @@ namespace Hog
 		static Ref<Material> CreateOrGet(const std::string& name);
 
 		static Ref<Material> Get(const std::string& name);
+		static Ref<Buffer> GetBuffer();
 
 		static void Clneaup();
 

@@ -9,6 +9,7 @@
 #include <vulkan/vulkan.h>
 #include <yaml-cpp/yaml.h>
 
+#include "Renderer.h"
 #include "Hog/Core/Timer.h"
 #include "Hog/Core/CVars.h"
 #include "Hog/Utils/Filesystem.h"
@@ -306,10 +307,10 @@ namespace Hog {
 
 	Shader::~Shader()
 	{
-		for (auto& layout : m_DescriptorSetLayouts)
+		/*for (auto& layout : m_DescriptorSetLayouts)
 		{
 			vkDestroyDescriptorSetLayout(GraphicsContext::GetDevice(), layout, nullptr);
-		}
+		}*/
 
 		vkDestroyPipelineLayout(GraphicsContext::GetDevice(), m_PipelineLayout, nullptr);
 
@@ -501,12 +502,22 @@ namespace Hog {
 
 		for (int i = 0; i < m_DescriptorSetLayoutBinding.size(); ++i)
 		{
+			std::vector<VkDescriptorBindingFlags> bindingFlags(m_DescriptorSetLayoutBinding[i].size(), VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
+
+			VkDescriptorSetLayoutBindingFlagsCreateInfo layoutBindingFlags = {
+				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+				.bindingCount = static_cast<uint32_t>(bindingFlags.size()),
+				.pBindingFlags = bindingFlags.data(),
+			};
+
 			VkDescriptorSetLayoutCreateInfo layoutInfo{};
 			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			layoutInfo.pNext = &layoutBindingFlags;
 			layoutInfo.bindingCount = (uint32_t)m_DescriptorSetLayoutBinding[i].size();
 			layoutInfo.pBindings = m_DescriptorSetLayoutBinding[i].data();
 
-			CheckVkResult(vkCreateDescriptorSetLayout(GraphicsContext::GetDevice(), &layoutInfo, nullptr, &m_DescriptorSetLayouts[i]));
+			 m_DescriptorSetLayouts[i] = Renderer::GetDescriptorLayoutCache()->CreateDescriptorLayout(&layoutInfo);
+			// CheckVkResult(vkCreateDescriptorSetLayout(GraphicsContext::GetDevice(), &layoutInfo, nullptr, &m_DescriptorSetLayouts[i]));
 		}
 
 		m_PipelineLayoutCreateInfo.pushConstantRangeCount = (uint32_t)m_PushConstantRanges.size();

@@ -15,7 +15,7 @@ namespace Hog
 		static void Cleanup();
 		static void SetFinalRenderTarget(Ref<Image> image);
 		static Ref<Image> GetFinalRenderTarget();
-
+		static DescriptorLayoutCache* GetDescriptorLayoutCache();
 		static void Draw();
 
 		struct RendererStats

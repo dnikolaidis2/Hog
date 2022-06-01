@@ -23,9 +23,9 @@ public:
 	void OnEvent(Event& e) override;
 	bool OnResized(FrameBufferResizeEvent& e);
 private:
-	std::vector<Ref<RendererObject>> m_Objects;
-
 	EditorCamera m_EditorCamera;
-
+	std::vector<Ref<Mesh>> m_Meshes;
+	std::vector<glm::mat4> m_Cameras;
+	Ref<Buffer> m_ViewProjection;
 	PushConstant m_PushConstant;
 };

@@ -36,9 +36,29 @@ namespace Hog
 			BufferUsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		}break;
 
+		case Defaults::VertexBuffer:
+		{
+			MemoryUsage = VMA_MEMORY_USAGE_AUTO;
+			AllocationCreateFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+			BufferUsageFlags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+				VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		}break;
+
+		case Defaults::IndexBuffer:
+		{
+			MemoryUsage = VMA_MEMORY_USAGE_AUTO;
+			AllocationCreateFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+			BufferUsageFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT|
+				VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		}break;
+
 		case Defaults::UniformBuffer:
 		{
-			MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+			MemoryUsage = VMA_MEMORY_USAGE_AUTO;
+			AllocationCreateFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
 			BufferUsageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 			DescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		}break;
@@ -54,6 +74,34 @@ namespace Hog
 				VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
 			DescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		}break;
+
+		case Defaults::AccelerationStructureBuildInput:
+		{
+			MemoryUsage = VMA_MEMORY_USAGE_AUTO;
+			AllocationCreateFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT |
+				VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+			BufferUsageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+				VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+		}break;
+		case Defaults::AccelerationStructure:
+		{
+			MemoryUsage = VMA_MEMORY_USAGE_AUTO;
+			AllocationCreateFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT |
+				VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+			BufferUsageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+				VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
+		}break;
+		case Defaults::AccelerationStructureScratchBuffer:
+		{
+			MemoryUsage = VMA_MEMORY_USAGE_AUTO;
+			AllocationCreateFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT |
+				VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+			BufferUsageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+				VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		}break;
 		}
 	}

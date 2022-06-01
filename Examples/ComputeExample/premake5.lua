@@ -16,7 +16,8 @@ project "ComputeExample"
 
 	defines
 	{
-		
+		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
+		"GLM_FORCE_LEFT_HANDED",
 	}
 
 	includedirs
@@ -48,6 +49,7 @@ project "ComputeExample"
 		defines "HG_DEBUG"
 		runtime "Debug"
 		symbols "on"
+		editAndContinue "Off"
 		flags { "NoRuntimeChecks" }
 		buildoptions { "/Zi /DEBUG:FULL /Ob0 /Oy-" }
 		
@@ -60,7 +62,6 @@ project "ComputeExample"
 		defines "HG_DEBUG"
 		runtime "Debug"
 		symbols "on"
-		-- editAndContinue "Off"
 		
 		postbuildcommands
 		{

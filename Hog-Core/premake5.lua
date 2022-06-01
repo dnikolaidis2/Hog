@@ -31,7 +31,9 @@ project "Hog-Core"
 	{
 		"_CRT_SECURE_NO_WARNINGS",
 		"GLFW_INCLUDE_VULKAN",
-		"VK_VERSION_1_3"
+		"VK_VERSION_1_3",
+		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
+		"GLM_FORCE_LEFT_HANDED",
 	}
 
 	includedirs
@@ -69,7 +71,6 @@ project "Hog-Core"
 		defines "HG_DEBUG"
 		runtime "Debug"
 		symbols "on"
-		-- editAndContinue "Off"
 
 		links
 		{
@@ -83,6 +84,7 @@ project "Hog-Core"
 		defines "HG_DEBUG"
 		runtime "Debug"
 		symbols "on"
+		editAndContinue "Off"
 		flags { "NoRuntimeChecks" }
 		buildoptions { "/Zi /DEBUG:FULL /Ob0 /Oy-" }
 		

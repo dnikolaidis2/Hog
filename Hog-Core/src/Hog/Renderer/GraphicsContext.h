@@ -48,7 +48,6 @@ namespace Hog {
 			std::vector<VkPresentModeKHR> PresentModes;
 			VkPhysicalDeviceMemoryProperties MemoryProperties;
 			VkPhysicalDeviceProperties DeviceProperties;
-			VkPhysicalDeviceFeatures PhysicalDeviceFeatures;
 
 			VkPhysicalDeviceVulkan13Features PhysicalDeviceVulkan13Features = {
 				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
@@ -60,7 +59,7 @@ namespace Hog {
 			};
 
 			VkPhysicalDeviceVulkan11Features PhysicalDeviceVulkan11Features = {
-				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
 				.pNext = &PhysicalDeviceVulkan12Features,
 			};
 
@@ -195,19 +194,6 @@ namespace Hog {
 			.pUserData = nullptr // Optional
 		};
 
-		VkPhysicalDeviceFeatures DeviceFeatures =
-		{
-			.imageCubeArray = VK_TRUE,
-			.sampleRateShading = VK_TRUE,
-			.depthClamp = VK_TRUE,
-			.depthBiasClamp = VK_TRUE,
-			.fillModeNonSolid = VK_TRUE,
-			.depthBounds = VK_TRUE,
-			.samplerAnisotropy = VK_TRUE,
-			.textureCompressionBC = VK_TRUE,
-			.shaderSampledImageArrayDynamicIndexing = VK_TRUE,
-		};
-
 		VkPhysicalDeviceVulkan13Features DeviceFeatures13 = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
 			.synchronization2 = VK_TRUE,
@@ -238,6 +224,7 @@ namespace Hog {
 	        .descriptorBindingPartiallyBound = VK_TRUE,
 	        .descriptorBindingVariableDescriptorCount = VK_TRUE,
 	        .runtimeDescriptorArray = VK_TRUE,
+			.bufferDeviceAddress = VK_TRUE,
 		};
 
 		VkPhysicalDeviceVulkan11Features DeviceFeatures11 = {
@@ -246,8 +233,30 @@ namespace Hog {
 			.multiview = VK_TRUE,
 		};
 
+		VkPhysicalDeviceFeatures DeviceFeatures =
+		{
+			.imageCubeArray = VK_TRUE,
+			.sampleRateShading = VK_TRUE,
+			.depthClamp = VK_TRUE,
+			.depthBiasClamp = VK_TRUE,
+			.fillModeNonSolid = VK_TRUE,
+			.depthBounds = VK_TRUE,
+			.samplerAnisotropy = VK_TRUE,
+			.textureCompressionBC = VK_TRUE,
+			.shaderSampledImageArrayDynamicIndexing = VK_TRUE,
+		};
+
 		std::vector<const char*> InstanceExtensions = {  };
-		std::vector<const char*> DeviceExtensions = { VK_KHR_MAINTENANCE_4_EXTENSION_NAME, VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME, VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME};
+		std::vector<const char*> DeviceExtensions = { VK_KHR_MAINTENANCE_4_EXTENSION_NAME,
+			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+			VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
+			VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
+			VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, 
+			VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+			VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+			VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+			VK_KHR_SPIRV_1_4_EXTENSION_NAME
+		};
 
 		std::vector<const char*> ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 

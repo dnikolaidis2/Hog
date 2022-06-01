@@ -3,14 +3,22 @@
 #include <tiny_obj_loader.h>
 #include <cgltf.h>
 
+#define GLM_ENABLE_EXPERIMENTAL
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/string_cast.hpp>
+
 #include "Hog/Renderer/Mesh.h"
-#include "Hog/Renderer/RendererObject.h"
 #include "Hog/Renderer/Material.h"
+#include "Hog/Renderer/EditorCamera.h"
 #include "Hog/Debug/Instrumentor.h"
+#include "Hog/Math/Math.h"
 
 namespace Hog
 {
-	inline static bool LoadObjFile(const std::string& filepath, std::vector<Ref<RendererObject>>& objects)
+	/*inline static bool LoadObjFile(const std::string& filepath, std::vector<Ref<RendererObject>>& objects)
 	{
 		HG_PROFILE_FUNCTION();
 
@@ -154,10 +162,12 @@ namespace Hog
 		}
 
 		return ret;
-	}
+	}*/
 
-	inline static bool LoadGltfFile(const std::string& filepath, std::vector<Ref<RendererObject>>& objects)
+	inline static bool LoadGltfFile(const std::string& filepath, std::vector<Ref<Mesh>>& objects, std::vector<glm::mat4>& cameras)
 	{
+		HG_PROFILE_FUNCTION();
+
 		cgltf_options options = {};
 		cgltf_data* data = NULL;
 		cgltf_result result = cgltf_parse_file(&options, filepath.c_str(), &data);
@@ -177,50 +187,199 @@ namespace Hog
 					return false;
 				}
 			}
-			
-			// path.filename().replace_extension({ ".bin" });
 
-			//cgltf_load_buffers(&options, data, );
-
-			/*for (int i = 0; i < data->materials_count; ++i)
+			for (int i = 0; i < data->images_count; i++)
 			{
-				MaterialData materialData = {};
+				TextureLibrary::LoadOrGet(data->images[i].uri);
+			}
 
-				if (data->materials[i].has_pbr_metallic_roughness)
+			for (int i = 0; i < data->materials_count; i++)
+			{
+				const auto material = &(data->materials[i]);
+				MaterialData matData = {};
+
+				matData.DiffuseColor = glm::vec4(material->pbr_metallic_roughness.base_color_factor[0],
+					material->pbr_metallic_roughness.base_color_factor[1],
+					material->pbr_metallic_roughness.base_color_factor[2],
+					material->pbr_metallic_roughness.base_color_factor[3]);
+
+				if (material->pbr_metallic_roughness.base_color_texture.texture)
 				{
-					if (data->materials[i].pbr_metallic_roughness.base_color_texture.texture != nullptr)
-					{
-						materialData.DiffuseTexture =
-							TextureLibrary::LoadOrGet(
-								{ data->materials[i].pbr_metallic_roughness.base_color_texture.texture->image->uri });
-					}
+					matData.DiffuseTexture = TextureLibrary::LoadOrGet(material->pbr_metallic_roughness.base_color_texture.texture->image->uri);
+				}
+				else
+				{
+					matData.DiffuseTexture = TextureLibrary::LoadOrGet("zeros");
 				}
 
-				MaterialLibrary::Create({ data->materials[i].name }, materialData);
-			}*/
+				MaterialLibrary::Create(material->name, matData);
+			}
 
-			const size_t initialSize = objects.size();
-			objects.reserve(initialSize + data->meshes_count);
-
-			std::vector<glm::vec3> buffer;
-
-			for (int i = 0; i < data->meshes_count; ++i)
+			for (int i = 0; i < data->nodes_count; ++i)
 			{
-				for (int j = 0; j < data->meshes[i].primitives_count; ++j)
+				const auto node = &(data->nodes[i]);
+				if (node->mesh)
 				{
-					for (int k = 0; k < data->meshes[i].primitives[j].attributes_count; ++k)
-					{
-						const auto attribute = data->meshes[i].primitives[j].attributes[k];
-						const cgltf_size floats = cgltf_accessor_unpack_floats(attribute.data, nullptr, 0);
+					auto nodeMesh = Mesh::Create(node->name);
+					objects.push_back(nodeMesh);
 
-						if (buffer.size() < floats / 3)
+					const auto mesh = node->mesh;
+					for (int j = 0; j < mesh->primitives_count; ++j)
+					{
+						const auto primitive = &(mesh->primitives[j]);
+
+						std::vector<uint16_t> indexData;
+						std::vector<Vertex> vertexData;
+
+						indexData.resize(primitive->indices->count);
+						for (int z = 0; z < primitive->indices->count; z += 3)
 						{
-							buffer.resize(floats / 3);
+							indexData[z + 2] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z));
+							indexData[z + 1] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z + 1));
+							indexData[z + 0] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z + 2));
 						}
 
-						cgltf_accessor_unpack_floats(attribute.data, (cgltf_float*)buffer.data(), floats);
+						vertexData.resize(primitive->attributes->data->count);
+						std::vector<glm::vec3> positions;
+						std::vector<glm::vec3> normals;
+						std::vector<glm::vec2> texcoords;
+						for (int z = 0; z < primitive->attributes_count; ++z)
+						{
+							const auto attribute = &(primitive->attributes[z]);
 
+							switch (attribute->type)
+							{
+							case cgltf_attribute_type_position:
+							{
+								cgltf_size count = cgltf_accessor_unpack_floats(attribute->data, nullptr, 0);
+
+								positions.resize(count / 3);
+
+								cgltf_accessor_unpack_floats(attribute->data, reinterpret_cast<cgltf_float*>(positions.data()), count);
+							}break;
+							case cgltf_attribute_type_normal:
+							{
+								cgltf_size count = cgltf_accessor_unpack_floats(attribute->data, nullptr, 0);
+
+								normals.resize(count / 3);
+
+								cgltf_accessor_unpack_floats(attribute->data, reinterpret_cast<cgltf_float*>(normals.data()), count);
+							}break;
+							case cgltf_attribute_type_texcoord:
+							{
+								cgltf_size count = cgltf_accessor_unpack_floats(attribute->data, nullptr, 0);
+
+								texcoords.resize(count / 2);
+
+								cgltf_accessor_unpack_floats(attribute->data, reinterpret_cast<cgltf_float*>(texcoords.data()), count);
+							}break;
+							default: break;
+							}
+						}
+
+						for (int z = 0; z < vertexData.size(); ++z)
+						{
+							vertexData[z].Position = positions[z];
+							vertexData[z].Normal = normals[z];
+							vertexData[z].TexCoords = texcoords[z];
+							
+							if (primitive->material)
+							{
+								vertexData[z].MaterialIndex = MaterialLibrary::Get(primitive->material->name)->GetGPUIndex();
+							}
+						}
+
+						nodeMesh->AddPrimitive(vertexData, indexData);
 					}
+
+					nodeMesh->Build();
+
+					glm::mat4 modelMat = glm::mat4(1.0f);
+					if (node->has_matrix)
+					{
+						modelMat = glm::mat4(node->matrix[0], node->matrix[1], node->matrix[2], node->matrix[3],
+							node->matrix[4], node->matrix[5], node->matrix[6], node->matrix[7],
+							node->matrix[8], node->matrix[9], node->matrix[10], node->matrix[11],
+							node->matrix[12], node->matrix[13], node->matrix[14], node->matrix[15]);
+					}
+					else
+					{
+						if (node->has_translation)
+						{
+							modelMat = glm::translate(modelMat, glm::vec3(node->translation[0], node->translation[1], node->translation[2]));
+						}
+
+						if (node->has_rotation)
+						{
+							modelMat *= glm::toMat4(glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]));
+						}
+
+						if (node->has_scale)
+						{
+							modelMat = glm::scale(modelMat, glm::vec3(node->scale[0], node->scale[1], node->scale[2]));
+						}
+					}
+
+					nodeMesh->SetModelMatrix(modelMat);
+				}
+
+				if (node->camera)
+				{
+					glm::mat4 projection = glm::perspective(
+						node->camera->data.perspective.yfov,
+						node->camera->data.perspective.aspect_ratio,
+						node->camera->data.perspective.znear,
+						node->camera->data.perspective.zfar);
+					glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(node->parent->translation[0], node->parent->translation[1], node->parent->translation[2]))
+						* glm::toMat4(
+							glm::quat(node->parent->rotation[3], node->parent->rotation[0], node->parent->rotation[1], node->parent->rotation[2])
+							* glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]))
+						* glm::rotate(glm::mat4(1.f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+						;
+					glm::mat4 camera = projection * glm::inverse(view);
+
+					cameras.push_back(camera);
+
+					std::vector<glm::vec3> frustrumCorners;
+					Math::CalculateFrustrumCorners(frustrumCorners, projection);
+
+					std::vector<uint16_t> indexData = {
+						7, 6, 5,
+						4, 7, 5,
+
+						2, 1, 6,
+						1, 5, 6,
+
+						1, 0, 5,
+						0, 4, 5,
+
+						0, 3, 4,
+						2, 7, 3, // FIX ME
+
+						3, 2, 7,
+						2, 6, 7,
+
+						0, 1, 2,
+						3, 0, 2,
+					};
+
+					std::vector<Vertex> vertexData;
+
+					for (size_t i = 0; i < frustrumCorners.size(); i++)
+					{
+						Vertex vertex = {
+							frustrumCorners[i]
+						};
+
+						vertexData.push_back(vertex);
+					}
+
+					auto mesh = Mesh::Create("Frustrum");
+					mesh->AddPrimitive(vertexData, indexData);
+					mesh->Build();
+					mesh->SetModelMatrix(view);
+
+					// objects.push_back(mesh);
 				}
 			}
 

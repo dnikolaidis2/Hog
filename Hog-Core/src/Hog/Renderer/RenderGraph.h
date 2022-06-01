@@ -1,8 +1,9 @@
 #pragma once
 
-#include "Hog/Renderer/RendererObject.h"
 #include "Hog/Renderer/Shader.h"
 #include "Hog/Renderer/Buffer.h"
+#include "Hog/Renderer/Mesh.h"
+#include "Hog/Renderer/Image.h"
 #include "Hog/Renderer/Types.h"
 
 namespace Hog
@@ -153,6 +154,7 @@ namespace Hog
 		void* ConstantDataPointer = nullptr;
 		uint32_t Binding = 0;
 		uint32_t Set = 0;
+		uint32_t ArrayMaxCount = 0;
 		BarrierDescription Barrier;
 
 		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Buffer> buffer, uint32_t binding, uint32_t set, BarrierDescription barrier = {})
@@ -161,8 +163,8 @@ namespace Hog
 		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Image> texture, uint32_t binding, uint32_t set, BarrierDescription barrier = {})
 			: Name(name), Type(type), BindLocation(bindLocation), Texture(texture), Binding(binding), Set(set), Barrier(barrier) {}
 
-		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, const std::vector<Ref<Image>>& images, uint32_t binding, uint32_t set, BarrierDescription barrier = {})
-			: Name(name), Type(type), BindLocation(bindLocation), Images(images), Binding(binding), Set(set), Barrier(barrier) {}
+		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, const std::vector<Ref<Image>>& images, uint32_t binding, uint32_t set, uint32_t arrayMaxCount,  BarrierDescription barrier = {})
+			: Name(name), Type(type), BindLocation(bindLocation), Images(images), Binding(binding), Set(set), ArrayMaxCount(arrayMaxCount), Barrier(barrier) {}
 
 		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, uint32_t constantID, size_t constantSize, void* dataPointer)
 			: Name(name), Type(type), BindLocation(bindLocation), ConstantID(constantID), ConstantSize(constantSize), ConstantDataPointer(dataPointer) {}
@@ -201,9 +203,7 @@ namespace Hog
 		RendererStageType StageType;
 		VertexInputLayout VertexInputLayout;
 		ResourceLayout Resources;
-		Ref<Buffer> VertexBuffer;
-		Ref<Buffer> IndexBuffer;
-		std::vector<Ref<RendererObject>> Objects;
+		std::vector<Ref<Mesh>> Meshes;
 		AttachmentLayout Attachments;
 		glm::ivec3 GroupCounts = {0, 0, 0};
 		Ref<Buffer> DispatchBuffer;
@@ -222,12 +222,8 @@ namespace Hog
 			: Name(name), Shader(shader), StageType(type), Resources(resources), Attachments(attachmentElements) {}
 
 		StageDescription(const std::string& name, Ref<Hog::Shader> shader, RendererStageType type, std::initializer_list<VertexElement> vertexInput,
-			std::initializer_list<ResourceElement> resources, Ref<Buffer> vertexBuffer, Ref<Buffer> indexBuffer, std::initializer_list<AttachmentElement> attachmentElements)
-			: Name(name), Shader(shader), StageType(type), VertexInputLayout(vertexInput), Resources(resources), VertexBuffer(vertexBuffer), IndexBuffer(indexBuffer), Attachments(attachmentElements) {}
-
-		StageDescription(const std::string& name, Ref<Hog::Shader> shader, RendererStageType type, std::initializer_list<VertexElement> vertexInput,
-			std::initializer_list<ResourceElement> resources, const std::vector<Ref<RendererObject>>& objects, std::initializer_list<AttachmentElement> attachmentElements)
-			: Name(name), Shader(shader), StageType(type), VertexInputLayout(vertexInput), Resources(resources), Objects(objects), Attachments(attachmentElements) {}
+			std::initializer_list<ResourceElement> resources, const std::vector<Ref<Mesh>>& meshes, std::initializer_list<AttachmentElement> attachmentElements)
+			: Name(name), Shader(shader), StageType(type), VertexInputLayout(vertexInput), Resources(resources), Meshes(meshes), Attachments(attachmentElements) {}
 
 		StageDescription() = default;
 	};

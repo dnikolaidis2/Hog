@@ -3,10 +3,9 @@
 struct MaterialData
 {
     vec3 AmbientColor;
-    int AmbientTextureIndex;
-
-    vec3 DiffuseColor;
     int DiffuseTextureIndex;
+
+    vec4 DiffuseColor;
 
     vec3 SpecularColor;
     int SpecularTextureIndex;
@@ -40,10 +39,10 @@ layout(set = 0, binding = 2) uniform sampler2D u_Textures[TEXTURE_ARRAY_SIZE];
 
 void main() {
     MaterialData mat = u_Materials[v_MaterialIndex];
-    bool alpha = (texture(u_Textures[mat.AlphaMapIndex], v_TexCoord).x > 0.0);
-    if (!alpha) discard;
     
-    vec4 texColor = vec4(mat.DiffuseColor, 1.0);
-    texColor *= texture(u_Textures[mat.DiffuseTextureIndex], v_TexCoord);
-    o_Color = texColor;
+    vec4 texelColor = mat.DiffuseColor;
+    vec4 textureColor = texture(u_Textures[mat.DiffuseTextureIndex], v_TexCoord);
+    if (textureColor.a == 0.0) discard;
+    texelColor *= textureColor;
+    o_Color = texelColor;
 }
