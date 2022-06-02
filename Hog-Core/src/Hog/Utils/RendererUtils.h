@@ -2,7 +2,7 @@
 #include "Hog/Core/Assert.h"
 #include "Hog/Core/Log.h"
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 namespace Hog
 {

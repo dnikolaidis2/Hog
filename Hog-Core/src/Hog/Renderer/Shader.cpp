@@ -6,7 +6,7 @@
 #include <spirv_cross/spirv_cross.hpp>
 #include <spirv_cross/spirv_glsl.hpp>
 #include <spirv_reflect.h>
-#include <vulkan/vulkan.h>
+#include <volk.h>
 #include <yaml-cpp/yaml.h>
 
 #include "Renderer.h"

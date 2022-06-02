@@ -2,7 +2,7 @@
 
 #include <shaderc/shaderc.h>
 #include <yaml-cpp/yaml.h>
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 #include "Hog/Renderer/Pipeline.h"
 #include "Hog/Renderer/Types.h"

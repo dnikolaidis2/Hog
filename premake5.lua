@@ -32,6 +32,7 @@ group "Dependencies"
 	include "Hog-Core/vendor/imgui"
 	include "Hog-Core/vendor/yaml-cpp"
 	include "Hog-Core/vendor/optick/premake5.core.lua"
+	include "Hog-Core/vendor/volk"
 group ""
 
 include "Hog-Core"

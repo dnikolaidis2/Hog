@@ -1,7 +1,7 @@
 #pragma once
 
 #include <sstream>
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include "Hog/Core/Base.h"
 #include "Hog/Events/Event.h"

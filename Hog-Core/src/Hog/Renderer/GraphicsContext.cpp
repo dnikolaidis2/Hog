@@ -137,6 +137,8 @@ namespace Hog {
 		CVar_ValidationLayers.Set(0);
 #endif
 
+		CheckVkResult(volkInitialize());
+
 		CreateInstance();
 		SetupDebugMessenger();
 		Application::Get().GetWindow().CreateSurface(Instance, nullptr, &(Surface));
@@ -406,6 +408,8 @@ namespace Hog {
 		createInfo.ppEnabledLayerNames = ValidationLayers.data();
 
 		CheckVkResult(vkCreateInstance(&createInfo, nullptr, &Instance));
+
+		volkLoadInstance(Instance);
 	}
 
 	void GraphicsContext::DestroyInstance()
@@ -652,6 +656,8 @@ namespace Hog {
 		// Create the device
 		CheckVkResult(vkCreateDevice(PhysicalDevice, &info, nullptr, &Device));
 
+		volkLoadDevice(Device);
+
 		// Now get the queues from the devie we just created.
 		vkGetDeviceQueue(Device, QueueFamilyIndex, 0, &Queue);
 	}
@@ -659,12 +665,40 @@ namespace Hog {
 	void GraphicsContext::InitializeAllocator()
 	{
 		HG_PROFILE_FUNCTION();
+		
+		VmaVulkanFunctions vulkanFunctions = {};
+		vulkanFunctions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+		vulkanFunctions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+		vulkanFunctions.vkAllocateMemory = vkAllocateMemory;
+		vulkanFunctions.vkFreeMemory = vkFreeMemory;
+		vulkanFunctions.vkMapMemory = vkMapMemory;
+		vulkanFunctions.vkUnmapMemory = vkUnmapMemory;
+		vulkanFunctions.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
+		vulkanFunctions.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
+		vulkanFunctions.vkBindBufferMemory = vkBindBufferMemory;
+		vulkanFunctions.vkBindImageMemory = vkBindImageMemory;
+		vulkanFunctions.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+		vulkanFunctions.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+		vulkanFunctions.vkCreateBuffer = vkCreateBuffer;
+		vulkanFunctions.vkDestroyBuffer = vkDestroyBuffer;
+		vulkanFunctions.vkCreateImage = vkCreateImage;
+		vulkanFunctions.vkDestroyImage = vkDestroyImage;
+		vulkanFunctions.vkCmdCopyBuffer = vkCmdCopyBuffer;
+		vulkanFunctions.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR;
+		vulkanFunctions.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
+		vulkanFunctions.vkBindBufferMemory2KHR = vkBindBufferMemory2KHR;
+		vulkanFunctions.vkBindImageMemory2KHR = vkBindImageMemory2KHR;
+		vulkanFunctions.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2KHR;
+		vulkanFunctions.vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements;
+		vulkanFunctions.vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements;
+
 		VmaAllocatorCreateInfo allocatorInfo = {};
 		allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_2;
 		allocatorInfo.physicalDevice = PhysicalDevice;
 		allocatorInfo.device = Device;
 		allocatorInfo.instance = Instance;
 		allocatorInfo.flags |= VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT | VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+		allocatorInfo.pVulkanFunctions = &vulkanFunctions;
 
 		vmaCreateAllocator(&allocatorInfo, &Allocator);
 	}

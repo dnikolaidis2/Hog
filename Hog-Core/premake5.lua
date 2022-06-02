@@ -30,10 +30,11 @@ project "Hog-Core"
 	defines
 	{
 		"_CRT_SECURE_NO_WARNINGS",
-		"GLFW_INCLUDE_VULKAN",
 		"VK_VERSION_1_3",
 		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
 		"GLM_FORCE_LEFT_HANDED",
+		"VMA_STATIC_VULKAN_FUNCTIONS",
+		"VMA_DYNAMIC_VULKAN_FUNCTIONS=0"
 	}
 
 	includedirs
@@ -48,24 +49,22 @@ project "Hog-Core"
 		"%{IncludeDir.vma}",
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.tinyobjloader}",
-		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.optick}",
 		"%{IncludeDir.SPIRV_Reflect}",
+		"%{IncludeDir.volk}",
+		"%{IncludeDir.VulkanSDK}",
 	}
 
 	links
 	{
 		"GLFW",
 		"yaml-cpp",
-		"ImGui"
+		"ImGui",
+		"volk"
 	}
 
 	filter "system:windows"
 		systemversion "latest"
-
-		defines
-		{
-		}
 
 	filter "configurations:Debug"
 		defines "HG_DEBUG"

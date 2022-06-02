@@ -18,7 +18,7 @@
 #include <queue>
 #include <stack>
 
-#include "vulkan/vulkan.h"
+#include <volk.h>
 
 #include "Hog/Core/Base.h"
 

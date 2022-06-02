@@ -20,6 +20,7 @@ IncludeDir["SPIRV_Cross"] = "%{wks.location}/Hog-Core/vendor/SPIRV-Cross"
 IncludeDir["SPIRV_Reflect"] = "%{wks.location}/Hog-Core/vendor/spirv-reflect"
 IncludeDir["VulkanSDK"] = "%{VULKAN_SDK}/Include"
 IncludeDir["optick"] = "%{wks.location}/Hog-Core/vendor/optick/src"
+IncludeDir["volk"] = "%{wks.location}/Hog-Core/vendor/volk"
 
 LibraryDir = {}
 

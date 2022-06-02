@@ -30,15 +30,16 @@ project "GraphicsExample"
 		"%{IncludeDir.vma}",
 		"%{IncludeDir.tinyobjloader}",
 		"%{IncludeDir.cgltf}",
-		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.optick}",
 		"%{IncludeDir.yaml_cpp}",
+		"%{IncludeDir.volk}",
+		"%{IncludeDir.VulkanSDK}",
 	}
 
 	links
 	{
 		"Hog-Core",
-		"%{Library.Vulkan}",
+		"Volk",
 	}
 
 	filter "system:windows"
