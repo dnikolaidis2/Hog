@@ -14,8 +14,8 @@ namespace Hog
 		uint64_t GetVertexDataSize() const { return m_Vertices.size() * sizeof(Vertex); }
 		uint64_t GetIndexDataSize() const { return m_Indices.size() * sizeof(uint16_t); }
 
-		uint32_t GetVertexCount() const { return m_Vertices.size(); }
-		uint32_t GetIndexCount() const { return m_Indices.size(); }
+		size_t GetVertexCount() const { return m_Vertices.size(); }
+		size_t GetIndexCount() const { return m_Indices.size(); }
 
 		uint64_t GetVertexOffset() const { return m_VertexRegion->GetOffset(); }
 		uint64_t GetIndexOffset() const { return m_IndexRegion->GetOffset(); }
@@ -62,8 +62,8 @@ namespace Hog
 		std::vector<uint64_t> m_VertexOffsets;
 		std::vector<uint64_t> m_IndexOffsets;
 
-		uint32_t m_VertexBufferSize = 0;
-		uint32_t m_IndexBufferSize = 0;
+		size_t m_VertexBufferSize = 0;
+		size_t m_IndexBufferSize = 0;
 
 		glm::mat4 m_ModelMatrix = glm::mat4(1.0f);
 	};

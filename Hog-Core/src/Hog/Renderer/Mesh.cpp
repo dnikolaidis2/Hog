@@ -56,7 +56,7 @@ namespace Hog
 			vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer->GetHandle(), primitive.GetIndexOffset(), VK_INDEX_TYPE_UINT16);
 			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-			vkCmdDrawIndexed(commandBuffer,  primitive.GetIndexCount(), 1, 0, 0, 0);
+			vkCmdDrawIndexed(commandBuffer,  static_cast<uint32_t>(primitive.GetIndexCount()), 1, 0, 0, 0);
 		}
 	}
 }

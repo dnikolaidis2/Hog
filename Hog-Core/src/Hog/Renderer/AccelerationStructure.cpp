@@ -25,8 +25,8 @@ namespace Hog
 			vertices[i].Position = primitiveVertices[i].Position;
 		}
 
-		m_VertexBuffer = Buffer::Create(BufferDescription::Defaults::AccelerationStructureBuildInput, vertices.size() * sizeof(TriangleVertex));
-		m_VertexBuffer->WriteData(vertices.data(), vertices.size() * sizeof(TriangleVertex));
+		m_VertexBuffer = Buffer::Create(BufferDescription::Defaults::AccelerationStructureBuildInput, static_cast<uint64_t>(vertices.size() * sizeof(TriangleVertex)));
+		m_VertexBuffer->WriteData(vertices.data(), static_cast<uint64_t>(vertices.size() * sizeof(TriangleVertex)));
 
 		m_IndexBuffer = Buffer::Create(BufferDescription::Defaults::AccelerationStructureBuildInput, primitiveIndicies.size() * sizeof(uint16_t));
 		m_VertexBuffer->WriteData(const_cast<uint16_t*>(primitiveIndicies.data()), vertices.size() * sizeof(TriangleVertex));
@@ -38,7 +38,7 @@ namespace Hog
 		accelerationStructureGeometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
 		accelerationStructureGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
 		accelerationStructureGeometry.geometry.triangles.vertexData.deviceAddress = m_VertexBuffer->GetBufferDeviceAddress();
-		accelerationStructureGeometry.geometry.triangles.maxVertex = vertices.size();
+		accelerationStructureGeometry.geometry.triangles.maxVertex = static_cast<uint32_t>(vertices.size());
 		accelerationStructureGeometry.geometry.triangles.vertexStride = sizeof(Vertex);
 		accelerationStructureGeometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT16;
 		accelerationStructureGeometry.geometry.triangles.indexData.deviceAddress = m_IndexBuffer->GetBufferDeviceAddress();
@@ -51,7 +51,7 @@ namespace Hog
 		accelerationStructureBuildGeometryInfo.geometryCount = 1;
 		accelerationStructureBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
 
-		const uint32_t numTriangles = primitiveIndicies.size() / 3;
+		const uint32_t numTriangles = static_cast<uint32_t>(primitiveIndicies.size() / 3);
 		VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{};
 		accelerationStructureBuildSizesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
 		vkGetAccelerationStructureBuildSizesKHR(

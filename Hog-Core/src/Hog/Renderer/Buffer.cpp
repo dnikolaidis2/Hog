@@ -7,7 +7,7 @@
 
 namespace Hog
 {
-	Buffer::Buffer(BufferDescription description, uint32_t size)
+	Buffer::Buffer(BufferDescription description, size_t size)
 		:m_Description(description), m_Size(size)
 	{
 		VkBufferCreateInfo buffeCreateInfo = {
@@ -35,12 +35,12 @@ namespace Hog
 		vmaDestroyBuffer(GraphicsContext::GetAllocator(), m_Handle, m_Allocation);
 	}
 
-	Ref<Buffer> Buffer::Create(BufferDescription type, uint32_t size)
+	Ref<Buffer> Buffer::Create(BufferDescription type, size_t size)
 	{
 		return CreateRef<Buffer>(type, size);
 	}
 
-	void Buffer::WriteData(void* data, uint32_t size, uint64_t bufferOffset, uint64_t dataOffset)
+	void Buffer::WriteData(void* data, size_t size, size_t bufferOffset, size_t dataOffset)
 	{
 		HG_ASSERT(size <= m_Size, "Invalid write command. Tried to write more data then can fit buffer.");
 
@@ -62,7 +62,7 @@ namespace Hog
 				memoryLocation = m_AllocationInfo.pMappedData;
 			}
 
-			memcpy((void*)((uint64_t)memoryLocation + bufferOffset), (void*)((uint64_t)data + dataOffset), size);
+			memcpy((void*)((size_t)memoryLocation + bufferOffset), (void*)((size_t)data + dataOffset), size);
 
 			VkBufferMemoryBarrier2 memoryBarrier = {
 				.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
@@ -133,7 +133,7 @@ namespace Hog
 		}
 	}
 
-	void Buffer::ReadData(void* data, uint32_t size, uint64_t bufferOffset, uint64_t dataOffset)
+	void Buffer::ReadData(void* data, size_t size, size_t bufferOffset, size_t dataOffset)
 	{
 		HG_ASSERT(size <= m_Size, "Invalid read command. Buffer contents do not fit in data.");
 		
@@ -167,7 +167,7 @@ namespace Hog
 				vkCmdPipelineBarrier2(commandBuffer, &depenedencyInfo);
 			});
 
-			memcpy((void*)((uint64_t)data + dataOffset), (void*)((uint64_t)m_AllocationInfo.pMappedData + bufferOffset), m_Size);
+			memcpy((void*)((size_t)data + dataOffset), (void*)((size_t)m_AllocationInfo.pMappedData + bufferOffset), m_Size);
 		}
 		else
 		{
@@ -217,22 +217,22 @@ namespace Hog
 		return vkGetBufferDeviceAddressKHR(GraphicsContext::GetDevice(), &bufferDeviceAI);
 	}
 
-	Ref<BufferRegion> BufferRegion::Create(Ref<Buffer> buffer, uint64_t offset, uint32_t size)
+	Ref<BufferRegion> BufferRegion::Create(Ref<Buffer> buffer, size_t offset, size_t size)
 	{
 		return CreateRef<BufferRegion>(buffer, offset, size);
 	}
 
-	BufferRegion::BufferRegion(Ref<Buffer> buffer, uint64_t offset, uint32_t size)
+	BufferRegion::BufferRegion(Ref<Buffer> buffer, size_t offset, size_t size)
 		: m_Buffer(buffer), m_Offset(offset), m_Size(size)
 	{
 	}
 
-	void BufferRegion::WriteData(void* data, uint32_t size, uint64_t bufferOffset, uint64_t dataOffset)
+	void BufferRegion::WriteData(void* data, size_t size, size_t bufferOffset, size_t dataOffset)
 	{
 		m_Buffer->WriteData(data, size, m_Offset + bufferOffset, dataOffset);
 	}
 
-	void BufferRegion::ReadData(void* data, uint32_t size, uint64_t bufferOffset, uint64_t dataOffset)
+	void BufferRegion::ReadData(void* data, size_t size, size_t bufferOffset, size_t dataOffset)
 	{
 		m_Buffer->ReadData(data, size, m_Offset + bufferOffset, dataOffset);
 	}
