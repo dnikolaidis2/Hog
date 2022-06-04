@@ -126,13 +126,45 @@ namespace Hog
 				const auto node = &(data->nodes[i]);
 				if (node->mesh)
 				{
-					auto nodeMesh = Mesh::Create(node->name);
-					opaque.push_back(nodeMesh);
+					// Load model matrix
+					glm::mat4 modelMat = glm::mat4(1.0f);
+					if (node->has_matrix)
+					{
+						modelMat = glm::mat4(
+							node->matrix[0], node->matrix[1], node->matrix[2], node->matrix[3],
+							node->matrix[4], node->matrix[5], node->matrix[6], node->matrix[7],
+							node->matrix[8], node->matrix[9], node->matrix[10], node->matrix[11],
+							node->matrix[12], node->matrix[13], node->matrix[14], node->matrix[15]
+						);
+					}
+					else
+					{
+						if (node->has_translation)
+						{
+							modelMat = glm::translate(modelMat, glm::vec3(node->translation[0], node->translation[1], node->translation[2]));
+						}
+
+						if (node->has_rotation)
+						{
+							modelMat *= glm::toMat4(glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]));
+						}
+
+						if (node->has_scale)
+						{
+							modelMat = glm::scale(modelMat, glm::vec3(node->scale[0], node->scale[1], node->scale[2]));
+						}
+					}
 
 					const auto mesh = node->mesh;
 					for (int j = 0; j < mesh->primitives_count; ++j)
 					{
 						const auto primitive = &(mesh->primitives[j]);
+
+						auto nodeMesh = Mesh::Create(node->name);
+						if (primitive->material->alpha_mode == cgltf_alpha_mode_opaque)
+							opaque.push_back(nodeMesh);
+						else
+							transparent.push_back(nodeMesh);
 
 						std::vector<uint16_t> indexData;
 						std::vector<Vertex> vertexData;
@@ -196,37 +228,9 @@ namespace Hog
 						}
 
 						nodeMesh->AddPrimitive(vertexData, indexData);
+						nodeMesh->Build();
+						nodeMesh->SetModelMatrix(modelMat);
 					}
-
-					nodeMesh->Build();
-
-					glm::mat4 modelMat = glm::mat4(1.0f);
-					if (node->has_matrix)
-					{
-						modelMat = glm::mat4(node->matrix[0], node->matrix[1], node->matrix[2], node->matrix[3],
-							node->matrix[4], node->matrix[5], node->matrix[6], node->matrix[7],
-							node->matrix[8], node->matrix[9], node->matrix[10], node->matrix[11],
-							node->matrix[12], node->matrix[13], node->matrix[14], node->matrix[15]);
-					}
-					else
-					{
-						if (node->has_translation)
-						{
-							modelMat = glm::translate(modelMat, glm::vec3(node->translation[0], node->translation[1], node->translation[2]));
-						}
-
-						if (node->has_rotation)
-						{
-							modelMat *= glm::toMat4(glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]));
-						}
-
-						if (node->has_scale)
-						{
-							modelMat = glm::scale(modelMat, glm::vec3(node->scale[0], node->scale[1], node->scale[2]));
-						}
-					}
-
-					nodeMesh->SetModelMatrix(modelMat);
 				}
 
 				if (node->camera)
