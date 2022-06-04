@@ -70,7 +70,7 @@ namespace Hog {
 	class Shader
 	{
 	public:
-		static Ref<Shader> Create(const std::string& name, const std::string& vertex, const std::string& fragment);
+		static Ref<Shader> Create(const std::string& name, const std::string& vertex, const std::string& fragment, bool enableBlending = true);
 		static Ref<Shader> Create(const std::string& name);
 	public:
 		Shader(const std::string& name)
@@ -92,6 +92,7 @@ namespace Hog {
 		const std::vector<VkVertexInputAttributeDescription>& GetVertexInputAttributeDescriptions() { return m_VertexInputAttributeDescriptions; }
 		const std::vector<VkVertexInputBindingDescription>& GetVertexInputBindingDescriptions() const { return m_VertexInputBindingDescriptions; }
 
+		void SetBlending(bool enable) { m_EnableBlending = enable; }
 	private:
 		void ReflectPipelineLayout();
 	private:
@@ -112,6 +113,7 @@ namespace Hog {
 		};
 
 		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
+		bool m_EnableBlending = true;
 		Ref<Pipeline> m_Pipeline;
 	};
 }

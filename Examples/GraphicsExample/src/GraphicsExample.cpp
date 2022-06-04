@@ -53,7 +53,28 @@ void GraphicsExample::OnAttach()
 		},
 		m_OpaqueMeshes,
 		{
-			{"Color", AttachmentType::Color, colorAttachment, true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
+			{"Color", AttachmentType::Color, colorAttachment, true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ColorAttachmentOptimal}},
+			{"Depth", AttachmentType::Depth, depthAttachment, true, {ImageLayout::DepthStencilAttachmentOptimal, ImageLayout::DepthStencilAttachmentOptimal}},
+		},
+	});
+
+	auto transparentGraphics = graph.AddStage(graphics, {
+		"ForwardGraphics", Shader::Create("Basic", "Basic.vertex", "Basic.fragment"), RendererStageType::ForwardGraphics,
+		{
+			{DataType::Defaults::Float3, "a_Position"},
+			{DataType::Defaults::Float3, "a_Normal"},
+			{DataType::Defaults::Float2, "a_TexCoords"},
+			{DataType::Defaults::Float3, "a_MaterialIndex"},
+		},
+		{
+			{"u_ViewProjection", ResourceType::Uniform, ShaderType::Defaults::Vertex, m_ViewProjection, 0, 0},
+			{"u_Materials", ResourceType::Uniform, ShaderType::Defaults::Fragment, MaterialLibrary::GetBuffer(), 1, 0},
+			{"u_Textures", ResourceType::SamplerArray, ShaderType::Defaults::Fragment, m_Textures, 2, 0, 512},
+			{"p_Model", ResourceType::PushConstant, ShaderType::Defaults::Vertex, sizeof(PushConstant), &m_PushConstant},
+		},
+		m_TransparentMeshes,
+		{
+			{"Color", AttachmentType::Color, colorAttachment, false, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
 			{"Depth", AttachmentType::Depth, depthAttachment, true, {ImageLayout::DepthStencilAttachmentOptimal, ImageLayout::DepthStencilAttachmentOptimal}},
 		},
 	});
@@ -69,8 +90,8 @@ void GraphicsExample::OnAttach()
 	//	}
 	//});
 
-	graph.AddStage(graphics, {
-		"BlitStage", Shader::Create("Blit", "fullscreen.vertex", "blit.fragment"), RendererStageType::Blit,
+	graph.AddStage(transparentGraphics, {
+		"BlitStage", Shader::Create("Blit", "fullscreen.vertex", "blit.fragment", false), RendererStageType::Blit,
 		{{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, colorAttachmentTexture, 0, 0, {
 				PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentWrite,
 				PipelineStage::FragmentShader, AccessFlag::ShaderSampledRead,

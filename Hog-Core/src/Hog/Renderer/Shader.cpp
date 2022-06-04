@@ -288,11 +288,13 @@ namespace Hog {
 		return shaderData;
 	}
 
-	Ref<Shader> Shader::Create(const std::string& name, const std::string& vertex, const std::string& fragment)
+	Ref<Shader> Shader::Create(const std::string& name, const std::string& vertex, const std::string& fragment, bool enableBlending)
 	{
 		auto shader = CreateRef<Shader>(name);
 		shader->AddStage(vertex);
 		shader->AddStage(fragment);
+
+		shader->SetBlending(enableBlending);
 
 		return shader;
 	}
@@ -359,7 +361,6 @@ namespace Hog {
 			m_Modules[stage] = shaderModule;
 		}
 
-
 		m_Pipeline->Create();
 	}
 
@@ -383,6 +384,7 @@ namespace Hog {
 			m_Modules[stage] = shaderModule;
 		}
 
+		m_Pipeline->SetBlending(m_EnableBlending);
 
 		m_Pipeline->Create();
 	}

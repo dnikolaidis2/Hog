@@ -17,6 +17,7 @@ namespace Hog
 
 		virtual VkPipeline Create() = 0;
 		virtual void Bind(VkCommandBuffer commandBuffer) = 0;
+		virtual void SetBlending(bool enable) = 0;
 
 		void AddShaderStage(ShaderType type, VkShaderModule shaderModule, VkSpecializationInfo* specializationInfo, const char* main = "main");
 		void Destroy();
@@ -35,6 +36,7 @@ namespace Hog
 
 		virtual VkPipeline Create() override;
 		virtual void Bind(VkCommandBuffer commandBuffer) override;
+		virtual void SetBlending(bool enable) override { ColorBlendAttachmentState.blendEnable = enable; }
 	public:
 		std::vector<VkVertexInputBindingDescription> VertexInputBindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> VertexInputAttributeDescriptions;
@@ -83,7 +85,7 @@ namespace Hog
 		};
 
 		VkPipelineColorBlendAttachmentState ColorBlendAttachmentState = {
-			.blendEnable = VK_FALSE,
+			.blendEnable = VK_TRUE,
 			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
 			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
 			.colorBlendOp = VK_BLEND_OP_ADD,
@@ -160,6 +162,7 @@ namespace Hog
 
 		virtual VkPipeline Create() override;
 		virtual void Bind(VkCommandBuffer commandBuffer) override;
+		virtual void SetBlending(bool enable) override {  }
 	public:
 		VkComputePipelineCreateInfo ComputePipelineCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
