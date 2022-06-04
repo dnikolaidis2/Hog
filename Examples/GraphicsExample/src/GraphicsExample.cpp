@@ -24,14 +24,15 @@ void GraphicsExample::OnAttach()
 
 	HG_PROFILE_GPU_INIT_VULKAN(&(context.Device), &(context.PhysicalDevice), &(context.Queue), &(context.QueueFamilyIndex), 1, nullptr);
 
-	TextureLibrary::Initialize();
+	Ref<Buffer> m_MaterialBuffer { nullptr };
 
 	// LoadGltfFile("assets/models/sponza-intel/NewSponza_Main_Blender_glTF.gltf", m_Meshes, m_Cameras);
-	LoadGltfFile("assets/models/sponza/sponza.gltf", m_Meshes, m_Cameras);
+	LoadGltfFile("assets/models/sponza/sponza.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer);
 	// LoadGltfFile("assets/models/cube/cube.gltf", m_Meshes, m_Cameras);
 
-	Ref<Image> colorAttachment = Renderer::GetFinalRenderTarget();
+	Ref<Image> colorAttachment = Image::Create(ImageDescription::Defaults::SampledColorAttachment, 1);
 	Ref<Image> depthAttachment = Image::Create(ImageDescription::Defaults::Depth, 1);
+	Ref<Texture> colorAttachmentTexture = Texture::Create({}, colorAttachment);
 
 	m_ViewProjection = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(glm::mat4));
 
@@ -47,10 +48,10 @@ void GraphicsExample::OnAttach()
 		{
 			{"u_ViewProjection", ResourceType::Uniform, ShaderType::Defaults::Vertex, m_ViewProjection, 0, 0},
 			{"u_Materials", ResourceType::Uniform, ShaderType::Defaults::Fragment, MaterialLibrary::GetBuffer(), 1, 0},
-			{"u_Textures", ResourceType::SamplerArray, ShaderType::Defaults::Fragment, TextureLibrary::GetLibraryArray(), 2, 0, 512},
+			{"u_Textures", ResourceType::SamplerArray, ShaderType::Defaults::Fragment, m_Textures, 2, 0, 512},
 			{"p_Model", ResourceType::PushConstant, ShaderType::Defaults::Vertex, sizeof(PushConstant), &m_PushConstant},
 		},
-		m_Meshes,
+		m_OpaqueMeshes,
 		{
 			{"Color", AttachmentType::Color, colorAttachment, true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
 			{"Depth", AttachmentType::Depth, depthAttachment, true, {ImageLayout::DepthStencilAttachmentOptimal, ImageLayout::DepthStencilAttachmentOptimal}},
@@ -70,7 +71,7 @@ void GraphicsExample::OnAttach()
 
 	graph.AddStage(graphics, {
 		"BlitStage", Shader::Create("Blit", "fullscreen.vertex", "blit.fragment"), RendererStageType::Blit,
-		{{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, colorAttachment, 0, 0, {
+		{{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, colorAttachmentTexture, 0, 0, {
 				PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentWrite,
 				PipelineStage::FragmentShader, AccessFlag::ShaderSampledRead,
 		}},},
@@ -90,9 +91,10 @@ void GraphicsExample::OnDetach()
 
 	Renderer::Cleanup();
 	MaterialLibrary::Clneaup();
-	TextureLibrary::Cleanup();
 
-	m_Meshes.clear();
+	m_OpaqueMeshes.clear();
+	m_TransparentMeshes.clear();
+	m_Textures.clear();
 	m_ViewProjection.reset();
 
 	GraphicsContext::Deinitialize();
@@ -103,7 +105,7 @@ void GraphicsExample::OnUpdate(Timestep ts)
 	HG_PROFILE_FUNCTION();
 
 	m_EditorCamera.OnUpdate(ts);
-	glm::mat4 viewProj = m_Cameras[0];
+	glm::mat4 viewProj = m_Cameras.begin()->second;
 	m_ViewProjection->WriteData(&viewProj, sizeof(viewProj));
 }
 

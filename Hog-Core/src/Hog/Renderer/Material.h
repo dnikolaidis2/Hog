@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 
 #include "Hog/Renderer/Buffer.h"
-#include "Hog/Renderer/Image.h"
+#include "Hog/Renderer/Texture.h"
 
 namespace Hog
 {
@@ -24,13 +24,13 @@ namespace Hog
 		float EmissiveStrength = 0.0f;
 		glm::vec3 EmissiveColor = glm::vec3(0.0f);
 
-		Ref<Image> AmbientTexture;
-		Ref<Image> DiffuseTexture;
-		Ref<Image> SpecularTexture;
-		Ref<Image> SpecularHighlightTexture;
-		Ref<Image> AlphaMap;
-		Ref<Image> BumpMap;
-		Ref<Image> DisplacementMap;
+		Ref<Texture> AmbientTexture;
+		Ref<Texture> DiffuseTexture;
+		Ref<Texture> SpecularTexture;
+		Ref<Texture> SpecularHighlightTexture;
+		Ref<Texture> AlphaMap;
+		Ref<Texture> BumpMap;
+		Ref<Texture> DisplacementMap;
 	};
 
 	/*
@@ -126,7 +126,7 @@ namespace Hog
 
 		~Material() = default;
 
-		const Ref<Image>& GetDiffuseTexture() const { return m_Data.DiffuseTexture; }
+		const Ref<Texture>& GetDiffuseTexture() const { return m_Data.DiffuseTexture; }
 		MaterialData& GetMaterialData() { return m_Data; }
 		void SetGPUIndex(int32_t ind) { m_GPUIndex = ind; }
 		int32_t GetGPUIndex() { return m_GPUIndex; }

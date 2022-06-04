@@ -10,6 +10,7 @@ namespace Hog
 	class Image
 	{
 	public:
+		static Ref<Image> LoadFromFile(const std::string& filepath);
 		static Ref<Image> Create(ImageDescription description, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
 		static Ref<Image> Create(ImageDescription description, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
 		static Ref<Image> Create(ImageDescription description, uint32_t levelCount, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
@@ -25,13 +26,12 @@ namespace Hog
 		void ExecuteBarrier(VkCommandBuffer commandBuffer, const BarrierDescription& description);
 
 		VkImageView GetImageView() const { return m_View; }
-		VkFormat GetInternalFormat() const { return m_InternalFormat; }
-		VkSampler GetOrCreateSampler();
-		void SetGPUIndex(int32_t ind) { m_GPUIndex = ind; }
-		int32_t GetGPUIndex() const { return m_GPUIndex; }
+		VkFormat GetFormat() const { return m_Description.Format; }
 		const ImageDescription& GetDescription() const {return m_Description;}
 		VkSampleCountFlagBits GetSamples() const { return m_Samples; }
 		VkExtent2D GetExtent() const { return VkExtent2D(m_Width, m_Height); }
+		VkImageLayout GetImageLayout() const { return m_Description.ImageLayout; }
+		uint32_t GetLevelCount() const { return m_LevelCount; }
 		uint32_t GetWidth() const { return m_Width; }
 		uint32_t GetHeight() const { return m_Height; }
 	private:
@@ -49,10 +49,6 @@ namespace Hog
 		uint32_t m_Height;
 		bool m_IsSwapChainImage;
 		bool m_Allocated;
-		int32_t m_GPUIndex  = 0;
-
-		VkDescriptorSet m_DescriptorSet = nullptr;
-		VkSampler m_Sampler = nullptr;
 
 		VkImageCreateInfo m_ImageCreateInfo = {
 				.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -76,24 +72,5 @@ namespace Hog
 				.layerCount = 1
 			}
 		};
-	};
-
-	class TextureLibrary
-	{
-	public:
-		TextureLibrary() = delete;
-
-		static void Add(const std::string& name, const Ref<Image>& image);
-		static Ref<Image> LoadFromFile(const std::string& filepath);
-		static Ref<Image> LoadOrGet(const std::string& filepath);
-
-		static Ref<Image> Get(const std::string& name);
-
-		static std::vector<Ref<Image>> GetLibraryArray();
-
-		static void Initialize();
-		static void Cleanup();
-
-		static bool Exists(const std::string& name);
 	};
 }

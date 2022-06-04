@@ -17,8 +17,8 @@ namespace Hog
 		RenderGraph Graph;
 		std::vector<RendererFrame> Frames;
 		std::vector<RendererStage> Stages;
+		bool Present = false;
 		DescriptorLayoutCache DescriptorLayoutCache;
-		Ref<Image> FinalTarget;
 		Ref<ImGuiLayer> ImGuiLayer;
 
 		uint32_t FrameIndex = 0;
@@ -52,20 +52,36 @@ namespace Hog
 
 			stage.Init();
 
-			if (stage.Info.StageType == RendererStageType::ImGui)
+			switch (stage.Info.StageType)
 			{
-				s_Data.ImGuiLayer = CreateRef<ImGuiLayer>(stage.RenderPass);
-				Application::Get().SetImGuiLayer(s_Data.ImGuiLayer);
-			}
+				case RendererStageType::ImGui:
+				{
+					s_Data.ImGuiLayer = CreateRef<ImGuiLayer>(stage.RenderPass);
+					Application::Get().SetImGuiLayer(s_Data.ImGuiLayer);
+					s_Data.Present = true;
+				}break;
 
-			if (stage.Info.StageType == RendererStageType::Blit)
-			{
-				blitRenderPass = stage.RenderPass;
+				case RendererStageType::Blit:
+				{
+					blitRenderPass = stage.RenderPass;
+					s_Data.Present = true;
+				}break;
+
+				case RendererStageType::ForwardGraphics:
+				case RendererStageType::DeferredGraphics:
+				{
+					s_Data.Present = true;
+				}break;
+
+				default:
+				{
+					s_Data.Present = false;
+				}break;
 			}
 		}
 
 		s_Data.Frames.resize(s_Data.MaxFrameCount);
-		if (s_Data.FinalTarget)
+		if (s_Data.Present)
 		{
 			for (int i = 0; i < s_Data.Frames.size(); ++i)
 			{
@@ -101,7 +117,6 @@ namespace Hog
 
 	void Renderer::Cleanup()
 	{
-		s_Data.FinalTarget.reset();
 		std::for_each(s_Data.Frames.begin(), s_Data.Frames.end(), [](RendererFrame& elem) {elem.Cleanup(); });
 		s_Data.Frames.clear();
 		std::for_each(s_Data.Stages.begin(), s_Data.Stages.end(), [](RendererStage& elem) {elem.Cleanup(); });
@@ -111,22 +126,6 @@ namespace Hog
 		
 		Application::Get().PopOverlay(s_Data.ImGuiLayer);
 		s_Data.ImGuiLayer.reset();
-	}
-
-	void Renderer::SetFinalRenderTarget(Ref<Image> image)
-	{
-		s_Data.FinalTarget = image;
-	}
-
-	Ref<Image> Renderer::GetFinalRenderTarget()
-	{
-		if (!s_Data.FinalTarget)
-		{
-			VkExtent2D extent = GraphicsContext::GetExtent();
-			s_Data.FinalTarget = Image::Create(ImageDescription::Defaults::SampledColorAttachment, 1);
-		}
-
-		return s_Data.FinalTarget;
 	}
 
 	DescriptorLayoutCache* Renderer::GetDescriptorLayoutCache()
@@ -226,7 +225,7 @@ namespace Hog
 		CheckVkResult(vkQueueSubmit2(Queue, 1, &submitInfo, Fence));
 
 		// Present
-		if (s_Data.FinalTarget)
+		if (s_Data.Present)
 		{
 			VkPresentInfoKHR presentInfo{};
 			presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -273,7 +272,7 @@ namespace Hog
 				attachments[i].sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
 				if (Info.Attachments[i].Type != AttachmentType::Swapchain)
 				{
-					attachments[i].format = Info.Attachments[i].Image->GetDescription().Format;
+					attachments[i].format = Info.Attachments[i].Image->GetFormat();
 					attachments[i].samples = Info.Attachments[i].Image->GetSamples();
 				}
 				else
@@ -435,9 +434,9 @@ namespace Hog
 		{
 			if (attachment.Image)
 			{
-				if (attachment.Image->GetDescription().ImageLayout != static_cast<VkImageLayout>(attachment.Barrier.OldLayout) && attachment.Barrier.OldLayout != ImageLayout::Undefined)
+				if (attachment.Image->GetImageLayout() != static_cast<VkImageLayout>(attachment.Barrier.OldLayout) && attachment.Barrier.OldLayout != ImageLayout::Undefined)
 				{
-					attachment.Image->ExecuteBarrier(commandBuffer, { static_cast<ImageLayout>(attachment.Image->GetDescription().ImageLayout), attachment.Barrier.OldLayout});
+					attachment.Image->ExecuteBarrier(commandBuffer, { static_cast<ImageLayout>(attachment.Image->GetImageLayout()), attachment.Barrier.OldLayout});
 				}
 			}
 		}
@@ -658,10 +657,10 @@ namespace Hog
 				case ResourceType::Sampler:
 				{
 					VkDescriptorImageInfo* sourceImage = new VkDescriptorImageInfo;
-					sourceImage->sampler = resource.Texture->GetOrCreateSampler();
+					sourceImage->sampler = resource.Texture->GetSampler();
 
 					sourceImage->imageView = resource.Texture->GetImageView();
-					sourceImage->imageLayout = resource.Texture->GetDescription().ImageLayout;
+					sourceImage->imageLayout = resource.Texture->GetImageLayout();
 					imageInfos.push_back(sourceImage);
 					
 					db.BindImage(resource.Binding, imageInfos.back(), VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, resource.BindLocation);
@@ -692,18 +691,18 @@ namespace Hog
 				case ResourceType::Constant: break;
 				case ResourceType::SamplerArray:
 				{
-					VkDescriptorImageInfo* imageInfosLocal = new VkDescriptorImageInfo[resource.Images.size()];
-					for (int i = 0; i < resource.Images.size(); ++i)
+					VkDescriptorImageInfo* imageInfosLocal = new VkDescriptorImageInfo[resource.Textures.size()];
+					for (int i = 0; i < resource.Textures.size(); ++i)
 					{
-						imageInfosLocal[i].sampler = resource.Images[i]->GetOrCreateSampler();
+						imageInfosLocal[i].sampler = resource.Textures[i]->GetSampler();
 
-						imageInfosLocal[i].imageView = resource.Images[i]->GetImageView();
-						imageInfosLocal[i].imageLayout = resource.Images[i]->GetDescription().ImageLayout;
+						imageInfosLocal[i].imageView = resource.Textures[i]->GetImageView();
+						imageInfosLocal[i].imageLayout = resource.Textures[i]->GetImageLayout();
 					}
 
 					imageInfos.push_back(imageInfosLocal);
 
-					db.BindImage(resource.Binding, imageInfos.back(), VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, resource.BindLocation, resource.Images.size(), resource.ArrayMaxCount);
+					db.BindImage(resource.Binding, imageInfos.back(), VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, resource.BindLocation, resource.Textures.size(), resource.ArrayMaxCount);
 				}break;
 			}
 		}

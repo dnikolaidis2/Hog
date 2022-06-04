@@ -11,6 +11,42 @@
 
 namespace Hog
 {
+	Ref<Image> Image::LoadFromFile(const std::string& filepath)
+	{
+		std::filesystem::path path(filepath);
+		std::string name;
+		if (path.has_filename())
+			name = path.filename().string();
+
+		int width, height, channels;
+
+		stbi_set_flip_vertically_on_load(false);
+
+		stbi_uc* pixels = stbi_load(path.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
+
+		VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
+		uint32_t imageSize = width * height * 4;
+
+		uint32_t mipLevels;
+
+		if (*CVarSystem::Get()->GetIntCVar("renderer.enableMipMapping"))
+		{
+			mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
+		}
+		else
+		{
+			mipLevels = 1;
+		}
+
+		Ref<Image> image = Image::Create(ImageDescription::Defaults::Texture, width, height, mipLevels, format);
+
+		image->SetData(pixels, imageSize);
+
+		stbi_image_free(pixels);
+
+		return image;
+	}
+
 	Ref<Image> Image::Create(ImageDescription description, uint32_t width, uint32_t height, uint32_t levelCount, VkFormat format, VkSampleCountFlagBits samples)
 	{
 		return CreateRef<Image>(description, width, height, levelCount, format, samples);
@@ -69,9 +105,6 @@ namespace Hog
 		vkDestroyImageView(GraphicsContext::GetDevice(), m_View, nullptr);
 		if (m_Allocated)
 			vmaDestroyImage(GraphicsContext::GetAllocator(), m_Handle, m_Allocation);
-
-		if (m_Sampler)
-			vkDestroySampler(GraphicsContext::GetDevice(), m_Sampler, nullptr);
 	}
 
 
@@ -224,35 +257,6 @@ namespace Hog
 		m_Description.ImageLayout = memoryBarrier.newLayout;
 	}
 
-	VkSampler Image::GetOrCreateSampler()
-	{
-		if (m_Sampler)
-			return m_Sampler;
-
-		//create a sampler for the texture
-		VkSamplerCreateInfo samplerInfo = {};
-
-		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		samplerInfo.magFilter = VK_FILTER_NEAREST;
-		samplerInfo.minFilter = VK_FILTER_NEAREST;
-		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		if (m_LevelCount > 1)
-		{
-			samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-			samplerInfo.minLod = 0.0f; // Optional
-			samplerInfo.maxLod = static_cast<float>(m_LevelCount);
-			samplerInfo.mipLodBias = 0.0f; // Optional
-		}
-		samplerInfo.anisotropyEnable = VK_TRUE;
-		samplerInfo.maxAnisotropy = GraphicsContext::GetGPUInfo()->DeviceProperties.limits.maxSamplerAnisotropy;
-
-		CheckVkResult(vkCreateSampler(GraphicsContext::GetDevice(), &samplerInfo, nullptr, &m_Sampler));
-
-		return m_Sampler;
-	}
-
 	void Image::CreateViewForImage()
 	{
 		m_ViewCreateInfo.image = m_Handle;
@@ -262,131 +266,5 @@ namespace Hog
 		m_ViewCreateInfo.subresourceRange.levelCount = m_LevelCount;
 
 		CheckVkResult(vkCreateImageView(GraphicsContext::GetDevice(), &m_ViewCreateInfo, nullptr, &m_View));
-	}
-
-	static std::unordered_map<std::string, Ref<Image>> s_Images;
-
-	void TextureLibrary::Add(const std::string& name, const Ref<Image>& image)
-	{
-		HG_CORE_ASSERT(!Exists(name), "Image already exists!");
-		image->SetGPUIndex((int32_t)s_Images.size());
-		s_Images[name] = image;
-	}
-
-	Ref<Image> TextureLibrary::LoadFromFile(const std::string& filepath)
-	{
-		std::filesystem::path path(filepath);
-		std::string name;
-		if (path.has_filename())
-			name = path.filename().string();
-
-		int width, height, channels;
-
-		stbi_set_flip_vertically_on_load(false);
-
-		stbi_uc* pixels = stbi_load(path.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
-
-		if (!pixels) {
-			HG_CORE_ERROR("Failed to load texture file {0}", path);
-			return Get("error");
-		}
-
-		VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
-		uint32_t imageSize = width * height * 4;
-
-		uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
-
-		Ref<Image> image;
-
-		if (*CVarSystem::Get()->GetIntCVar("renderer.enableMipMapping"))
-		{
-			image = Image::Create(ImageDescription::Defaults::Texture, width, height, mipLevels, format);
-		}
-		else
-		{
-			image = Image::Create(ImageDescription::Defaults::Texture, width, height, 1, format);
-		}
-
-		image->SetData(pixels, imageSize);
-
-		Add(name, image);
-
-		stbi_image_free(pixels);
-
-		return image;
-	}
-
-	Ref<Image> TextureLibrary::LoadOrGet(const std::string& filepath)
-	{
-		std::filesystem::path path(filepath);
-		std::string name;
-		if (path.has_filename())
-			name = path.filename().string();
-
-		if (Exists(name))
-			return Get(name);
-		else
-			return LoadFromFile(filepath);
-	}
-
-	Ref<Image> TextureLibrary::Get(const std::string& name)
-	{
-		HG_CORE_ASSERT(Exists(name), "Image not found!");
-		return s_Images[name];
-	}
-
-	std::vector<Ref<Image>> TextureLibrary::GetLibraryArray()
-	{
-		std::vector<Ref<Image>> arr(s_Images.size());
-
-		for (const auto &[name, image]  : s_Images)
-		{
-			arr[image->GetGPUIndex()] = image;
-		}
-
-		return arr;
-	}
-
-	void TextureLibrary::Initialize()
-	{
-		VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
-		uint32_t imageSize = 1 * 1 * 4;
-		unsigned char pixels0[] = { 0, 0, 0, 0 };
-
-		auto image = Image::Create(ImageDescription::Defaults::Texture, 1, 1, 1, format);
-
-		image->SetData(pixels0, imageSize);
-
-		Add("ones", image);
-
-		format = VK_FORMAT_R8G8B8A8_SRGB;
-		imageSize = 1 * 1 * 4;
-		unsigned char pixels1[] = { UCHAR_MAX, UCHAR_MAX, UCHAR_MAX, UCHAR_MAX };
-
-		image = Image::Create(ImageDescription::Defaults::Texture, 1, 1, 1, format);
-
-		image->SetData(pixels1, imageSize);
-
-		Add("zeros", image);
-
-		format = VK_FORMAT_R8G8B8A8_SRGB;
-		imageSize = 1 * 1 * 4;
-		unsigned char pixels2[] = { 55, 250, 198, UCHAR_MAX };
-
-		image = Image::Create(ImageDescription::Defaults::Texture, 1, 1, 1, format);
-
-		image->SetData(pixels2, imageSize);
-
-		Add("error", image);
-	}
-
-	void TextureLibrary::Cleanup()
-	{
-		s_Images.clear();
-	}
-
-	bool TextureLibrary::Exists(const std::string& name)
-	{
-		return s_Images.find(name) != s_Images.end();
 	}
 }

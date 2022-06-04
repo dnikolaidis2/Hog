@@ -8,6 +8,7 @@
 #include <glm/gtx/string_cast.hpp>
 
 #include "Hog/Renderer/Mesh.h"
+#include "Hog/Renderer/Texture.h"
 #include "Hog/Renderer/Material.h"
 #include "Hog/Renderer/EditorCamera.h"
 #include "Hog/Debug/Instrumentor.h"
@@ -15,7 +16,13 @@
 
 namespace Hog
 {
-	static bool LoadGltfFile(const std::string& filepath, std::vector<Ref<Mesh>>& objects, std::vector<glm::mat4>& cameras)
+	static bool LoadGltfFile(const std::string& filepath,
+		std::vector<Ref<Mesh>>& opaque,
+		std::vector<Ref<Mesh>>& transparent,
+		std::unordered_map<std::string, glm::mat4>& cameras,
+		std::vector<Ref<Texture>>& textures,
+		std::vector<Ref<Material>>& materials,
+		Ref<Buffer>& materialBuffer)
 	{
 		HG_PROFILE_FUNCTION();
 
@@ -39,15 +46,65 @@ namespace Hog
 				}
 			}
 
+			std::vector<Ref<Image>> images(data->images_count);
+
 			for (int i = 0; i < data->images_count; i++)
 			{
-				TextureLibrary::LoadOrGet(data->images[i].uri);
+				images[i] = Image::LoadFromFile(data->images[i].uri);
+			}
+
+			textures.resize(data->textures_count);
+			for (int i = 0; i < data->textures_count; i++)
+			{
+				auto * texture = &(data->textures[i]);
+				SamplerType type {};
+				
+				switch (texture->sampler->mag_filter)
+				{
+					case 9728: type.MagFilter = VK_FILTER_NEAREST; break;
+					case 9729: type.MagFilter = VK_FILTER_LINEAR; break;
+				}
+
+				switch (texture->sampler->min_filter)
+				{
+					case 9728: type.MinFilter = VK_FILTER_NEAREST; break;
+					case 9729: type.MinFilter = VK_FILTER_LINEAR; break;
+					case 9984: type.MinFilter = VK_FILTER_NEAREST; break;
+					case 9985: type.MinFilter = VK_FILTER_LINEAR; break;
+					case 9986: type.MinFilter = VK_FILTER_NEAREST; break;
+					case 9987: type.MinFilter = VK_FILTER_LINEAR; break;
+				}
+
+				switch (texture->sampler->min_filter)
+				{
+					case 9984: type.MipMode = VK_SAMPLER_MIPMAP_MODE_NEAREST; break;
+					case 9985: type.MipMode = VK_SAMPLER_MIPMAP_MODE_NEAREST; break;
+					case 9986: type.MipMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; break;
+					case 9987: type.MipMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; break;
+				}
+
+				switch (texture->sampler->wrap_s)
+				{
+					case 33071: type.AddressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; break;
+					case 33648: type.AddressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT; break;
+					case 10497: type.AddressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT; break;
+				}
+
+				switch (texture->sampler->wrap_t)
+				{
+					case 33071: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; break;
+					case 33648: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT; break;
+					case 10497: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT; break;
+				}
+
+				textures[i] = Texture::Create(type, images[texture->image - data->images]);
+				textures[i]->SetGPUIndex(i);
 			}
 
 			for (int i = 0; i < data->materials_count; i++)
 			{
 				const auto material = &(data->materials[i]);
-				MaterialData matData = {};
+				MaterialData matData {};
 
 				matData.DiffuseColor = glm::vec4(material->pbr_metallic_roughness.base_color_factor[0],
 					material->pbr_metallic_roughness.base_color_factor[1],
@@ -56,11 +113,7 @@ namespace Hog
 
 				if (material->pbr_metallic_roughness.base_color_texture.texture)
 				{
-					matData.DiffuseTexture = TextureLibrary::LoadOrGet(material->pbr_metallic_roughness.base_color_texture.texture->image->uri);
-				}
-				else
-				{
-					matData.DiffuseTexture = TextureLibrary::LoadOrGet("zeros");
+					matData.DiffuseTexture = textures[material->pbr_metallic_roughness.base_color_texture.texture - data->textures];
 				}
 
 				MaterialLibrary::Create(material->name, matData);
@@ -72,7 +125,7 @@ namespace Hog
 				if (node->mesh)
 				{
 					auto nodeMesh = Mesh::Create(node->name);
-					objects.push_back(nodeMesh);
+					opaque.push_back(nodeMesh);
 
 					const auto mesh = node->mesh;
 					for (int j = 0; j < mesh->primitives_count; ++j)
@@ -189,8 +242,9 @@ namespace Hog
 						;
 					glm::mat4 camera = projection * glm::inverse(view);
 
-					cameras.push_back(camera);
+					cameras[node->camera->name] = camera;
 
+					/*
 					std::vector<glm::vec3> frustrumCorners;
 					Math::CalculateFrustrumCorners(frustrumCorners, projection);
 
@@ -230,7 +284,8 @@ namespace Hog
 					mesh->Build();
 					mesh->SetModelMatrix(view);
 
-					// objects.push_back(mesh);
+					objects.push_back(mesh);
+					*/
 				}
 			}
 

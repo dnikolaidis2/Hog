@@ -3,7 +3,7 @@
 #include "Hog/Renderer/Shader.h"
 #include "Hog/Renderer/Buffer.h"
 #include "Hog/Renderer/Mesh.h"
-#include "Hog/Renderer/Image.h"
+#include "Hog/Renderer/Texture.h"
 #include "Hog/Renderer/Types.h"
 
 namespace Hog
@@ -147,8 +147,8 @@ namespace Hog
 		ResourceType Type;
 		ShaderType BindLocation;
 		Ref<Buffer> Buffer = nullptr;
-		Ref<Image> Texture = nullptr;
-		std::vector<Ref<Image>> Images;
+		Ref<Texture> Texture = nullptr;
+		std::vector<Ref<Hog::Texture>> Textures;
 		uint32_t ConstantID = 0;
 		size_t ConstantSize = 0;
 		void* ConstantDataPointer = nullptr;
@@ -160,11 +160,11 @@ namespace Hog
 		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Buffer> buffer, uint32_t binding, uint32_t set, BarrierDescription barrier = {})
 			: Name(name), Type(type), BindLocation(bindLocation), Buffer(buffer), Binding(binding), Set(set), Barrier(barrier) {}
 
-		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Image> texture, uint32_t binding, uint32_t set, BarrierDescription barrier = {})
+		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Texture> texture, uint32_t binding, uint32_t set, BarrierDescription barrier = {})
 			: Name(name), Type(type), BindLocation(bindLocation), Texture(texture), Binding(binding), Set(set), Barrier(barrier) {}
 
-		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, const std::vector<Ref<Image>>& images, uint32_t binding, uint32_t set, uint32_t arrayMaxCount,  BarrierDescription barrier = {})
-			: Name(name), Type(type), BindLocation(bindLocation), Images(images), Binding(binding), Set(set), ArrayMaxCount(arrayMaxCount), Barrier(barrier) {}
+		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, const std::vector<Ref<Hog::Texture>>& textures, uint32_t binding, uint32_t set, uint32_t arrayMaxCount,  BarrierDescription barrier = {})
+			: Name(name), Type(type), BindLocation(bindLocation), Textures(textures), Binding(binding), Set(set), ArrayMaxCount(arrayMaxCount), Barrier(barrier) {}
 
 		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, uint32_t constantID, size_t constantSize, void* dataPointer)
 			: Name(name), Type(type), BindLocation(bindLocation), ConstantID(constantID), ConstantSize(constantSize), ConstantDataPointer(dataPointer) {}

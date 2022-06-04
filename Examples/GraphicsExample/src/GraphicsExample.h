@@ -24,8 +24,11 @@ public:
 	bool OnResized(FrameBufferResizeEvent& e);
 private:
 	EditorCamera m_EditorCamera;
-	std::vector<Ref<Mesh>> m_Meshes;
-	std::vector<glm::mat4> m_Cameras;
+	std::vector<Ref<Mesh>> m_TransparentMeshes;
+	std::vector<Ref<Mesh>> m_OpaqueMeshes;
+	std::vector<Ref<Texture>> m_Textures;
+	std::unordered_map<std::string, glm::mat4> m_Cameras;
+	std::vector<Ref<Material>> m_Materials;
 	Ref<Buffer> m_ViewProjection;
 	PushConstant m_PushConstant;
 };
