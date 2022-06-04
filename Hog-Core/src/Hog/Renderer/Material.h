@@ -130,27 +130,12 @@ namespace Hog
 		MaterialData& GetMaterialData() { return m_Data; }
 		void SetGPUIndex(int32_t ind) { m_GPUIndex = ind; }
 		int32_t GetGPUIndex() { return m_GPUIndex; }
+		void UpdateData(Ref<Buffer> buffer, size_t offset);
+		void UpdateData();
 	private:
 		std::string m_Name;
 		MaterialData m_Data;
 		int32_t m_GPUIndex = -1;
-	};
-
-	class MaterialLibrary
-	{
-	public:
-		MaterialLibrary() = delete;
-
-		static void Add(const std::string& name, const Ref<Material>& shader);
-		static void Add(const Ref<Material>& shader);
-		static Ref<Material> Create(const std::string& name, MaterialData& data);
-		static Ref<Material> CreateOrGet(const std::string& name);
-
-		static Ref<Material> Get(const std::string& name);
-		static Ref<Buffer> GetBuffer();
-
-		static void Clneaup();
-
-		static bool Exists(const std::string& name);
+		Ref<BufferRegion> m_Region;
 	};
 }

@@ -103,6 +103,9 @@ namespace Hog
 				textures.push_back(textureRef);
 			}
 
+			materialBuffer = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(MaterialGPUData) * data->materials_count);
+			size_t offset = 0;
+
 			for (int i = 0; i < data->materials_count; i++)
 			{
 				const auto material = &(data->materials[i]);
@@ -118,7 +121,10 @@ namespace Hog
 					matData.DiffuseTexture = textures[material->pbr_metallic_roughness.base_color_texture.texture - data->textures];
 				}
 
-				MaterialLibrary::Create(material->name, matData);
+				materials.push_back(Material::Create(material->name, matData));
+				materials[i]->SetGPUIndex(i);
+				materials[i]->UpdateData(materialBuffer, offset);
+				offset += sizeof(MaterialGPUData);
 			}
 
 			for (int i = 0; i < data->nodes_count; ++i)
@@ -162,9 +168,13 @@ namespace Hog
 
 						auto nodeMesh = Mesh::Create(node->name);
 						if (primitive->material->alpha_mode == cgltf_alpha_mode_opaque)
+						{
 							opaque.push_back(nodeMesh);
+						}
 						else
+						{
 							transparent.push_back(nodeMesh);
+						}
 
 						std::vector<uint16_t> indexData;
 						std::vector<Vertex> vertexData;
@@ -223,7 +233,7 @@ namespace Hog
 							
 							if (primitive->material)
 							{
-								vertexData[z].MaterialIndex = MaterialLibrary::Get(primitive->material->name)->GetGPUIndex();
+								vertexData[z].MaterialIndex = materials[primitive->material - data->materials]->GetGPUIndex();
 							}
 						}
 
