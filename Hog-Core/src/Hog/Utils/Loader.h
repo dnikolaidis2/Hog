@@ -53,7 +53,7 @@ namespace Hog
 				images[i] = Image::LoadFromFile(data->images[i].uri);
 			}
 
-			textures.resize(data->textures_count);
+			auto initialSize = textures.size();
 			for (int i = 0; i < data->textures_count; i++)
 			{
 				auto * texture = &(data->textures[i]);
@@ -97,8 +97,10 @@ namespace Hog
 					case 10497: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT; break;
 				}
 
-				textures[i] = Texture::Create(type, images[texture->image - data->images]);
-				textures[i]->SetGPUIndex(i);
+				Ref<Texture> textureRef = Texture::Create(type, images[texture->image - data->images]);
+				textureRef->SetGPUIndex(initialSize + i);
+
+				textures.push_back(textureRef);
 			}
 
 			for (int i = 0; i < data->materials_count; i++)
