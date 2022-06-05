@@ -108,7 +108,7 @@ namespace Hog
 
 			for (int i = 0; i < data->materials_count; i++)
 			{
-				const auto material = &(data->materials[i]);
+ 				const auto material = &(data->materials[i]);
 				MaterialData matData {};
 
 				matData.DiffuseColor = glm::vec4(material->pbr_metallic_roughness.base_color_factor[0],

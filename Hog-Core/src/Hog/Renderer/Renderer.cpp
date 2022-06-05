@@ -407,7 +407,12 @@ namespace Hog
 
 			if (RenderPass != VK_NULL_HANDLE)
 			{
-				Info.Shader->Generate(RenderPass, specializationInfo);
+				uint32_t colorCount = 0;
+				std::for_each(Info.Attachments.begin(), Info.Attachments.end(), [&](AttachmentElement& attachment) 
+					{ 
+						colorCount += (attachment.Type == AttachmentType::Color || attachment.Type == AttachmentType::Swapchain) ? 1 : 0; 
+					});
+				Info.Shader->Generate(RenderPass, specializationInfo, colorCount);
 			}
 			else
 			{

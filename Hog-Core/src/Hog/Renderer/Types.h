@@ -156,6 +156,8 @@ namespace Hog
 			DepthStencil,
 			RenderTarget,
 			SampledColorAttachment,
+			SampledPositionAttachment,
+			SampledNormalAttachment,
 			Texture
 		};
 

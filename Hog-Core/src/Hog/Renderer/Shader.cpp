@@ -364,7 +364,7 @@ namespace Hog {
 		m_Pipeline->Create();
 	}
 
-	void Shader::Generate(VkRenderPass renderPass, VkSpecializationInfo specializationInfo)
+	void Shader::Generate(VkRenderPass renderPass, VkSpecializationInfo specializationInfo, uint32_t attachmentCount)
 	{
 		ReflectPipelineLayout();
 
@@ -384,6 +384,7 @@ namespace Hog {
 			m_Modules[stage] = shaderModule;
 		}
 
+		m_Pipeline->SetAttachmentCount(attachmentCount);
 		m_Pipeline->SetBlending(m_EnableBlending);
 
 		m_Pipeline->Create();

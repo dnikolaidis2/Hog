@@ -69,6 +69,11 @@ namespace Hog
 		GraphicsPipelineCreateInfo.pStages = m_ShaderStageCreateInfos.data();
 		GraphicsPipelineCreateInfo.layout = m_PipelineLayout;
 
+		std::for_each(ColorBlendAttachmentStates.begin(), ColorBlendAttachmentStates.end(), [&](VkPipelineColorBlendAttachmentState& blendState) { blendState = ColorBlendAttachmentState; });
+
+		ColorBlendStateCreateInfo.attachmentCount = static_cast<uint32_t>(ColorBlendAttachmentStates.size());
+		ColorBlendStateCreateInfo.pAttachments = ColorBlendAttachmentStates.data();
+
 		CheckVkResult(vkCreateGraphicsPipelines(GraphicsContext::GetDevice(), VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &m_Handle));
 
 		m_Initialized = true;

@@ -1,0 +1,39 @@
+#version 450
+
+layout(set = 0, binding = 0) uniform UniformBufferObject {
+    mat4 u_ViewProjection;
+};
+
+layout(location = 0) in vec3 a_Position;
+layout(location = 1) in vec2 a_TexCoords;
+layout(location = 2) in vec3 a_Normal;
+layout(location = 3) in vec4 a_Tangent;
+layout(location = 4) in int a_MaterialIndex;
+
+layout (location = 0) out vec3 o_Normal;
+layout (location = 1) out vec2 o_TexCoord;
+layout (location = 2) out vec3 o_Position;
+layout (location = 3) out vec3 o_Tangent;
+layout (location = 4) out flat int o_MaterialIndex;
+
+layout(push_constant) uniform PushConstants
+{
+    mat4 p_Model;
+};
+
+void main() 
+{
+	gl_Position = u_ViewProjection * p_Model * vec4(a_Position, 1.0);
+	
+	o_TexCoord = a_TexCoords;
+
+	// Vertex position in world space
+	o_Position = vec3(p_Model * vec4(a_Position, 1.0));
+	
+	// Normal in world space
+	mat3 mNormal = transpose(inverse(mat3(p_Model)));
+	o_Normal = mNormal * normalize(a_Normal);
+	o_Tangent = mNormal * normalize(a_Tangent.xyz);
+	
+	o_MaterialIndex = a_MaterialIndex;
+}
