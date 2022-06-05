@@ -191,6 +191,7 @@ namespace Hog
 						std::vector<glm::vec3> positions;
 						std::vector<glm::vec3> normals;
 						std::vector<glm::vec2> texcoords;
+						std::vector<glm::vec4> tangent;
 						for (int z = 0; z < primitive->attributes_count; ++z)
 						{
 							const auto attribute = &(primitive->attributes[z]);
@@ -221,6 +222,14 @@ namespace Hog
 
 								cgltf_accessor_unpack_floats(attribute->data, reinterpret_cast<cgltf_float*>(texcoords.data()), count);
 							}break;
+							case cgltf_attribute_type_tangent:
+							{
+								cgltf_size count = cgltf_accessor_unpack_floats(attribute->data, nullptr, 0);
+
+								tangent.resize(count / 4);
+
+								cgltf_accessor_unpack_floats(attribute->data, reinterpret_cast<cgltf_float*>(tangent.data()), count);
+							}break;
 							default: break;
 							}
 						}
@@ -230,6 +239,7 @@ namespace Hog
 							vertexData[z].Position = positions[z];
 							vertexData[z].Normal = normals[z];
 							vertexData[z].TexCoords = texcoords[z];
+							vertexData[z].Tangent = tangent[z];
 							
 							if (primitive->material)
 							{

@@ -39,9 +39,10 @@ void GraphicsExample::OnAttach()
 		"ForwardGraphics", Shader::Create("Basic", "Basic.vertex", "Basic.fragment"), RendererStageType::ForwardGraphics,
 		{
 			{DataType::Defaults::Float3, "a_Position"},
-			{DataType::Defaults::Float3, "a_Normal"},
 			{DataType::Defaults::Float2, "a_TexCoords"},
-			{DataType::Defaults::Float3, "a_MaterialIndex"},
+			{DataType::Defaults::Float3, "a_Normal"},
+			{DataType::Defaults::Float4, "a_Tangent"},
+			{DataType::Defaults::Int, "a_MaterialIndex"},
 		},
 		{
 			{"u_ViewProjection", ResourceType::Uniform, ShaderType::Defaults::Vertex, m_ViewProjection, 0, 0},
@@ -60,9 +61,10 @@ void GraphicsExample::OnAttach()
 		"ForwardGraphics", Shader::Create("Basic", "Basic.vertex", "Basic.fragment"), RendererStageType::ForwardGraphics,
 		{
 			{DataType::Defaults::Float3, "a_Position"},
-			{DataType::Defaults::Float3, "a_Normal"},
 			{DataType::Defaults::Float2, "a_TexCoords"},
-			{DataType::Defaults::Float3, "a_MaterialIndex"},
+			{DataType::Defaults::Float3, "a_Normal"},
+			{DataType::Defaults::Float4, "a_Tangent"},
+			{DataType::Defaults::Int, "a_MaterialIndex"},
 		},
 		{
 			{"u_ViewProjection", ResourceType::Uniform, ShaderType::Defaults::Vertex, m_ViewProjection, 0, 0},
