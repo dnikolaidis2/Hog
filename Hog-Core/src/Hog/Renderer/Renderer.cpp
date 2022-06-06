@@ -69,6 +69,7 @@ namespace Hog
 
 				case RendererStageType::ForwardGraphics:
 				case RendererStageType::DeferredGraphics:
+				case RendererStageType::ScreenSpacePass:
 				{
 					s_Data.Present = true;
 				}break;
@@ -258,7 +259,8 @@ namespace Hog
 	void RendererStage::Init()
 	{
 		if (Info.StageType == RendererStageType::DeferredGraphics || Info.StageType == RendererStageType::ForwardGraphics
-			|| Info.StageType == RendererStageType::ImGui || Info.StageType == RendererStageType::Blit)
+			|| Info.StageType == RendererStageType::ImGui || Info.StageType == RendererStageType::Blit
+			|| Info.StageType == RendererStageType::ScreenSpacePass)
 		{
 			std::vector<VkAttachmentDescription2> attachments(Info.Attachments.size());
 			std::unordered_map<AttachmentType, std::vector<VkAttachmentReference2>> attachmentRefs;
@@ -463,6 +465,7 @@ namespace Hog
 			}break;
 			case RendererStageType::ForwardGraphics:
 			case RendererStageType::DeferredGraphics:
+			case RendererStageType::ScreenSpacePass:
 			{
 				ForwardGraphics(commandBuffer);
 			}break;
@@ -530,25 +533,32 @@ namespace Hog
 
 		BindResources(commandBuffer, &s_Data.GetCurrentFrame().DescriptorAllocator);
 
-		for (auto && mesh : Info.Meshes)
+		if (Info.StageType == RendererStageType::ScreenSpacePass)
 		{
-			glm::mat4 modelMat = mesh->GetModelMatrix();
-			for (int i = 0; i < Info.Resources.size(); i++)
+			vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+		}
+		else 
+		{
+			for (auto && mesh : Info.Meshes)
 			{
-				const auto& resource = Info.Resources[i];
-
-				switch (resource.Type)
+				glm::mat4 modelMat = mesh->GetModelMatrix();
+				for (int i = 0; i < Info.Resources.size(); i++)
 				{
-					case ResourceType::PushConstant:
-					{
-						std::memcpy(resource.ConstantDataPointer, &modelMat, resource.ConstantSize);
-						vkCmdPushConstants(commandBuffer, Info.Shader->GetPipelineLayout(), resource.BindLocation, 0, static_cast<uint32_t>(resource.ConstantSize), resource.ConstantDataPointer);
-					}break;
-					default: break;
-				}
-			}
+					const auto& resource = Info.Resources[i];
 
-			mesh->Draw(commandBuffer);
+					switch (resource.Type)
+					{
+						case ResourceType::PushConstant:
+						{
+							std::memcpy(resource.ConstantDataPointer, &modelMat, resource.ConstantSize);
+							vkCmdPushConstants(commandBuffer, Info.Shader->GetPipelineLayout(), resource.BindLocation, 0, static_cast<uint32_t>(resource.ConstantSize), resource.ConstantDataPointer);
+						}break;
+						default: break;
+					}
+				}
+
+				mesh->Draw(commandBuffer);
+			}
 		}
 
 		vkCmdEndRenderPass(commandBuffer);

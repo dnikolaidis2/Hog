@@ -28,6 +28,7 @@ namespace Hog {
 		VkFormat GetFormat() const { return m_Image->GetFormat(); }
 		void SetGPUIndex(int32_t ind) { m_GPUIndex = ind; }
 		int32_t GetGPUIndex() const { return m_GPUIndex; }
+		Ref<Image> GetImage() { return m_Image; }
 		VkSampleCountFlagBits GetSamples() const { return m_Image->GetSamples(); }
 		void ExecuteBarrier(VkCommandBuffer commandBuffer, const BarrierDescription& description) { m_Image->ExecuteBarrier(commandBuffer, description); }
 		void SetImageLayout(VkImageLayout layout) { m_Image->SetImageLayout(layout); }

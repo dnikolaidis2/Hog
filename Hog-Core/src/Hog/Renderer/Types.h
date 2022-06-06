@@ -155,6 +155,7 @@ namespace Hog
 			Depth,
 			DepthStencil,
 			RenderTarget,
+			SampledSwapchainColorAttachment,
 			SampledColorAttachment,
 			SampledPositionAttachment,
 			SampledNormalAttachment,
@@ -263,7 +264,7 @@ namespace Hog
 
 	enum class RendererStageType
 	{
-		ForwardCompute, DeferredCompute, ForwardGraphics, DeferredGraphics, Blit, ImGui, Barrier
+		ForwardCompute, DeferredCompute, ForwardGraphics, DeferredGraphics, Blit, ImGui, Barrier, ScreenSpacePass
 	};
 
 	static inline VkPipelineBindPoint ToPipelineBindPoint(RendererStageType type)

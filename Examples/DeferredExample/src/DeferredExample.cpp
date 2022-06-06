@@ -28,11 +28,12 @@ void DeferredExample::OnAttach()
 	LoadGltfFile("assets/models/sponza/sponza.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer);
 	// LoadGltfFile("assets/models/cube/cube.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer);
 
-	Ref<Image> colorAttachment = Image::Create(ImageDescription::Defaults::SampledColorAttachment, 1);
-	Ref<Image> positionAttachment  = Image::Create(ImageDescription::Defaults::SampledPositionAttachment, 1);
-	Ref<Image> normalAttachment = Image::Create(ImageDescription::Defaults::SampledNormalAttachment, 1);
-	Ref<Image> depthAttachment = Image::Create(ImageDescription::Defaults::Depth, 1);
-	Ref<Texture> colorAttachmentTexture = Texture::Create({}, colorAttachment);
+	Ref<Texture> albedoAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::SampledColorAttachment, 1));
+	Ref<Texture> positionAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::SampledPositionAttachment, 1));
+	Ref<Texture> normalAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::SampledNormalAttachment, 1));
+	Ref<Texture> depthAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::Depth, 1));
+
+	Ref<Texture> colorAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::SampledSwapchainColorAttachment, 1));
 
 	m_ViewProjection = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(glm::mat4));
 
@@ -54,12 +55,24 @@ void DeferredExample::OnAttach()
 		},
 		m_OpaqueMeshes,
 		{
-			{"Position", AttachmentType::Color, positionAttachment, true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
-			{"Normal", AttachmentType::Color, normalAttachment, true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
-			{"Albedo", AttachmentType::Color, colorAttachment, true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
-			{"Depth", AttachmentType::Depth, depthAttachment, true, {ImageLayout::DepthStencilAttachmentOptimal, ImageLayout::DepthStencilAttachmentOptimal}},
+			{"Position", AttachmentType::Color, positionAttachment->GetImage(), true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
+			{"Normal", AttachmentType::Color, normalAttachment->GetImage(), true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
+			{"Albedo", AttachmentType::Color, albedoAttachment->GetImage(), true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
+			{"Depth", AttachmentType::Depth, depthAttachment->GetImage(), true, {ImageLayout::DepthStencilAttachmentOptimal, ImageLayout::DepthStencilAttachmentOptimal}},
 		},
 	});
+
+	auto lightingPass = graph.AddStage(gbuffer, {
+		"Lighting stage", Shader::Create("Lighting", "fullscreen.vertex", "Lighting.fragment"), RendererStageType::ScreenSpacePass,
+		{
+			{"u_Position", ResourceType::Sampler, ShaderType::Defaults::Fragment, positionAttachment, 0, 0},
+			{"u_Normal", ResourceType::Sampler, ShaderType::Defaults::Fragment, normalAttachment, 1, 0},
+			{"u_Albedo", ResourceType::Sampler, ShaderType::Defaults::Fragment, albedoAttachment, 2, 0},
+		},
+		{
+			{"Color", AttachmentType::Color, colorAttachment->GetImage(), true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
+		},
+		});
 
 	//auto imGuiStage = graph.AddStage(graphics, {
 	//	"ImGuiStage", RendererStageType::ImGui, {
@@ -74,7 +87,7 @@ void DeferredExample::OnAttach()
 
 	graph.AddStage(gbuffer, {
 		"BlitStage", Shader::Create("Blit", "fullscreen.vertex", "blit.fragment", false), RendererStageType::Blit,
-		{{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, colorAttachmentTexture, 0, 0, {
+		{{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, colorAttachment, 0, 0, {
 				PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentWrite,
 				PipelineStage::FragmentShader, AccessFlag::ShaderSampledRead,
 		}},},
