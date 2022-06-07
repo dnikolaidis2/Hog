@@ -157,13 +157,13 @@ namespace Hog
 		uint32_t ArrayMaxCount = 0;
 		BarrierDescription Barrier;
 
-		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Buffer> buffer, uint32_t binding, uint32_t set, BarrierDescription barrier = {})
+		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Buffer> buffer, uint32_t set, uint32_t binding, BarrierDescription barrier = {})
 			: Name(name), Type(type), BindLocation(bindLocation), Buffer(buffer), Binding(binding), Set(set), Barrier(barrier) {}
 
-		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Texture> texture, uint32_t binding, uint32_t set, BarrierDescription barrier = {})
+		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Texture> texture, uint32_t set, uint32_t binding, BarrierDescription barrier = {})
 			: Name(name), Type(type), BindLocation(bindLocation), Texture(texture), Binding(binding), Set(set), Barrier(barrier) {}
 
-		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, const std::vector<Ref<Hog::Texture>>& textures, uint32_t binding, uint32_t set, uint32_t arrayMaxCount,  BarrierDescription barrier = {})
+		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, const std::vector<Ref<Hog::Texture>>& textures, uint32_t set, uint32_t binding, uint32_t arrayMaxCount,  BarrierDescription barrier = {})
 			: Name(name), Type(type), BindLocation(bindLocation), Textures(textures), Binding(binding), Set(set), ArrayMaxCount(arrayMaxCount), Barrier(barrier) {}
 
 		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, uint32_t constantID, size_t constantSize, void* dataPointer)
