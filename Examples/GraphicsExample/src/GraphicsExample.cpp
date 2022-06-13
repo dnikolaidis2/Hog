@@ -24,9 +24,9 @@ void GraphicsExample::OnAttach()
 
 	HG_PROFILE_GPU_INIT_VULKAN(&(context.Device), &(context.PhysicalDevice), &(context.Queue), &(context.QueueFamilyIndex), 1, nullptr);
 
-	// LoadGltfFile("assets/models/sponza-intel/NewSponza_Main_Blender_glTF.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer);
-	LoadGltfFile("assets/models/sponza/sponza.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer);
-	// LoadGltfFile("assets/models/cube/cube.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer);
+	// LoadGltfFile("assets/models/sponza-intel/NewSponza_Main_Blender_glTF.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
+	LoadGltfFile("assets/models/sponza/sponza.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
+	// LoadGltfFile("assets/models/cube/cube.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 
 	Ref<Image> colorAttachment = Image::Create(ImageDescription::Defaults::SampledColorAttachment, 1);
 	Ref<Image> depthAttachment = Image::Create(ImageDescription::Defaults::Depth, 1);
@@ -68,8 +68,8 @@ void GraphicsExample::OnAttach()
 		},
 		{
 			{"u_ViewProjection", ResourceType::Uniform, ShaderType::Defaults::Vertex, m_ViewProjection, 0, 0},
-			{"u_Materials", ResourceType::Uniform, ShaderType::Defaults::Fragment, m_MaterialBuffer, 1, 0},
-			{"u_Textures", ResourceType::SamplerArray, ShaderType::Defaults::Fragment, m_Textures, 2, 0, 512},
+			{"u_Materials", ResourceType::Uniform, ShaderType::Defaults::Fragment, m_MaterialBuffer, 0, 1},
+			{"u_Textures", ResourceType::SamplerArray, ShaderType::Defaults::Fragment, m_Textures, 0, 2, 512},
 			{"p_Model", ResourceType::PushConstant, ShaderType::Defaults::Vertex, sizeof(PushConstant), &m_PushConstant},
 		},
 		m_TransparentMeshes,
@@ -116,7 +116,9 @@ void GraphicsExample::OnDetach()
 	m_TransparentMeshes.clear();
 	m_Textures.clear();
 	m_Materials.clear();
+	m_Lights.clear();
 	m_MaterialBuffer.reset();
+	m_LightBuffer.reset();
 	m_ViewProjection.reset();
 
 	GraphicsContext::Deinitialize();

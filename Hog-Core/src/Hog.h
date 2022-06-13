@@ -34,6 +34,7 @@
 #include "Hog/Renderer/Image.h"
 #include "Hog/Renderer/Texture.h"
 #include "Hog/Renderer/EditorCamera.h"
+#include "Hog/Renderer/Light.h"
 
 /*
 #include "Hog/Renderer/Renderer.h"
@@ -48,4 +49,5 @@
 
 #include "Hog/Renderer/OrthographicCamera.h"
 */
+
 // -----------------------------------

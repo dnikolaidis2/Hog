@@ -24,7 +24,7 @@ void DeferredExample::OnAttach()
 	HG_PROFILE_GPU_INIT_VULKAN(&(context.Device), &(context.PhysicalDevice), &(context.Queue), &(context.QueueFamilyIndex), 1, nullptr);
 
 	// LoadGltfFile("assets/models/sponza-intel/NewSponza_Main_Blender_glTF.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
-	LoadGltfFile("assets/models/sponza/sponza.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer);
+	LoadGltfFile("assets/models/sponza/sponza.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 	// LoadGltfFile("assets/models/cube/cube.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 
 	Ref<Texture> albedoAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::SampledColorAttachment, 1));
@@ -32,9 +32,10 @@ void DeferredExample::OnAttach()
 	Ref<Texture> normalAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::SampledNormalAttachment, 1));
 	Ref<Texture> depthAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::Depth, 1));
 
-	Ref<Texture> colorAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::SampledSwapchainColorAttachment, 1));
+	Ref<Texture> colorAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::SampledHDRColorAttachment, 1));
 
 	m_ViewProjection = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(glm::mat4));
+	uint32_t lightCount = m_Lights.size();
 
 	RenderGraph graph;
 	auto gbuffer = graph.AddStage(nullptr, {
@@ -67,11 +68,13 @@ void DeferredExample::OnAttach()
 			{"u_Position", ResourceType::Sampler, ShaderType::Defaults::Fragment, positionAttachment, 0, 0},
 			{"u_Normal", ResourceType::Sampler, ShaderType::Defaults::Fragment, normalAttachment, 0, 1},
 			{"u_Albedo", ResourceType::Sampler, ShaderType::Defaults::Fragment, albedoAttachment, 0, 2},
+			{"u_Lights", ResourceType::Uniform, ShaderType::Defaults::Fragment, m_LightBuffer, 0, 3},
+			{"c_LightCount", ResourceType::Constant, ShaderType::Defaults::Fragment, 0, sizeof(uint32_t), &lightCount},
 		},
 		{
 			{"Color", AttachmentType::Color, colorAttachment->GetImage(), true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
 		},
-		});
+	});
 
 	//auto imGuiStage = graph.AddStage(graphics, {
 	//	"ImGuiStage", RendererStageType::ImGui, {
@@ -85,7 +88,7 @@ void DeferredExample::OnAttach()
 	//});
 
 	graph.AddStage(gbuffer, {
-		"BlitStage", Shader::Create("Blit", "fullscreen.vertex", "blit.fragment", false), RendererStageType::Blit,
+		"BlitStage", Shader::Create("Blit", "fullscreen.vertex", "ToneMapping.fragment", false), RendererStageType::Blit,
 		{{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, colorAttachment, 0, 0, {
 				PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentWrite,
 				PipelineStage::FragmentShader, AccessFlag::ShaderSampledRead,
@@ -110,7 +113,9 @@ void DeferredExample::OnDetach()
 	m_TransparentMeshes.clear();
 	m_Textures.clear();
 	m_Materials.clear();
+	m_Lights.clear();
 	m_MaterialBuffer.reset();
+	m_LightBuffer.reset();
 	m_ViewProjection.reset();
 
 	GraphicsContext::Deinitialize();

@@ -302,6 +302,13 @@ namespace Hog
 				Format = GraphicsContext::GetSwapchainFormat();
 			}break;
 
+			case Defaults::SampledHDRColorAttachment:
+			{
+				ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+				ImageAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+				Format = VK_FORMAT_R16G16B16A16_SFLOAT;
+			}break;
+
 			case Defaults::SampledColorAttachment:
 			{
 				ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;

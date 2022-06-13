@@ -10,6 +10,7 @@
 #include "Hog/Renderer/Mesh.h"
 #include "Hog/Renderer/Texture.h"
 #include "Hog/Renderer/Material.h"
+#include "Hog/Renderer/Light.h"
 #include "Hog/Renderer/EditorCamera.h"
 #include "Hog/Debug/Instrumentor.h"
 #include "Hog/Math/Math.h"
@@ -22,7 +23,9 @@ namespace Hog
 		std::unordered_map<std::string, glm::mat4>& cameras,
 		std::vector<Ref<Texture>>& textures,
 		std::vector<Ref<Material>>& materials,
-		Ref<Buffer>& materialBuffer)
+		Ref<Buffer>& materialBuffer,
+		std::vector<Ref<Light>>& lights,
+		Ref<Buffer>& lightBuffer)
 	{
 		HG_PROFILE_FUNCTION();
 
@@ -126,41 +129,51 @@ namespace Hog
 				materials[i]->UpdateData(materialBuffer, offset);
 				offset += sizeof(MaterialGPUData);
 			}
+			
+			lightBuffer = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(LightData) * data->lights_count);
+			size_t lightOffset = 0;
 
 			for (int i = 0; i < data->nodes_count; ++i)
 			{
 				const auto node = &(data->nodes[i]);
+
+				// Load model matrix
+				glm::mat4 modelMat{ 1.0f };
+				glm::vec3 translation{ 1.0f };
+				glm::quat rotation {};
+				glm::vec3 scale{ 1.0f };
+				if (node->has_matrix)
+				{
+					modelMat = glm::mat4(
+						node->matrix[0], node->matrix[1], node->matrix[2], node->matrix[3],
+						node->matrix[4], node->matrix[5], node->matrix[6], node->matrix[7],
+						node->matrix[8], node->matrix[9], node->matrix[10], node->matrix[11],
+						node->matrix[12], node->matrix[13], node->matrix[14], node->matrix[15]
+					);
+				}
+				else
+				{
+					if (node->has_translation)
+					{
+						translation = glm::vec3(node->translation[0], node->translation[1], node->translation[2]);
+						modelMat = glm::translate(modelMat, translation);
+					}
+
+					if (node->has_rotation)
+					{
+						rotation = glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]);
+						modelMat *= glm::toMat4(rotation);
+					}
+
+					if (node->has_scale)
+					{
+						scale = glm::vec3(node->scale[0], node->scale[1], node->scale[2]);
+						modelMat = glm::scale(modelMat, scale);
+					}
+				}
+
 				if (node->mesh)
 				{
-					// Load model matrix
-					glm::mat4 modelMat = glm::mat4(1.0f);
-					if (node->has_matrix)
-					{
-						modelMat = glm::mat4(
-							node->matrix[0], node->matrix[1], node->matrix[2], node->matrix[3],
-							node->matrix[4], node->matrix[5], node->matrix[6], node->matrix[7],
-							node->matrix[8], node->matrix[9], node->matrix[10], node->matrix[11],
-							node->matrix[12], node->matrix[13], node->matrix[14], node->matrix[15]
-						);
-					}
-					else
-					{
-						if (node->has_translation)
-						{
-							modelMat = glm::translate(modelMat, glm::vec3(node->translation[0], node->translation[1], node->translation[2]));
-						}
-
-						if (node->has_rotation)
-						{
-							modelMat *= glm::toMat4(glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]));
-						}
-
-						if (node->has_scale)
-						{
-							modelMat = glm::scale(modelMat, glm::vec3(node->scale[0], node->scale[1], node->scale[2]));
-						}
-					}
-
 					const auto mesh = node->mesh;
 					for (int j = 0; j < mesh->primitives_count; ++j)
 					{
@@ -260,12 +273,9 @@ namespace Hog
 						node->camera->data.perspective.aspect_ratio,
 						node->camera->data.perspective.znear,
 						node->camera->data.perspective.zfar);
-					glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(node->parent->translation[0], node->parent->translation[1], node->parent->translation[2]))
-						* glm::toMat4(
-							glm::quat(node->parent->rotation[3], node->parent->rotation[0], node->parent->rotation[1], node->parent->rotation[2])
-							* glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]))
+					glm::mat4 view = glm::translate(glm::mat4(1.0f), translation)
+						* glm::toMat4(rotation)
 						* glm::rotate(glm::mat4(1.f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-						;
 					glm::mat4 camera = projection * glm::inverse(view);
 
 					cameras[node->camera->name] = camera;
@@ -312,6 +322,29 @@ namespace Hog
 
 					objects.push_back(mesh);
 					*/
+				}
+
+				if (node->light)
+				{
+					LightType type;
+					switch (node->light->type)
+					{
+						case cgltf_light_type_directional: type = LightType::Directional; break;
+						/*case cgltf_light_type_spot: type = LightType::Spot; break;
+						case cgltf_light_type_point: type = LightType::Point; break;*/
+					}
+
+					auto light = Light::Create({
+						.Position = {translation},
+						.Type = type,
+						.Color = {node->light->color[0], node->light->color[1], node->light->color[2], 1.0f},
+						.Direction = glm::eulerAngles(rotation),
+						.Intensity = node->light->intensity,
+					});
+					
+					lights.push_back(light);
+					light->UpdateData(lightBuffer, lightOffset);
+					lightOffset += sizeof(LightData);
 				}
 			}
 

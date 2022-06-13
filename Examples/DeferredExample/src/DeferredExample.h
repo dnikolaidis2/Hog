@@ -29,7 +29,9 @@ private:
 	std::vector<Ref<Texture>> m_Textures;
 	std::unordered_map<std::string, glm::mat4> m_Cameras;
 	std::vector<Ref<Material>> m_Materials;
+	std::vector<Ref<Light>> m_Lights;
 	Ref<Buffer> m_MaterialBuffer;
 	Ref<Buffer> m_ViewProjection;
+	Ref<Buffer> m_LightBuffer;
 	PushConstant m_PushConstant;
 };

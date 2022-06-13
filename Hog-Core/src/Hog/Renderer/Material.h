@@ -55,7 +55,7 @@ namespace Hog
 	*/
 
 
-	struct MaterialGPUData
+	struct alignas(16) MaterialGPUData
 	{
 		glm::vec3 AmbientColor = glm::vec3(0.0f);
 		int32_t DiffuseTexture = -1;
