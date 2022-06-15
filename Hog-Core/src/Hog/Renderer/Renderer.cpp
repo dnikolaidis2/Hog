@@ -410,10 +410,13 @@ namespace Hog
 			if (RenderPass != VK_NULL_HANDLE)
 			{
 				uint32_t colorCount = 0;
-				std::for_each(Info.Attachments.begin(), Info.Attachments.end(), [&](AttachmentElement& attachment) 
+				std::for_each(Info.Attachments.begin(), Info.Attachments.end(), [&colorCount](AttachmentElement& attachment) 
 					{ 
 						colorCount += (attachment.Type == AttachmentType::Color || attachment.Type == AttachmentType::Swapchain) ? 1 : 0; 
 					});
+
+				if (Info.StageType == RendererStageType::ScreenSpacePass || Info.StageType == RendererStageType::Blit)
+					Info.Shader->SetCullMode(CullMode::Front);
 				Info.Shader->Generate(RenderPass, specializationInfo, colorCount);
 			}
 			else

@@ -386,6 +386,9 @@ namespace Hog {
 
 		m_Pipeline->SetAttachmentCount(attachmentCount);
 		m_Pipeline->SetBlending(m_EnableBlending);
+		
+		if (m_CullMode != CullMode::MaxEnum)
+			m_Pipeline->SetCullMode(m_CullMode);
 
 		m_Pipeline->Create();
 	}

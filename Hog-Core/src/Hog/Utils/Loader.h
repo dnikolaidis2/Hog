@@ -195,9 +195,9 @@ namespace Hog
 						indexData.resize(primitive->indices->count);
 						for (int z = 0; z < primitive->indices->count; z += 3)
 						{
-							indexData[z + 2] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z));
+							indexData[z + 0] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z));
 							indexData[z + 1] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z + 1));
-							indexData[z + 0] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z + 2));
+							indexData[z + 2] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z + 2));
 						}
 
 						vertexData.resize(primitive->attributes->data->count);

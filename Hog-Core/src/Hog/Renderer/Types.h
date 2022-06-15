@@ -44,8 +44,9 @@ namespace Hog
 
 	/*
 	vec3f Position;
-	vec3f Normal;
 	vec2f TexCoords;
+	vec3f Normal;
+	vec4f Tangent;
 	int32 MaterialIndex;
 	*/
 
@@ -453,6 +454,15 @@ namespace Hog
 			: OldLayout(oldLayout), NewLayout(newLayout) {}
 		BarrierDescription(PipelineStage srcStage, AccessFlag srcAccessMask, PipelineStage dstStage, AccessFlag dstAccessMask)
 			: SrcStage(srcStage), SrcAccessMask(srcAccessMask), DstStage(dstStage), DstAccessMask(dstAccessMask) {}
+	};
+
+	enum class CullMode : VkCullModeFlags
+	{
+		None = VK_CULL_MODE_NONE,
+		Front = VK_CULL_MODE_FRONT_BIT,
+		Back = VK_CULL_MODE_BACK_BIT,
+		FrontAndBack = VK_CULL_MODE_FRONT_AND_BACK,
+		MaxEnum = VK_CULL_MODE_FLAG_BITS_MAX_ENUM,
 	};
 };
 

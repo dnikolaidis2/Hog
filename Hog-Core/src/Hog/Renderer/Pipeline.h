@@ -19,6 +19,7 @@ namespace Hog
 		virtual void Bind(VkCommandBuffer commandBuffer) = 0;
 		virtual void SetAttachmentCount(uint32_t count) = 0;
 		virtual void SetBlending(bool enable) = 0;
+		virtual void SetCullMode(CullMode cullMode) = 0;
 
 		void AddShaderStage(ShaderType type, VkShaderModule shaderModule, VkSpecializationInfo* specializationInfo, const char* main = "main");
 		void Destroy();
@@ -39,6 +40,7 @@ namespace Hog
 		virtual void Bind(VkCommandBuffer commandBuffer) override;
 		virtual void SetAttachmentCount(uint32_t count) override { ColorBlendAttachmentStates.resize(count); }
 		virtual void SetBlending(bool enable) override { ColorBlendAttachmentState.blendEnable = enable; }
+		virtual void SetCullMode(CullMode cullMode) override { RasterizationStateCreateInfo.cullMode = static_cast<VkCullModeFlags>(cullMode); };
 	public:
 		std::vector<VkVertexInputBindingDescription> VertexInputBindingDescriptions;
 		std::vector<VkVertexInputAttributeDescription> VertexInputAttributeDescriptions;
@@ -78,7 +80,7 @@ namespace Hog
 			.rasterizerDiscardEnable = VK_FALSE,
 			.polygonMode = VK_POLYGON_MODE_FILL,
 			.cullMode = VK_CULL_MODE_BACK_BIT,
-			.frontFace = VK_FRONT_FACE_CLOCKWISE,
+			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
 			.depthBiasEnable = VK_FALSE,
 			.depthBiasConstantFactor = 0.0f,
 			.depthBiasClamp = 0.0f,
@@ -126,8 +128,11 @@ namespace Hog
 			.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
 			.depthBoundsTestEnable = VK_FALSE,
 			.stencilTestEnable = VK_FALSE,
+			.back = {
+				.compareOp = VK_COMPARE_OP_ALWAYS,
+			},
 			.minDepthBounds = 0.0f, // Optional
-			.maxDepthBounds = 1.0f, // Optional
+			.maxDepthBounds = 0.0f, // Optional
 		};
 
 		VkPipelineDynamicStateCreateInfo DynamicStateCreateInfo = {
@@ -166,6 +171,7 @@ namespace Hog
 		virtual void Bind(VkCommandBuffer commandBuffer) override;
 		virtual void SetAttachmentCount(uint32_t count) override {  };
 		virtual void SetBlending(bool enable) override {  }
+		virtual void SetCullMode(CullMode cullMode) override { };
 	public:
 		VkComputePipelineCreateInfo ComputePipelineCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,

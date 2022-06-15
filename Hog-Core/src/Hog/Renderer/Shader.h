@@ -93,6 +93,7 @@ namespace Hog {
 		const std::vector<VkVertexInputBindingDescription>& GetVertexInputBindingDescriptions() const { return m_VertexInputBindingDescriptions; }
 
 		void SetBlending(bool enable) { m_EnableBlending = enable; }
+		void SetCullMode(CullMode cullMode) { m_CullMode = cullMode; }
 	private:
 		void ReflectPipelineLayout();
 	private:
@@ -114,6 +115,7 @@ namespace Hog {
 
 		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
 		bool m_EnableBlending = true;
+		CullMode m_CullMode = CullMode::MaxEnum;
 		Ref<Pipeline> m_Pipeline;
 	};
 }
