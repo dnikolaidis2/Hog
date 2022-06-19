@@ -4,7 +4,7 @@
 
 namespace Hog
 {
-	MeshPrimitive::MeshPrimitive(const std::vector<Vertex>& vertexData, const std::vector<uint16_t>& indexData)
+	MeshPrimitive::MeshPrimitive(const std::vector<Vertex>& vertexData, const std::vector<uint32_t>& indexData)
 		: m_Vertices(vertexData), m_Indices(indexData)
 	{
 	}
@@ -23,13 +23,13 @@ namespace Hog
 		return CreateRef<Mesh>(name);
 	}
 
-	void Mesh::AddPrimitive(const std::vector<Vertex>& vertexData, const std::vector<uint16_t>& indexData)
+	void Mesh::AddPrimitive(const std::vector<Vertex>& vertexData, const std::vector<uint32_t>& indexData)
 	{
 		m_Primitives.emplace_back(vertexData, indexData);
 		m_IndexOffsets.push_back(m_IndexBufferSize);
 		m_VertexOffsets.push_back(m_VertexBufferSize);
 
-		m_IndexBufferSize += indexData.size() * sizeof(uint16_t);
+		m_IndexBufferSize += indexData.size() * sizeof(uint32_t);
 		m_VertexBufferSize += vertexData.size() * sizeof(Vertex);
 	}
 
@@ -53,7 +53,7 @@ namespace Hog
 			VkBuffer vertexBuffers[] = { m_VertexBuffer->GetHandle() };
 			VkDeviceSize offsets[] = { primitive.GetVertexOffset() };
 
-			vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer->GetHandle(), primitive.GetIndexOffset(), VK_INDEX_TYPE_UINT16);
+			vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer->GetHandle(), primitive.GetIndexOffset(), VK_INDEX_TYPE_UINT32);
 			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
 			vkCmdDrawIndexed(commandBuffer,  static_cast<uint32_t>(primitive.GetIndexCount()), 1, 0, 0, 0);

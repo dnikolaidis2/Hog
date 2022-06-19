@@ -17,7 +17,6 @@ project "ComputeExample"
 	defines
 	{
 		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
-		"GLM_FORCE_LEFT_HANDED",
 		"GLM_ENABLE_EXPERIMENTAL",
 	}
 
@@ -29,8 +28,7 @@ project "ComputeExample"
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.GLFW}",
 		"%{IncludeDir.vma}",
-		"%{IncludeDir.tinyobjloader}",
-		"%{IncludeDir.cgltf}",
+		"%{IncludeDir.tinygltf}",
 		"%{IncludeDir.optick}",
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.volk}",

@@ -7,12 +7,12 @@ namespace Hog
 	class MeshPrimitive
 	{
 	public:
-		MeshPrimitive(const std::vector<Vertex>& vertexData, const std::vector<uint16_t>& indexData);
+		MeshPrimitive(const std::vector<Vertex>& vertexData, const std::vector<uint32_t>& indexData);
 
 		void Build(Ref<Buffer> vertexBuffer, uint64_t vertexOffset, Ref<Buffer> indexBuffer, uint64_t indexOffset);
 
 		uint64_t GetVertexDataSize() const { return m_Vertices.size() * sizeof(Vertex); }
-		uint64_t GetIndexDataSize() const { return m_Indices.size() * sizeof(uint16_t); }
+		uint64_t GetIndexDataSize() const { return m_Indices.size() * sizeof(uint32_t); }
 
 		size_t GetVertexCount() const { return m_Vertices.size(); }
 		size_t GetIndexCount() const { return m_Indices.size(); }
@@ -27,10 +27,10 @@ namespace Hog
 		void SetIndexRegion(Ref<BufferRegion> indexRegion) { m_VertexRegion = std::move(indexRegion); }
 
 		const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
-		const std::vector<uint16_t>& GetIndices() const { return m_Indices; }
+		const std::vector<uint32_t>& GetIndices() const { return m_Indices; }
 	public:
 		std::vector<Vertex> m_Vertices;
-		std::vector<uint16_t> m_Indices;
+		std::vector<uint32_t> m_Indices;
 
 		Ref<BufferRegion> m_VertexRegion;
 		Ref<BufferRegion> m_IndexRegion;
@@ -45,7 +45,7 @@ namespace Hog
 			: m_Name(name) {}
 		~Mesh() = default;
 
-		void AddPrimitive(const std::vector<Vertex>& vertexData, const std::vector<uint16_t>& indexData);
+		void AddPrimitive(const std::vector<Vertex>& vertexData, const std::vector<uint32_t>& indexData);
 		void Build();
 
 		void SetModelMatrix(glm::mat4 matrix) { m_ModelMatrix = matrix; }

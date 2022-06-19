@@ -8,10 +8,11 @@ SourceDir["optick"] = "%{wks.location}/Hog-Core/vendor/optick/src"
 
 IncludeDir = {}
 IncludeDir["stb_image"] = "%{wks.location}/Hog-Core/vendor/stb_image"
-IncludeDir["cgltf"] = "%{wks.location}/Hog-Core/vendor/cgltf"
+IncludeDir["stb_image_write"] = "%{wks.location}/Hog-Core/vendor/stb_image_write"
+IncludeDir["json"] = "%{wks.location}/Hog-Core/vendor/json"
 IncludeDir["vma"] = "%{wks.location}/Hog-Core/vendor/vma"
 IncludeDir["yaml_cpp"] = "%{wks.location}/Hog-Core/vendor/yaml-cpp/include"
-IncludeDir["tinyobjloader"] = "%{wks.location}/Hog-Core/vendor/tinyobjloader"
+IncludeDir["tinygltf"] = "%{wks.location}/Hog-Core/vendor/tinygltf"
 IncludeDir["GLFW"] = "%{wks.location}/Hog-Core/vendor/GLFW/include"
 IncludeDir["ImGui"] = "%{wks.location}/Hog-Core/vendor/ImGui"
 IncludeDir["glm"] = "%{wks.location}/Hog-Core/vendor/glm"

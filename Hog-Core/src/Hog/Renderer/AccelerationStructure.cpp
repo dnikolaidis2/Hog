@@ -28,8 +28,8 @@ namespace Hog
 		m_VertexBuffer = Buffer::Create(BufferDescription::Defaults::AccelerationStructureBuildInput, static_cast<uint64_t>(vertices.size() * sizeof(TriangleVertex)));
 		m_VertexBuffer->WriteData(vertices.data(), static_cast<uint64_t>(vertices.size() * sizeof(TriangleVertex)));
 
-		m_IndexBuffer = Buffer::Create(BufferDescription::Defaults::AccelerationStructureBuildInput, primitiveIndicies.size() * sizeof(uint16_t));
-		m_VertexBuffer->WriteData(const_cast<uint16_t*>(primitiveIndicies.data()), vertices.size() * sizeof(TriangleVertex));
+		m_IndexBuffer = Buffer::Create(BufferDescription::Defaults::AccelerationStructureBuildInput, primitiveIndicies.size() * sizeof(uint32_t));
+		m_VertexBuffer->WriteData(const_cast<uint32_t*>(primitiveIndicies.data()), vertices.size() * sizeof(TriangleVertex));
 
 		VkAccelerationStructureGeometryKHR accelerationStructureGeometry{};
 		accelerationStructureGeometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;

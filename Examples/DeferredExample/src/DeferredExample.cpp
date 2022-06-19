@@ -25,6 +25,7 @@ void DeferredExample::OnAttach()
 
 	// LoadGltfFile("assets/models/sponza-intel/NewSponza_Main_Blender_glTF.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 	LoadGltfFile("assets/models/sponza/sponza.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
+	// LoadGltfFile("assets/models/armor/armor-test.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 	// LoadGltfFile("assets/models/cube/cube.gltf", m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 
 	Ref<Texture> albedoAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::SampledColorAttachment, 1));
@@ -126,7 +127,8 @@ void DeferredExample::OnUpdate(Timestep ts)
 	HG_PROFILE_FUNCTION();
 
 	m_EditorCamera.OnUpdate(ts);
-	glm::mat4 viewProj = m_Cameras.begin()->second;
+	// glm::mat4 viewProj = m_Cameras.begin()->second;
+	glm::mat4 viewProj = m_EditorCamera.GetProjection() * m_EditorCamera.GetViewMatrix();
 	m_ViewProjection->WriteData(&viewProj, sizeof(viewProj));
 }
 

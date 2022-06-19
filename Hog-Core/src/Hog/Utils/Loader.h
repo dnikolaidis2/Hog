@@ -1,11 +1,13 @@
 #pragma once
 
-#include <cgltf.h>
+#define TINYGLTF_NO_EXTERNAL_IMAGE
+#include <tiny_gltf.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/string_cast.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "Hog/Renderer/Mesh.h"
 #include "Hog/Renderer/Texture.h"
@@ -29,158 +31,151 @@ namespace Hog
 	{
 		HG_PROFILE_FUNCTION();
 
-		cgltf_options options = {};
-		cgltf_data* data = NULL;
-		cgltf_result result = cgltf_parse_file(&options, filepath.c_str(), &data);
-		if (result == cgltf_result_success)
+		tinygltf::Model gltfModel;
+		tinygltf::TinyGLTF gltfContext;
+
+		std::string error, warning;
+
+		bool fileLoaded = gltfContext.LoadASCIIFromFile(&gltfModel, &error, &warning, filepath);
+
+		if (fileLoaded) 
 		{
 			// Extract name from filepath
-			auto path = std::filesystem::path(filepath);
-			auto currentPath = std::filesystem::current_path();
+			const auto path = std::filesystem::path(filepath);
+			const auto currentPath = std::filesystem::current_path();
+
+			// pushd
 			std::filesystem::current_path(currentPath / path.parent_path());
 
-			for (int i = 0; i < data->buffers_count; ++i)
-			{
-				result = cgltf_load_buffers(&options, data, data->buffers[i].uri);
-				if (result != cgltf_result_success)
-				{
-					cgltf_free(data);
-					return false;
-				}
-			}
+			// Load images
+			std::vector<Ref<Image>> images(gltfModel.images.size());
+			std::transform(gltfModel.images.begin(), gltfModel.images.end(), images.begin(), [](tinygltf::Image& gltfImage) {
+				return Image::LoadFromFile(gltfImage.uri);
+			});
 
-			std::vector<Ref<Image>> images(data->images_count);
-
-			for (int i = 0; i < data->images_count; i++)
+			// Load textures
+			size_t textureInitialSize = textures.size();
+			textures.resize(textureInitialSize + gltfModel.textures.size());
+			for(size_t i = textureInitialSize; i < textures.size(); i++)
 			{
-				images[i] = Image::LoadFromFile(data->images[i].uri);
-			}
-
-			auto initialSize = textures.size();
-			for (int i = 0; i < data->textures_count; i++)
-			{
-				auto * texture = &(data->textures[i]);
-				SamplerType type {};
+				const auto& texture = gltfModel.textures[i];
+				const auto& sampler = gltfModel.samplers[texture.sampler];
 				
-				switch (texture->sampler->mag_filter)
+				SamplerType type{};
+				switch (sampler.magFilter)
 				{
-					case 9728: type.MagFilter = VK_FILTER_NEAREST; break;
-					case 9729: type.MagFilter = VK_FILTER_LINEAR; break;
+					case TINYGLTF_TEXTURE_FILTER_NEAREST: type.MagFilter = VK_FILTER_NEAREST; break;
+					case TINYGLTF_TEXTURE_FILTER_LINEAR: type.MagFilter = VK_FILTER_LINEAR; break;
 				}
 
-				switch (texture->sampler->min_filter)
+				switch (sampler.minFilter)
 				{
-					case 9728: type.MinFilter = VK_FILTER_NEAREST; break;
-					case 9729: type.MinFilter = VK_FILTER_LINEAR; break;
-					case 9984: type.MinFilter = VK_FILTER_NEAREST; break;
-					case 9985: type.MinFilter = VK_FILTER_LINEAR; break;
-					case 9986: type.MinFilter = VK_FILTER_NEAREST; break;
-					case 9987: type.MinFilter = VK_FILTER_LINEAR; break;
+					case TINYGLTF_TEXTURE_FILTER_NEAREST: type.MinFilter = VK_FILTER_NEAREST; break;
+					case TINYGLTF_TEXTURE_FILTER_LINEAR: type.MinFilter = VK_FILTER_LINEAR; break;
+					case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST: type.MinFilter = VK_FILTER_NEAREST; break;
+					case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST: type.MinFilter = VK_FILTER_LINEAR; break;
+					case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR: type.MinFilter = VK_FILTER_NEAREST; break;
+					case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR: type.MinFilter = VK_FILTER_LINEAR; break;
 				}
 
-				switch (texture->sampler->min_filter)
+				switch (sampler.minFilter)
 				{
-					case 9984: type.MipMode = VK_SAMPLER_MIPMAP_MODE_NEAREST; break;
-					case 9985: type.MipMode = VK_SAMPLER_MIPMAP_MODE_NEAREST; break;
-					case 9986: type.MipMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; break;
-					case 9987: type.MipMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; break;
+					case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST: type.MipMode = VK_SAMPLER_MIPMAP_MODE_NEAREST; break;
+					case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST: type.MipMode = VK_SAMPLER_MIPMAP_MODE_NEAREST; break;
+					case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR: type.MipMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; break;
+					case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR: type.MipMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; break;
 				}
 
-				switch (texture->sampler->wrap_s)
+				switch (sampler.wrapS)
 				{
-					case 33071: type.AddressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; break;
-					case 33648: type.AddressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT; break;
-					case 10497: type.AddressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT; break;
+					case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE: type.AddressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; break;
+					case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT: type.AddressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT; break;
+					case TINYGLTF_TEXTURE_WRAP_REPEAT: type.AddressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT; break;
 				}
 
-				switch (texture->sampler->wrap_t)
+				switch (sampler.wrapT)
 				{
-					case 33071: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; break;
-					case 33648: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT; break;
-					case 10497: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT; break;
+					case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; break;
+					case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT; break;
+					case TINYGLTF_TEXTURE_WRAP_REPEAT: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT; break;
 				}
-
-				Ref<Texture> textureRef = Texture::Create(type, images[texture->image - data->images]);
-				textureRef->SetGPUIndex(initialSize + i);
-
-				textures.push_back(textureRef);
-			}
-
-			materialBuffer = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(MaterialGPUData) * data->materials_count);
-			size_t offset = 0;
-
-			for (int i = 0; i < data->materials_count; i++)
-			{
- 				const auto material = &(data->materials[i]);
-				MaterialData matData {};
-
-				matData.DiffuseColor = glm::vec4(material->pbr_metallic_roughness.base_color_factor[0],
-					material->pbr_metallic_roughness.base_color_factor[1],
-					material->pbr_metallic_roughness.base_color_factor[2],
-					material->pbr_metallic_roughness.base_color_factor[3]);
-
-				if (material->pbr_metallic_roughness.base_color_texture.texture)
-				{
-					matData.DiffuseTexture = textures[material->pbr_metallic_roughness.base_color_texture.texture - data->textures];
-				}
-
-				materials.push_back(Material::Create(material->name, matData));
-				materials[i]->SetGPUIndex(i);
-				materials[i]->UpdateData(materialBuffer, offset);
-				offset += sizeof(MaterialGPUData);
-			}
 			
-			lightBuffer = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(LightData) * data->lights_count);
+				textures[i] = Texture::Create(type, images[texture.source]);
+				textures[i]->SetGPUIndex(textureInitialSize + i);
+			}
+
+			// Load materials
+			materialBuffer = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(MaterialGPUData) * gltfModel.materials.size());
+			materials.resize(gltfModel.materials.size());
+			size_t materialOffset = 0;
+			for (size_t i = 0; i < gltfModel.materials.size(); i++)
+			{
+				const auto& material = gltfModel.materials[i];
+				MaterialData matData{};
+
+				matData.DiffuseColor = glm::make_vec4(material.pbrMetallicRoughness.baseColorFactor.data());
+
+				if (material.pbrMetallicRoughness.baseColorTexture.index != -1)
+				{
+					matData.DiffuseTexture = textures[textureInitialSize + material.pbrMetallicRoughness.baseColorTexture.index];
+				}
+
+				materials[i] = Material::Create(material.name, matData);
+				materials[i]->SetGPUIndex(i);
+				materials[i]->UpdateData(materialBuffer, materialOffset);
+				materialOffset += sizeof(MaterialGPUData);
+			}
+
+			// Create ligth buffer
+			lightBuffer = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(LightData) * gltfModel.lights.size());
 			size_t lightOffset = 0;
 
-			for (int i = 0; i < data->nodes_count; ++i)
+			// Load nodes
+			for (size_t i = 0; i < gltfModel.nodes.size(); i++)
 			{
-				const auto node = &(data->nodes[i]);
+				const auto& node = gltfModel.nodes[i];
 
-				// Load model matrix
-				glm::mat4 modelMat{ 1.0f };
-				glm::vec3 translation{ 1.0f };
-				glm::quat rotation {};
+				// Generate local node matrix
+				glm::vec3 translation{ 0.0f };
+				if (node.translation.size() == 3) {
+					translation = glm::make_vec3(node.translation.data());
+				}
+
+				glm::quat rotation{1.0f, 1.0f, 1.0f, 1.0f};
+				if (node.rotation.size() == 4) {
+					rotation = glm::quat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
+				}
+
 				glm::vec3 scale{ 1.0f };
-				if (node->has_matrix)
-				{
-					modelMat = glm::mat4(
-						node->matrix[0], node->matrix[1], node->matrix[2], node->matrix[3],
-						node->matrix[4], node->matrix[5], node->matrix[6], node->matrix[7],
-						node->matrix[8], node->matrix[9], node->matrix[10], node->matrix[11],
-						node->matrix[12], node->matrix[13], node->matrix[14], node->matrix[15]
-					);
+				if (node.scale.size() == 3) {
+					scale = glm::make_vec3(node.scale.data());
+				}
+
+				glm::mat4 modelMat{ 1.0f };
+				if (node.matrix.size() == 16) {
+					modelMat = glm::make_mat4x4(node.matrix.data());
 				}
 				else
 				{
-					if (node->has_translation)
-					{
-						translation = glm::vec3(node->translation[0], node->translation[1], node->translation[2]);
-						modelMat = glm::translate(modelMat, translation);
-					}
-
-					if (node->has_rotation)
-					{
-						rotation = glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]);
-						modelMat *= glm::toMat4(rotation);
-					}
-
-					if (node->has_scale)
-					{
-						scale = glm::vec3(node->scale[0], node->scale[1], node->scale[2]);
-						modelMat = glm::scale(modelMat, scale);
-					}
+					modelMat = glm::translate(glm::mat4(1.0f), translation)
+						* glm::toMat4(rotation)
+						* glm::scale(glm::mat4(1.0f), scale);
 				}
 
-				if (node->mesh)
+				if (node.mesh != -1)
 				{
-					const auto mesh = node->mesh;
-					for (int j = 0; j < mesh->primitives_count; ++j)
-					{
-						const auto primitive = &(mesh->primitives[j]);
+					const tinygltf::Mesh mesh = gltfModel.meshes[node.mesh];
+					
+					auto nodeMesh = Mesh::Create(node.name);
 
-						auto nodeMesh = Mesh::Create(node->name);
-						if (primitive->material->alpha_mode == cgltf_alpha_mode_opaque)
+					for (size_t j = 0; j < mesh.primitives.size(); j++) {
+						const tinygltf::Primitive& primitive = mesh.primitives[j];
+						const tinygltf::Material& material = gltfModel.materials[mesh.primitives[j].material];
+						if (primitive.indices < 0) {
+							continue;
+						}
+
+						if (material.alphaMode == "OPAQUE")
 						{
 							opaque.push_back(nodeMesh);
 						}
@@ -189,74 +184,114 @@ namespace Hog
 							transparent.push_back(nodeMesh);
 						}
 
-						std::vector<uint16_t> indexData;
 						std::vector<Vertex> vertexData;
 
-						indexData.resize(primitive->indices->count);
-						for (int z = 0; z < primitive->indices->count; z += 3)
+						// Vertices
 						{
-							indexData[z + 0] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z));
-							indexData[z + 1] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z + 1));
-							indexData[z + 2] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z + 2));
-						}
+							const float* bufferPos = nullptr;
+							const float* bufferNormals = nullptr;
+							const float* bufferTexCoords = nullptr;
+							const float* bufferColors = nullptr;
+							const float* bufferTangents = nullptr;
+							uint32_t numColorComponents;
 
-						vertexData.resize(primitive->attributes->data->count);
-						std::vector<glm::vec3> positions;
-						std::vector<glm::vec3> normals;
-						std::vector<glm::vec2> texcoords;
-						std::vector<glm::vec4> tangent;
-						for (int z = 0; z < primitive->attributes_count; ++z)
-						{
-							const auto attribute = &(primitive->attributes[z]);
+							// Position attribute is required
+							assert(primitive.attributes.find("POSITION") != primitive.attributes.end());
 
-							switch (attribute->type)
+							const tinygltf::Accessor& posAccessor = gltfModel.accessors[primitive.attributes.find("POSITION")->second];
+							const tinygltf::BufferView& posView = gltfModel.bufferViews[posAccessor.bufferView];
+							bufferPos = reinterpret_cast<const float*>(&(gltfModel.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
+
+							if (primitive.attributes.find("NORMAL") != primitive.attributes.end()) {
+								const tinygltf::Accessor& normAccessor = gltfModel.accessors[primitive.attributes.find("NORMAL")->second];
+								const tinygltf::BufferView& normView = gltfModel.bufferViews[normAccessor.bufferView];
+								bufferNormals = reinterpret_cast<const float*>(&(gltfModel.buffers[normView.buffer].data[normAccessor.byteOffset + normView.byteOffset]));
+							}
+
+							if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end()) {
+								const tinygltf::Accessor& uvAccessor = gltfModel.accessors[primitive.attributes.find("TEXCOORD_0")->second];
+								const tinygltf::BufferView& uvView = gltfModel.bufferViews[uvAccessor.bufferView];
+								bufferTexCoords = reinterpret_cast<const float*>(&(gltfModel.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+							}
+
+							if (primitive.attributes.find("COLOR_0") != primitive.attributes.end())
 							{
-							case cgltf_attribute_type_position:
+								const tinygltf::Accessor& colorAccessor = gltfModel.accessors[primitive.attributes.find("COLOR_0")->second];
+								const tinygltf::BufferView& colorView = gltfModel.bufferViews[colorAccessor.bufferView];
+								// Color buffer are either of type vec3 or vec4
+								numColorComponents = colorAccessor.type == TINYGLTF_PARAMETER_TYPE_FLOAT_VEC3 ? 3 : 4;
+								bufferColors = reinterpret_cast<const float*>(&(gltfModel.buffers[colorView.buffer].data[colorAccessor.byteOffset + colorView.byteOffset]));
+							}
+
+							if (primitive.attributes.find("TANGENT") != primitive.attributes.end())
 							{
-								cgltf_size count = cgltf_accessor_unpack_floats(attribute->data, nullptr, 0);
+								const tinygltf::Accessor& tangentAccessor = gltfModel.accessors[primitive.attributes.find("TANGENT")->second];
+								const tinygltf::BufferView& tangentView = gltfModel.bufferViews[tangentAccessor.bufferView];
+								bufferTangents = reinterpret_cast<const float*>(&(gltfModel.buffers[tangentView.buffer].data[tangentAccessor.byteOffset + tangentView.byteOffset]));
+							}
 
-								positions.resize(count / 3);
-
-								cgltf_accessor_unpack_floats(attribute->data, reinterpret_cast<cgltf_float*>(positions.data()), count);
-							}break;
-							case cgltf_attribute_type_normal:
-							{
-								cgltf_size count = cgltf_accessor_unpack_floats(attribute->data, nullptr, 0);
-
-								normals.resize(count / 3);
-
-								cgltf_accessor_unpack_floats(attribute->data, reinterpret_cast<cgltf_float*>(normals.data()), count);
-							}break;
-							case cgltf_attribute_type_texcoord:
-							{
-								cgltf_size count = cgltf_accessor_unpack_floats(attribute->data, nullptr, 0);
-
-								texcoords.resize(count / 2);
-
-								cgltf_accessor_unpack_floats(attribute->data, reinterpret_cast<cgltf_float*>(texcoords.data()), count);
-							}break;
-							case cgltf_attribute_type_tangent:
-							{
-								cgltf_size count = cgltf_accessor_unpack_floats(attribute->data, nullptr, 0);
-
-								tangent.resize(count / 4);
-
-								cgltf_accessor_unpack_floats(attribute->data, reinterpret_cast<cgltf_float*>(tangent.data()), count);
-							}break;
-							default: break;
+							for (size_t v = 0; v < posAccessor.count; v++) {
+								Vertex vertex{};
+								vertex.Position = glm::vec4(glm::make_vec3(&bufferPos[v * 3]), 1.0f);
+								vertex.Normal = glm::normalize(glm::vec3(bufferNormals ? glm::make_vec3(&bufferNormals[v * 3]) : glm::vec3(0.0f)));
+								vertex.TexCoords = bufferTexCoords ? glm::make_vec2(&bufferTexCoords[v * 2]) : glm::vec3(0.0f);
+								/*if (bufferColors) {
+									switch (numColorComponents) {
+									case 3:
+										vert.Color = glm::vec4(glm::make_vec3(&bufferColors[v * 3]), 1.0f);
+									case 4:
+										vert.Color = glm::make_vec4(&bufferColors[v * 4]);
+									}
+								}
+								else {
+									vert.color = glm::vec4(1.0f);
+								}*/
+								vertex.Tangent = bufferTangents ? glm::vec4(glm::make_vec4(&bufferTangents[v * 4])) : glm::vec4(0.0f);
+								vertex.MaterialIndex = materials[mesh.primitives[j].material]->GetGPUIndex();
+								vertexData.push_back(vertex);
 							}
 						}
 
-						for (int z = 0; z < vertexData.size(); ++z)
+						std::vector<uint32_t> indexData;
+
+						// Indices
 						{
-							vertexData[z].Position = positions[z];
-							vertexData[z].Normal = normals[z];
-							vertexData[z].TexCoords = texcoords[z];
-							vertexData[z].Tangent = tangent[z];
-							
-							if (primitive->material)
-							{
-								vertexData[z].MaterialIndex = materials[primitive->material - data->materials]->GetGPUIndex();
+							const tinygltf::Accessor& accessor = gltfModel.accessors[primitive.indices];
+							const tinygltf::BufferView& bufferView = gltfModel.bufferViews[accessor.bufferView];
+							const tinygltf::Buffer& buffer = gltfModel.buffers[bufferView.buffer];
+
+
+							switch (accessor.componentType) {
+							case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
+								uint32_t* buf = new uint32_t[accessor.count];
+								memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint32_t));
+								for (size_t index = 0; index < accessor.count; index++) {
+									indexData.push_back(buf[index]);
+								}
+								delete[] buf;
+								break;
+							}
+							case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
+								uint16_t* buf = new uint16_t[accessor.count];
+								memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint16_t));
+								for (size_t index = 0; index < accessor.count; index++) {
+									indexData.push_back(buf[index]);
+								}
+								delete[] buf;
+								break;
+							}
+							case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
+								uint8_t* buf = new uint8_t[accessor.count];
+								memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint8_t));
+								for (size_t index = 0; index < accessor.count; index++) {
+									indexData.push_back(buf[index]);
+								}
+								delete[] buf;
+								break;
+							}
+							default:
+								HG_CORE_ERROR("Index component type {0} not supported!", accessor.componentType);
+								return false;
 							}
 						}
 
@@ -265,94 +300,69 @@ namespace Hog
 						nodeMesh->SetModelMatrix(modelMat);
 					}
 				}
-
-				if (node->camera)
+				else if(node.camera != -1)
 				{
+					const tinygltf::Camera& camera = gltfModel.cameras[node.camera];
 					glm::mat4 projection = glm::perspective(
-						node->camera->data.perspective.yfov,
-						node->camera->data.perspective.aspect_ratio,
-						node->camera->data.perspective.znear,
-						node->camera->data.perspective.zfar);
+						camera.perspective.yfov,
+						camera.perspective.aspectRatio,
+						camera.perspective.znear,
+						camera.perspective.zfar);
 					glm::mat4 view = glm::translate(glm::mat4(1.0f), translation)
 						* glm::toMat4(rotation)
 						* glm::rotate(glm::mat4(1.f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-					glm::mat4 camera = projection * glm::inverse(view);
+					glm::mat4 cameraMat = projection * glm::inverse(view);
 
-					cameras[node->camera->name] = camera;
-
-					/*
-					std::vector<glm::vec3> frustrumCorners;
-					Math::CalculateFrustrumCorners(frustrumCorners, projection);
-
-					std::vector<uint16_t> indexData = {
-						7, 6, 5,
-						4, 7, 5,
-
-						2, 1, 6,
-						1, 5, 6,
-
-						1, 0, 5,
-						0, 4, 5,
-
-						0, 3, 4,
-						2, 7, 3, // FIX ME
-
-						3, 2, 7,
-						2, 6, 7,
-
-						0, 1, 2,
-						3, 0, 2,
-					};
-
-					std::vector<Vertex> vertexData;
-
-					for (size_t i = 0; i < frustrumCorners.size(); i++)
-					{
-						Vertex vertex = {
-							frustrumCorners[i]
-						};
-
-						vertexData.push_back(vertex);
-					}
-
-					auto mesh = Mesh::Create("Frustrum");
-					mesh->AddPrimitive(vertexData, indexData);
-					mesh->Build();
-					mesh->SetModelMatrix(view);
-
-					objects.push_back(mesh);
-					*/
+					cameras[camera.name] = cameraMat;
 				}
-
-				if (node->light)
+				else if (node.extensions.size())
 				{
-					LightType type;
-					switch (node->light->type)
+					if (node.extensions.find("KHR_lights_punctual") != node.extensions.end())
 					{
-						case cgltf_light_type_directional: type = LightType::Directional; break;
-						/*case cgltf_light_type_spot: type = LightType::Spot; break;
-						case cgltf_light_type_point: type = LightType::Point; break;*/
-					}
+						if (node.extensions.at("KHR_lights_punctual").IsObject())
+						{
+							const tinygltf::Light light = gltfModel.lights[node.extensions.at("KHR_lights_punctual").Get("light").GetNumberAsInt()];
+							LightType type;
+							if (light.type == "directional")
+							{
+								type = LightType::Directional; break;
+								/*case cgltf_light_type_spot: type = LightType::Spot; break;
+								case cgltf_light_type_point: type = LightType::Point; break;*/
+							}
 
-					auto light = Light::Create({
-						.Position = {translation},
-						.Type = type,
-						.Color = {node->light->color[0], node->light->color[1], node->light->color[2], 1.0f},
-						.Direction = glm::eulerAngles(rotation),
-						.Intensity = node->light->intensity,
-					});
-					
-					lights.push_back(light);
-					light->UpdateData(lightBuffer, lightOffset);
-					lightOffset += sizeof(LightData);
+							glm::vec4 color{ 1.0f };
+							if (light.color.size() == 4)
+							{
+								color = glm::make_vec4(light.color.data());
+							}
+							else
+							{
+								color = glm::vec4(glm::make_vec3(light.color.data()), 1.0f);
+							}
+
+							auto lightRef = Light::Create({
+								.Position = {translation},
+								.Type = type,
+								.Color =  color,
+								.Direction = glm::eulerAngles(rotation),
+								.Intensity = static_cast<float>(light.intensity),
+							});
+
+							lights.push_back(lightRef);
+							lightRef->UpdateData(lightBuffer, lightOffset);
+							lightOffset += sizeof(LightData);
+						}
+					}
 				}
 			}
 
+			// popd
 			std::filesystem::current_path(currentPath);
-			cgltf_free(data);
 			return true;
 		}
 
+		HG_CORE_ERROR("{0}", warning);
+		HG_CORE_ERROR("{0}", error);
 		return false;
 	}
 }
