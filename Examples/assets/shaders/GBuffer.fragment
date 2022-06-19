@@ -61,7 +61,7 @@ void main()
 	{
 		tnorm = TBN * vec3(1.0);
 	}
-
+	
 	o_Normal = vec4(tnorm, 1.0);
 
 	o_Albedo = texture(u_Textures[mat.DiffuseTextureIndex], v_TexCoord);

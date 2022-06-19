@@ -247,7 +247,9 @@ namespace Hog {
 		};
 
 		std::vector<const char*> InstanceExtensions = {  };
-		std::vector<const char*> DeviceExtensions = { VK_KHR_MAINTENANCE_4_EXTENSION_NAME,
+		std::vector<const char*> DeviceExtensions = { 
+			VK_KHR_MAINTENANCE_1_EXTENSION_NAME,
+			VK_KHR_MAINTENANCE_4_EXTENSION_NAME,
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 			VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
 			VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,

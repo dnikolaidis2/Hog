@@ -84,14 +84,6 @@ namespace Hog
 	{
 		HG_PROFILE_FUNCTION();
 
-		VkExtent2D extent = GraphicsContext::GetExtent();
-		Viewport.width = (float)extent.width;
-		Viewport.height = (float)extent.height;
-
-		Scissor.extent = extent;
-
-		vkCmdSetViewport(commandBuffer, 0, 1, &Viewport);
-		vkCmdSetScissor(commandBuffer, 0, 1, &Scissor);
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Handle);
 	}
 

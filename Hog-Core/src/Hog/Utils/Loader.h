@@ -17,7 +17,14 @@
 
 namespace Hog
 {
+	struct LoaderOptions
+	{
+		bool SwapFrontFace = false;
+		bool FlipYPosition = false;
+	};
+
 	static bool LoadGltfFile(const std::string& filepath,
+		LoaderOptions options,
 		std::vector<Ref<Mesh>>& opaque,
 		std::vector<Ref<Mesh>>& transparent,
 		std::unordered_map<std::string, glm::mat4>& cameras,
@@ -29,9 +36,9 @@ namespace Hog
 	{
 		HG_PROFILE_FUNCTION();
 
-		cgltf_options options = {};
+		cgltf_options cgltfOptions = {};
 		cgltf_data* data = NULL;
-		cgltf_result result = cgltf_parse_file(&options, filepath.c_str(), &data);
+		cgltf_result result = cgltf_parse_file(&cgltfOptions, filepath.c_str(), &data);
 		if (result == cgltf_result_success)
 		{
 			// Extract name from filepath
@@ -41,7 +48,7 @@ namespace Hog
 
 			for (int i = 0; i < data->buffers_count; ++i)
 			{
-				result = cgltf_load_buffers(&options, data, data->buffers[i].uri);
+				result = cgltf_load_buffers(&cgltfOptions, data, data->buffers[i].uri);
 				if (result != cgltf_result_success)
 				{
 					cgltf_free(data);
@@ -124,6 +131,11 @@ namespace Hog
 					matData.DiffuseTexture = textures[material->pbr_metallic_roughness.base_color_texture.texture - data->textures];
 				}
 
+				if (material->normal_texture.texture)
+				{
+					matData.BumpMap = textures[material->normal_texture.texture - data->textures];
+				}
+
 				materials.push_back(Material::Create(material->name, matData));
 				materials[i]->SetGPUIndex(i);
 				materials[i]->UpdateData(materialBuffer, offset);
@@ -195,9 +207,18 @@ namespace Hog
 						indexData.resize(primitive->indices->count);
 						for (int z = 0; z < primitive->indices->count; z += 3)
 						{
-							indexData[z + 0] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z));
-							indexData[z + 1] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z + 1));
-							indexData[z + 2] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z + 2));
+							if (options.SwapFrontFace)
+							{
+								indexData[z + 2] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z));
+								indexData[z + 1] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z + 1));
+								indexData[z + 0] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z + 2));
+							}
+							else
+							{
+								indexData[z + 0] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z));
+								indexData[z + 1] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z + 1));
+								indexData[z + 2] = static_cast<uint16_t>(cgltf_accessor_read_index(primitive->indices, z + 2));
+							}
 						}
 
 						vertexData.resize(primitive->attributes->data->count);
@@ -274,8 +295,7 @@ namespace Hog
 						node->camera->data.perspective.znear,
 						node->camera->data.perspective.zfar);
 					glm::mat4 view = glm::translate(glm::mat4(1.0f), translation)
-						* glm::toMat4(rotation)
-						* glm::rotate(glm::mat4(1.f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+						* glm::toMat4(rotation);
 					glm::mat4 camera = projection * glm::inverse(view);
 
 					cameras[node->camera->name] = camera;

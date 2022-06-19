@@ -36,7 +36,8 @@ void main()
 	{
 		vec3 lightDir = normalize(-u_Lights[i].Direction);
 		float diff = max(dot(normal, lightDir), 0.0);
-		diffuse = u_Lights[i].Color * u_Lights[i].Intensity * diff * albedo;
+		diffuse = u_Lights[i].Color * diff * albedo;
+		// * u_Lights[i].Intensity
 	}
 
 	o_Color = diffuse;

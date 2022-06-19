@@ -412,11 +412,12 @@ namespace Hog
 				uint32_t colorCount = 0;
 				std::for_each(Info.Attachments.begin(), Info.Attachments.end(), [&colorCount](AttachmentElement& attachment) 
 					{ 
-						colorCount += (attachment.Type == AttachmentType::Color || attachment.Type == AttachmentType::Swapchain) ? 1 : 0; 
+						colorCount += (attachment.Type == AttachmentType::Color || attachment.Type == AttachmentType::Swapchain) ? 1 : 0;
 					});
 
 				if (Info.StageType == RendererStageType::ScreenSpacePass || Info.StageType == RendererStageType::Blit)
 					Info.Shader->SetCullMode(CullMode::Front);
+
 				Info.Shader->Generate(RenderPass, specializationInfo, colorCount);
 			}
 			else
@@ -517,9 +518,18 @@ namespace Hog
 
 		VkViewport viewport;
 		viewport.x = 0.0f;
-		viewport.y = 0.0f;
+		if (Info.StageType == RendererStageType::ScreenSpacePass)
+		{
+			viewport.y = 0.0f;
+			viewport.height = static_cast<float>(extent.height);
+		}
+		else
+		{
+			viewport.y = static_cast<float>(extent.height);
+			viewport.height = -static_cast<float>(extent.height);
+		}
+		
 		viewport.width = static_cast<float>(extent.width);
-		viewport.height = static_cast<float>(extent.height);
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
