@@ -71,6 +71,7 @@ namespace Hog {
 	{
 	public:
 		static Ref<Shader> Create(const std::string& name, const std::string& vertex, const std::string& fragment, bool enableBlending = true);
+		static Ref<Shader> Create(const std::string& name, const std::string& vertex, const std::string& fragment, const std::string& geometry, bool enableBlending = true);
 		static Ref<Shader> Create(const std::string& name);
 	public:
 		Shader(const std::string& name)

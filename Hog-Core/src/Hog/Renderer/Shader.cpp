@@ -299,6 +299,18 @@ namespace Hog {
 		return shader;
 	}
 
+	Ref<Shader> Shader::Create(const std::string& name, const std::string& vertex, const std::string& fragment, const std::string& geometry, bool enableBlending)
+	{
+		auto shader = CreateRef<Shader>(name);
+		shader->AddStage(vertex);
+		shader->AddStage(fragment);
+		shader->AddStage(geometry);
+
+		shader->SetBlending(enableBlending);
+
+		return shader;
+	}
+
 	Ref<Shader> Shader::Create(const std::string& name)
 	{
 		auto shader = CreateRef<Shader>(name);

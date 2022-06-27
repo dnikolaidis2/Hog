@@ -7,7 +7,17 @@ namespace Hog {
 	enum class LightType : int32_t
 	{
 		Directional = 0,
+		Point = 1,
+		Spot = 2,
 	};
+
+	/*
+	vec3 Position;
+	int32 Type;
+	vec4 Color;
+	vec3 Direction;
+	float Intensity;
+	*/
 
 	struct alignas(16) LightData
 	{

@@ -192,6 +192,7 @@ namespace Hog
 		{
 			Fragment			= VK_SHADER_STAGE_FRAGMENT_BIT,
 			Vertex				= VK_SHADER_STAGE_VERTEX_BIT,
+			Geometry			= VK_SHADER_STAGE_GEOMETRY_BIT,
 			Compute				= VK_SHADER_STAGE_COMPUTE_BIT,
 			AnyHit				= VK_SHADER_STAGE_ANY_HIT_BIT_KHR,
 			RayGeneration		= VK_SHADER_STAGE_RAYGEN_BIT_KHR,
@@ -217,6 +218,7 @@ namespace Hog
 			{
 				case VK_SHADER_STAGE_VERTEX_BIT:			return shaderc_glsl_vertex_shader;
 				case VK_SHADER_STAGE_FRAGMENT_BIT:			return shaderc_glsl_fragment_shader;
+				case VK_SHADER_STAGE_GEOMETRY_BIT:			return shaderc_glsl_geometry_shader;
 				case VK_SHADER_STAGE_COMPUTE_BIT:			return shaderc_glsl_compute_shader;
 				case VK_SHADER_STAGE_ANY_HIT_BIT_KHR:		return shaderc_glsl_anyhit_shader;
 				case VK_SHADER_STAGE_RAYGEN_BIT_KHR:		return shaderc_glsl_raygen_shader;
@@ -235,6 +237,7 @@ namespace Hog
 			{
 				case VK_SHADER_STAGE_VERTEX_BIT:			return "vertex";
 				case VK_SHADER_STAGE_FRAGMENT_BIT:			return "fragment";
+				case VK_SHADER_STAGE_GEOMETRY_BIT:			return "geometry";
 				case VK_SHADER_STAGE_COMPUTE_BIT:			return "compute";
 				case VK_SHADER_STAGE_ANY_HIT_BIT_KHR:		return "anyhit";
 				case VK_SHADER_STAGE_RAYGEN_BIT_KHR:		return "raygen";

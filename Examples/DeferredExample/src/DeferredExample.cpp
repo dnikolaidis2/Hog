@@ -27,6 +27,7 @@ void DeferredExample::OnAttach()
 	LoadGltfFile("assets/models/sponza/sponza.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 	// LoadGltfFile("assets/models/armor/armor-test.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 	// LoadGltfFile("assets/models/cube/cube.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
+	// LoadGltfFile("assets/models/plane/plane.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 
 	Ref<Texture> albedoAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::SampledColorAttachment, 1));
 	Ref<Texture> positionAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::SampledPositionAttachment, 1));
@@ -77,18 +78,7 @@ void DeferredExample::OnAttach()
 		},
 	});
 
-	//auto imGuiStage = graph.AddStage(graphics, {
-	//	"ImGuiStage", RendererStageType::ImGui, {
-	//		{"ColorTarget", AttachmentType::Color, colorAttachment, false, {
-	//			PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentWrite,
-	//			PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentRead,
-	//			ImageLayout::ColorAttachmentOptimal,
-	//			ImageLayout::ShaderReadOnlyOptimal
-	//		}},
-	//	}
-	//});
-
-	graph.AddStage(gbuffer, {
+	graph.AddStage(lightingPass, {
 		"BlitStage", Shader::Create("Blit", "fullscreen.vertex", "ToneMapping.fragment", false), RendererStageType::Blit,
 		{{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, colorAttachment, 0, 0, {
 				PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentWrite,
@@ -127,6 +117,7 @@ void DeferredExample::OnUpdate(Timestep ts)
 	HG_PROFILE_FUNCTION();
 
 	m_EditorCamera.OnUpdate(ts);
+	// glm::mat4 viewProj = m_EditorCamera.GetViewProjection();
 	glm::mat4 viewProj = m_Cameras.begin()->second;
 	m_ViewProjection->WriteData(&viewProj, sizeof(viewProj));
 }

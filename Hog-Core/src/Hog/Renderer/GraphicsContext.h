@@ -236,6 +236,7 @@ namespace Hog {
 		VkPhysicalDeviceFeatures DeviceFeatures =
 		{
 			.imageCubeArray = VK_TRUE,
+			.geometryShader = VK_TRUE,
 			.sampleRateShading = VK_TRUE,
 			.depthClamp = VK_TRUE,
 			.depthBiasClamp = VK_TRUE,

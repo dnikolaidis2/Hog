@@ -24,7 +24,7 @@ namespace Hog
 
 		stbi_uc* pixels = stbi_load(path.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
-		VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
+		VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
 		uint32_t imageSize = width * height * 4;
 
 		uint32_t mipLevels;

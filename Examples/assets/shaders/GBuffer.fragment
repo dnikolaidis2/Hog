@@ -52,6 +52,7 @@ void main()
 	vec3 T = normalize(v_Tangent);
 	vec3 B = cross(N, T);
 	mat3 TBN = mat3(T, B, N);
+	
 	vec3 tnorm;
 	if (mat.BumpMapIndex != -1)
 	{
@@ -59,10 +60,18 @@ void main()
 	}
 	else
 	{
-		tnorm = TBN * vec3(1.0);
-	}
+		tnorm = N;
+	} 
 	
 	o_Normal = vec4(tnorm, 1.0);
 
-	o_Albedo = texture(u_Textures[mat.DiffuseTextureIndex], v_TexCoord);
+	if (mat.DiffuseTextureIndex != -1)
+	{
+		o_Albedo = texture(u_Textures[mat.DiffuseTextureIndex], v_TexCoord);
+	}
+	else
+	{
+		o_Albedo = mat.DiffuseColor;	
+	}
+	
 }

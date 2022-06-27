@@ -30,11 +30,11 @@ void main()
 
 	// Vertex position in world space
 	o_Position = vec3(p_Model * position);
-	
+
 	// Normal in world space
 	mat3 mNormal = transpose(inverse(mat3(p_Model)));
 	o_Normal = mNormal * normalize(a_Normal);
-	o_Tangent = mNormal * normalize(a_Tangent.xyz);
+	o_Tangent = (mNormal * normalize(a_Tangent.xyz)) * a_Tangent.w;
 	
 	o_MaterialIndex = a_MaterialIndex;
 }

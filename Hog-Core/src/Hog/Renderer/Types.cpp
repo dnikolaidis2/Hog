@@ -344,6 +344,7 @@ namespace Hog
 		{
 			case shaderc_glsl_vertex_shader:		Stage = VK_SHADER_STAGE_VERTEX_BIT;
 			case shaderc_glsl_fragment_shader:		Stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+			case shaderc_glsl_geometry_shader:		Stage = VK_SHADER_STAGE_GEOMETRY_BIT;
 			case shaderc_glsl_compute_shader:		Stage = VK_SHADER_STAGE_COMPUTE_BIT;
 			case shaderc_glsl_anyhit_shader:		Stage = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
 			case shaderc_glsl_raygen_shader:		Stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
@@ -360,6 +361,8 @@ namespace Hog
 			Stage = VK_SHADER_STAGE_VERTEX_BIT;
 		if (name == "fragment")
 			Stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		if (name == "geometry")
+			Stage = VK_SHADER_STAGE_GEOMETRY_BIT;
 		if (name == "compute")
 			Stage = VK_SHADER_STAGE_COMPUTE_BIT;
 		if (name == "anyhit")
