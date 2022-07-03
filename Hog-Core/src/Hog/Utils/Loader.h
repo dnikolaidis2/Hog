@@ -358,7 +358,7 @@ namespace Hog
 						.Position = {translation},
 						.Type = type,
 						.Color = {node->light->color[0], node->light->color[1], node->light->color[2], 1.0f},
-						.Direction = glm::vec3(0.0f, 1.0f, 0.0f) * rotation,
+						.Direction = glm::vec3(0.0f, 0.0f, 1.0f) * rotation,
 						.Intensity = node->light->intensity,
 					});
 					
