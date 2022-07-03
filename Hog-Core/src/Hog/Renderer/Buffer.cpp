@@ -7,6 +7,11 @@
 
 namespace Hog
 {
+	Ref<Buffer> Buffer::Create(BufferDescription type, size_t size)
+	{
+		return CreateRef<Buffer>(type, size);
+	}
+
 	Buffer::Buffer(BufferDescription description, size_t size)
 		:m_Description(description), m_Size(size)
 	{
@@ -33,11 +38,6 @@ namespace Hog
 	Buffer::~Buffer()
 	{
 		vmaDestroyBuffer(GraphicsContext::GetAllocator(), m_Handle, m_Allocation);
-	}
-
-	Ref<Buffer> Buffer::Create(BufferDescription type, size_t size)
-	{
-		return CreateRef<Buffer>(type, size);
 	}
 
 	void Buffer::WriteData(void* data, size_t size, size_t bufferOffset, size_t dataOffset)
