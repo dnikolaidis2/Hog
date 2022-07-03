@@ -1,0 +1,17 @@
+#version 450
+
+layout (set = 0, binding = 0) uniform UniformBufferObject {
+    mat4 u_ViewProjection;
+};
+
+layout (location = 0) in vec3 a_Position;
+
+layout(push_constant) uniform PushConstants
+{
+    mat4 p_Model;
+};
+
+void main(void)
+{
+	gl_Position = u_ViewProjection * p_Model * vec4(a_Position, 1.0);
+}

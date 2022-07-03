@@ -39,6 +39,8 @@ namespace Hog {
 			: m_Data(data) {}
 		void UpdateData(Ref<Buffer>, size_t offset);
 		void UpdateData();
+
+		const LightData& GetLightData() { return m_Data; }
 	private:
 		Ref<BufferRegion> m_Region;
 		LightData m_Data;

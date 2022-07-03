@@ -29,6 +29,8 @@ void DeferredExample::OnAttach()
 	// LoadGltfFile("assets/models/cube/cube.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 	// LoadGltfFile("assets/models/plane/plane.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 
+	Ref<Texture> shadowMap = Texture::Create(Image::Create(ImageDescription::Defaults::ShadowMap, 4096, 4096, 1, static_cast<VkFormat>(DataType::Defaults::Depth32)));
+
 	Ref<Texture> albedoAttachment = Texture::Create(Image::Create(ImageDescription::Defaults::SampledColorAttachment, 1));
 	Ref<Texture> positionAttachment = Texture::Create(Image::Create(ImageDescription::Defaults::SampledPositionAttachment, 1));
 	Ref<Texture> normalAttachment = Texture::Create(Image::Create(ImageDescription::Defaults::SampledNormalAttachment, 1));
@@ -37,10 +39,27 @@ void DeferredExample::OnAttach()
 	Ref<Texture> colorAttachment = Texture::Create(Image::Create(ImageDescription::Defaults::SampledHDRColorAttachment, 1));
 
 	m_ViewProjection = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(glm::mat4));
+	m_LightViewProjection = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(glm::mat4));
 	uint32_t lightCount = m_Lights.size();
 
 	RenderGraph graph;
-	auto gbuffer = graph.AddStage(nullptr, {
+
+	auto shadowPass = graph.AddStage(nullptr, {
+		"Shadow Pass", Shader::Create("Base", "Shadow.vertex", "Shadow.fragment"), RendererStageType::ForwardGraphics,
+		{
+			{DataType::Defaults::Float3, "a_Position"},
+		},
+		{
+			{"u_ViewProjection", ResourceType::Uniform, ShaderType::Defaults::Vertex, m_LightViewProjection, 0, 0},
+			{"p_Model", ResourceType::PushConstant, ShaderType::Defaults::Vertex, sizeof(PushConstant), &m_PushConstant},
+		},
+		m_OpaqueMeshes,
+		{
+			{"Shadow Map", AttachmentType::Depth, shadowMap->GetImage(), true, {ImageLayout::DepthStencilAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
+		},
+	});
+
+	auto gbuffer = graph.AddStage(shadowPass, {
 		"GBuffer", Shader::Create("GBuffer", "GBuffer.vertex", "GBuffer.fragment"), RendererStageType::ForwardGraphics,
 		{
 			{DataType::Defaults::Float3, "a_Position"},
@@ -108,6 +127,7 @@ void DeferredExample::OnDetach()
 	m_MaterialBuffer.reset();
 	m_LightBuffer.reset();
 	m_ViewProjection.reset();
+	m_LightViewProjection.reset();
 
 	GraphicsContext::Deinitialize();
 }
@@ -115,6 +135,13 @@ void DeferredExample::OnDetach()
 void DeferredExample::OnUpdate(Timestep ts)
 {
 	HG_PROFILE_FUNCTION();
+
+	float nearPlane = 1.0f, farPlane = 70.0f;
+	glm::mat4 lightViewProj = glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, nearPlane, farPlane)
+		 * glm::lookAt(m_Lights[0]->GetLightData().Position,
+						glm::vec3(0.0f), 
+						glm::vec3(0.0f, 0.0f, 1.0f));
+	m_LightViewProjection->WriteData(&lightViewProj, sizeof(lightViewProj));
 
 	m_EditorCamera.OnUpdate(ts);
 	// glm::mat4 viewProj = m_EditorCamera.GetViewProjection();

@@ -32,6 +32,7 @@ private:
 	std::vector<Ref<Light>> m_Lights;
 	Ref<Buffer> m_MaterialBuffer;
 	Ref<Buffer> m_ViewProjection;
+	Ref<Buffer> m_LightViewProjection;
 	Ref<Buffer> m_LightBuffer;
 	PushConstant m_PushConstant;
 };
