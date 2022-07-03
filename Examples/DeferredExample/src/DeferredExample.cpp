@@ -45,7 +45,7 @@ void DeferredExample::OnAttach()
 	RenderGraph graph;
 
 	auto shadowPass = graph.AddStage(nullptr, {
-		"Shadow Pass", Shader::Create("Base", "Shadow.vertex", "Shadow.fragment"), RendererStageType::ForwardGraphics,
+		"Shadow Pass", RendererStageType::ForwardGraphics, Shader::Create("Base", "Shadow.vertex", "Shadow.fragment"),
 		{
 			{DataType::Defaults::Float3, "a_Position"},
 		},
@@ -60,7 +60,7 @@ void DeferredExample::OnAttach()
 	});
 
 	auto gbuffer = graph.AddStage(shadowPass, {
-		"GBuffer", Shader::Create("GBuffer", "GBuffer.vertex", "GBuffer.fragment"), RendererStageType::ForwardGraphics,
+		"GBuffer", RendererStageType::ForwardGraphics, Shader::Create("GBuffer", "GBuffer.vertex", "GBuffer.fragment"),
 		{
 			{DataType::Defaults::Float3, "a_Position"},
 			{DataType::Defaults::Float2, "a_TexCoords"},
@@ -84,7 +84,7 @@ void DeferredExample::OnAttach()
 	});
 
 	auto lightingPass = graph.AddStage(gbuffer, {
-		"Lighting stage", Shader::Create("Lighting", "fullscreen.vertex", "Lighting.fragment"), RendererStageType::ScreenSpacePass,
+		"Lighting stage", RendererStageType::ScreenSpacePass, Shader::Create("Lighting", "fullscreen.vertex", "Lighting.fragment"),
 		{
 			{"u_Position", ResourceType::Sampler, ShaderType::Defaults::Fragment, positionAttachment, 0, 0},
 			{"u_Normal", ResourceType::Sampler, ShaderType::Defaults::Fragment, normalAttachment, 0, 1},
@@ -98,7 +98,7 @@ void DeferredExample::OnAttach()
 	});
 
 	graph.AddStage(lightingPass, {
-		"BlitStage", Shader::Create("Blit", "fullscreen.vertex", "ToneMapping.fragment", false), RendererStageType::Blit,
+		"BlitStage", RendererStageType::Blit, Shader::Create("Blit", "fullscreen.vertex", "ToneMapping.fragment", false),
 		{{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, colorAttachment, 0, 0, {
 				PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentWrite,
 				PipelineStage::FragmentShader, AccessFlag::ShaderSampledRead,

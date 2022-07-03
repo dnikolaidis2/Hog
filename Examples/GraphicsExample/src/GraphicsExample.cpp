@@ -30,13 +30,13 @@ void GraphicsExample::OnAttach()
 
 	Ref<Image> colorAttachment = Image::Create(ImageDescription::Defaults::SampledColorAttachment, 1);
 	Ref<Image> depthAttachment = Image::Create(ImageDescription::Defaults::Depth, 1);
-	Ref<Texture> colorAttachmentTexture = Texture::Create({}, colorAttachment);
+	Ref<Texture> colorAttachmentTexture = Texture::Create(colorAttachment);
 
 	m_ViewProjection = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(glm::mat4));
 
 	RenderGraph graph;
 	auto graphics = graph.AddStage(nullptr, {
-		"ForwardGraphics", Shader::Create("Basic", "Basic.vertex", "Basic.fragment"), RendererStageType::ForwardGraphics,
+		"ForwardGraphics", RendererStageType::ForwardGraphics, Shader::Create("Basic", "Basic.vertex", "Basic.fragment"),
 		{
 			{DataType::Defaults::Float3, "a_Position"},
 			{DataType::Defaults::Float2, "a_TexCoords"},
@@ -58,7 +58,7 @@ void GraphicsExample::OnAttach()
 	});
 
 	auto transparentGraphics = graph.AddStage(graphics, {
-		"ForwardGraphics", Shader::Create("Basic", "Basic.vertex", "Basic.fragment"), RendererStageType::ForwardGraphics,
+		"ForwardGraphics", RendererStageType::ForwardGraphics, Shader::Create("Basic", "Basic.vertex", "Basic.fragment"),
 		{
 			{DataType::Defaults::Float3, "a_Position"},
 			{DataType::Defaults::Float2, "a_TexCoords"},
@@ -91,7 +91,7 @@ void GraphicsExample::OnAttach()
 	//});
 
 	graph.AddStage(transparentGraphics, {
-		"BlitStage", Shader::Create("Blit", "fullscreen.vertex", "blit.fragment", false), RendererStageType::Blit,
+		"BlitStage", RendererStageType::Blit, Shader::Create("Blit", "fullscreen.vertex", "blit.fragment", false),
 		{{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, colorAttachmentTexture, 0, 0, {
 				PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentWrite,
 				PipelineStage::FragmentShader, AccessFlag::ShaderSampledRead,

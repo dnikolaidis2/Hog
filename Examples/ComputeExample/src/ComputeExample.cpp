@@ -30,7 +30,7 @@ void ComputeExample::OnAttach()
 	RenderGraph graph;
 	uint32_t bufferElements = 32;
 
-	auto fib = graph.AddStage(nullptr, { "Fibonacci stage", Shader::Create("Headless.compute"), RendererStageType::ForwardCompute,
+	auto fib = graph.AddStage(nullptr, { "Fibonacci stage", RendererStageType::ForwardCompute, Shader::Create("Headless.compute"),
 		{
 			{"values", ResourceType::Storage, ShaderType::Defaults::Compute, m_ComputeBuffer, 0, 0},
 			{ "BUFFER_ELEMENTS", ResourceType::Constant, ShaderType::Defaults::Compute, 0, sizeof(uint32_t), &bufferElements}
