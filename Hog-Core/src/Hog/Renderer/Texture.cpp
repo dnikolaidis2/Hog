@@ -5,12 +5,17 @@
 #include "Hog/Renderer/GraphicsContext.h"
 
 namespace Hog {
-	Ref<Texture> Texture::Create(SamplerType samplerType, Ref<Image> image)
+	Ref<Texture> Texture::Create(Ref<Image> image, SamplerType samplerType)
 	{
-		return CreateRef<Texture>(samplerType, image);
+		return CreateRef<Texture>(image, samplerType);
 	}
 
-	Texture::Texture(SamplerType samplerType, Ref<Image> image)
+	Ref<Texture> Texture::Create(Ref<Image> image)
+	{
+		return Create(image, {});
+	}
+
+	Texture::Texture(Ref<Image> image, SamplerType samplerType)
 		: m_SamplerType(samplerType), m_Image(image)
 	{
 		//create a sampler for the texture
@@ -42,5 +47,4 @@ namespace Hog {
 		if (m_Sampler)
 			vkDestroySampler(GraphicsContext::GetDevice(), m_Sampler, nullptr);
 	}
-
 }

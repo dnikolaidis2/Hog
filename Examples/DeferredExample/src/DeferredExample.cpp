@@ -29,12 +29,12 @@ void DeferredExample::OnAttach()
 	// LoadGltfFile("assets/models/cube/cube.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 	// LoadGltfFile("assets/models/plane/plane.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 
-	Ref<Texture> albedoAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::SampledColorAttachment, 1));
-	Ref<Texture> positionAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::SampledPositionAttachment, 1));
-	Ref<Texture> normalAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::SampledNormalAttachment, 1));
-	Ref<Texture> depthAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::Depth, 1));
+	Ref<Texture> albedoAttachment = Texture::Create(Image::Create(ImageDescription::Defaults::SampledColorAttachment, 1));
+	Ref<Texture> positionAttachment = Texture::Create(Image::Create(ImageDescription::Defaults::SampledPositionAttachment, 1));
+	Ref<Texture> normalAttachment = Texture::Create(Image::Create(ImageDescription::Defaults::SampledNormalAttachment, 1));
+	Ref<Texture> depthAttachment = Texture::Create(Image::Create(ImageDescription::Defaults::Depth, 1));
 
-	Ref<Texture> colorAttachment = Texture::Create({}, Image::Create(ImageDescription::Defaults::SampledHDRColorAttachment, 1));
+	Ref<Texture> colorAttachment = Texture::Create(Image::Create(ImageDescription::Defaults::SampledHDRColorAttachment, 1));
 
 	m_ViewProjection = Buffer::Create(BufferDescription::Defaults::UniformBuffer, sizeof(glm::mat4));
 	uint32_t lightCount = m_Lights.size();

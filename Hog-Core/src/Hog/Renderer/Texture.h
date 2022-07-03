@@ -17,9 +17,10 @@ namespace Hog {
 	class Texture
 	{
 	public:
-		static Ref<Texture> Create(SamplerType samplerType, Ref<Image> image);
+		static Ref<Texture> Create(Ref<Image> image, SamplerType samplerType);
+		static Ref<Texture> Create(Ref<Image> image);
 	public:
-		Texture(SamplerType samplerType, Ref<Image> image);
+		Texture(Ref<Image> image, SamplerType samplerType);
 		~Texture();
 
 		VkSampler GetSampler() { return m_Sampler; }

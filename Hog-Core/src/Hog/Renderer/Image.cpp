@@ -107,8 +107,6 @@ namespace Hog
 			vmaDestroyImage(GraphicsContext::GetAllocator(), m_Handle, m_Allocation);
 	}
 
-
-
 	void Image::SetData(void* data, uint32_t size)
 	{
 		auto buffer = Buffer::Create(BufferDescription::Defaults::TransferSourceBuffer, size);

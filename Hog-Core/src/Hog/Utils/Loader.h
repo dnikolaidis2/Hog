@@ -107,7 +107,7 @@ namespace Hog
 					case 10497: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT; break;
 				}
 
-				Ref<Texture> textureRef = Texture::Create(type, images[texture->image - data->images]);
+				Ref<Texture> textureRef = Texture::Create(images[texture->image - data->images], type);
 				textureRef->SetGPUIndex(initialSize + i);
 
 				textures.push_back(textureRef);
