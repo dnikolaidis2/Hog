@@ -102,6 +102,8 @@ namespace Hog {
 		static VkFence CreateFence(bool signaled) { return Get().CreateFenceImpl(signaled); }
 		static VkSemaphore CreateVkSemaphore() { return Get().CreateSemaphoreImpl(); }
 
+		static std::vector<const char*>& GetInstanceExtensions() { return Get().GetInstanceExtensionsImpl(); }
+
 		static void ImmediateSubmit(std::function<void(VkCommandBuffer commandBuffer)>&& function) { return Get().ImmediateSubmitImpl(std::move(function)); }
 	public:
 		GraphicsContext(GraphicsContext const&) = delete;
@@ -121,8 +123,10 @@ namespace Hog {
 		VkCommandBuffer CreateCommandBufferImpl(VkCommandPool commandPool);
 		VkFence CreateFenceImpl(bool signaled);
 		VkSemaphore CreateSemaphoreImpl();
+		VkSampleCountFlagBits GetMaxMSAASampleCount();
 
-	public:
+		std::vector<const char*>& GetInstanceExtensionsImpl() { return InstanceExtensions; }
+
 		void CreateInstance();
 		void DestroyInstance();
 		void SetupDebugMessenger();
@@ -138,12 +142,8 @@ namespace Hog {
 		void CleanupSwapChain();
 
 	private:
-		VkSampleCountFlagBits GetMaxMSAASampleCount();
-
-	private:
 		bool m_Initialized = false;
 
-	public:
 		VkInstance Instance = VK_NULL_HANDLE;
 		VkDebugUtilsMessengerEXT DebugMessenger = VK_NULL_HANDLE;
 

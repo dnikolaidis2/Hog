@@ -8,10 +8,6 @@
 #include "Hog/Events/KeyEvent.h"
 #include "Hog/Renderer/GraphicsContext.h"
 
-// #include "Hog/Renderer/Renderer.h"
-
-static auto& context = Hog::GraphicsContext::Get();
-
 namespace Hog {
 
 	static uint8_t s_GLFWWindowCount = 0;
@@ -65,12 +61,20 @@ namespace Hog {
 
 		glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-		auto temp = context.InstanceExtensions;
-		context.InstanceExtensions = std::vector<const char*>(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-		for (auto extension : temp)
+		if (glfwExtensions)
 		{
-			context.InstanceExtensions.push_back(extension);
+			auto glfwExtensionVec = std::vector<const char*>(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+			for (auto extension : glfwExtensionVec)
+			{
+				auto & instanceExtensions = GraphicsContext::GetInstanceExtensions();
+				if (std::find_if(instanceExtensions.begin(), instanceExtensions.end(), [extension](const char* ext) -> bool{
+						return std::string(ext) == std::string(extension);
+					}) == instanceExtensions.end())
+				{
+					instanceExtensions.push_back(extension);
+				}
+			}
 		}
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
