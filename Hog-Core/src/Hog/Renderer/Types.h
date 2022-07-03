@@ -155,6 +155,7 @@ namespace Hog
 		{
 			Depth,
 			DepthStencil,
+			ShadowMap,
 			RenderTarget,
 			SampledSwapchainColorAttachment,
 			SampledHDRColorAttachment,
