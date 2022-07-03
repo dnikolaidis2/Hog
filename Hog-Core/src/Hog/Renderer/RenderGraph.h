@@ -258,7 +258,7 @@ namespace Hog
 		}
 
 		std::vector<Ref<Node>> ChildList;
-		std::vector<Ref<Node>> ParentList;
+		std::vector<WeakRef<Node>> ParentList;
 		StageDescription StageInfo;
 
 		Node(StageDescription stageInfo)
