@@ -5,12 +5,11 @@ namespace Hog {
 	class FrameBuffer
 	{
 	public:
-		FrameBuffer() = default;
-		~FrameBuffer() = default;
-
-		void Create(std::vector<Ref<Image>>& attachments, VkRenderPass renderPass, VkExtent2D extent);
-		void Create(std::vector<Ref<Image>>& attachments, VkRenderPass renderPass);
-		void Cleanup();
+		static Ref<FrameBuffer> Create(std::vector<Ref<Image>>& attachments, VkRenderPass renderPass, VkExtent2D extent);
+		static Ref<FrameBuffer> Create(std::vector<Ref<Image>>& attachments, VkRenderPass renderPass);
+	public:
+		FrameBuffer(std::vector<Ref<Image>>& attachments, VkRenderPass renderPass, VkExtent2D extent);
+		~FrameBuffer();
 
 		VkExtent2D GetExtent() const { return m_Extent; }
 
@@ -19,6 +18,5 @@ namespace Hog {
 		std::vector<Ref<Image>> m_Attachments;
 		VkFramebuffer m_Handle = VK_NULL_HANDLE;
 		VkExtent2D m_Extent = {};
-		bool m_UseSwapchainExtent = false;
 	};
 }

@@ -41,7 +41,7 @@ namespace Hog
 		VkFence Fence = VK_NULL_HANDLE;
 		VkSemaphore PresentSemaphore = VK_NULL_HANDLE;
 		VkSemaphore RenderSemaphore = VK_NULL_HANDLE;
-		FrameBuffer FrameBuffer;
+		Ref<FrameBuffer> FrameBuffer;
 		DescriptorAllocator DescriptorAllocator;
 		Ref<Image> SwapchainImage;
 	};
@@ -55,7 +55,7 @@ namespace Hog
 	public:
 		StageDescription Info;
 		VkRenderPass RenderPass = VK_NULL_HANDLE;
-		FrameBuffer FrameBuffer;
+		Ref<FrameBuffer> FrameBuffer;
 		std::vector<VkClearValue> ClearValues;
 	private:
 		void ForwardGraphics(VkCommandBuffer commandBuffer);

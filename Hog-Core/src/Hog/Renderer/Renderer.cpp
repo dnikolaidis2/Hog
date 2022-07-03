@@ -166,7 +166,7 @@ namespace Hog
 		SwapchainImage = swapchainImage;
 		std::vector<Ref<Image>> attachments(1);
 		attachments[0] = SwapchainImage;
-		FrameBuffer.Create(attachments, renderPass);
+		FrameBuffer = FrameBuffer::Create(attachments, renderPass);
 	}
 
 	void RendererFrame::BeginFrame()
@@ -253,7 +253,7 @@ namespace Hog
 		vkDestroySemaphore(Device, PresentSemaphore, nullptr);
 		vkDestroySemaphore(Device, RenderSemaphore, nullptr);
 		DescriptorAllocator.Cleanup();
-		FrameBuffer.Cleanup();
+		FrameBuffer.reset();
 	}
 
 	void RendererStage::Init()
@@ -435,7 +435,7 @@ namespace Hog
 				fbAttachments[i] = attachments[i].Image;
 			}
 
-			FrameBuffer.Create(fbAttachments, RenderPass, fbAttachments[0]->GetExtent());
+			FrameBuffer = FrameBuffer::Create(fbAttachments, RenderPass, fbAttachments[0]->GetExtent());
 		}
 	}
 
@@ -486,7 +486,7 @@ namespace Hog
 
 	void RendererStage::Cleanup()
 	{
-		FrameBuffer.Cleanup();
+		FrameBuffer.reset();
 		vkDestroyRenderPass(GraphicsContext::GetDevice(), RenderPass, nullptr);
 	}
 
@@ -496,12 +496,12 @@ namespace Hog
 		HG_PROFILE_TAG("Name", Info.Name);
 
 		RendererFrame& currentFrame = s_Data.GetCurrentFrame();
-		VkExtent2D extent = currentFrame.FrameBuffer.GetExtent();
+		VkExtent2D extent = Info.Attachments.begin()->Image->GetExtent();
 
 		VkRenderPassBeginInfo renderPassBeginInfo = {
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 			.renderPass = RenderPass,
-			.framebuffer = static_cast<VkFramebuffer>(FrameBuffer),
+			.framebuffer = static_cast<VkFramebuffer>(*FrameBuffer),
 			.renderArea = {
 				.extent = extent
 			},
@@ -597,9 +597,9 @@ namespace Hog
 		VkRenderPassBeginInfo renderPassBeginInfo = {
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 			.renderPass = RenderPass,
-			.framebuffer = static_cast<VkFramebuffer>(FrameBuffer),
+			.framebuffer = static_cast<VkFramebuffer>(*FrameBuffer),
 			.renderArea = {
-				.extent = FrameBuffer.GetExtent(),
+				.extent = FrameBuffer->GetExtent(),
 			},
 			.clearValueCount = static_cast<uint32_t>(ClearValues.size()),
 			.pClearValues = ClearValues.data(),
@@ -623,12 +623,12 @@ namespace Hog
 		// Copy to final target
 		HG_PROFILE_GPU_EVENT("Blit Pass");
 		RendererFrame& currentFrame = s_Data.GetCurrentFrame();
-		VkExtent2D extent = currentFrame.FrameBuffer.GetExtent();
+		VkExtent2D extent = currentFrame.FrameBuffer->GetExtent();
 
 		VkRenderPassBeginInfo renderPassBeginInfo = {
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 			.renderPass = RenderPass,
-			.framebuffer = static_cast<VkFramebuffer>(currentFrame.FrameBuffer),
+			.framebuffer = static_cast<VkFramebuffer>(*(currentFrame.FrameBuffer)),
 			.renderArea = {
 				.extent = extent
 			},
