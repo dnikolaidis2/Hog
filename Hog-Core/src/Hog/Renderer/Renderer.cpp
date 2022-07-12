@@ -380,7 +380,7 @@ namespace Hog
 		std::vector<VkSpecializationMapEntry> specializationMapEntries;
 		std::vector<uint8_t> buffer;
 
-		if (Info.Shader)
+		if (Info.Pipeline)
 		{
 			if (Info.Resources.ContainsType(ResourceType::Constant))
 			{
@@ -415,14 +415,11 @@ namespace Hog
 						colorCount += (attachment.Type == AttachmentType::Color || attachment.Type == AttachmentType::Swapchain) ? 1 : 0;
 					});
 
-				if (Info.StageType == RendererStageType::ScreenSpacePass || Info.StageType == RendererStageType::Blit)
-					Info.Shader->SetCullMode(CullMode::Front);
-
-				Info.Shader->Generate(RenderPass, specializationInfo, colorCount);
+				Info.Pipeline->Generate(RenderPass, &specializationInfo);
 			}
 			else
 			{
-				Info.Shader->Generate(specializationInfo);
+				Info.Pipeline->Generate(nullptr, &specializationInfo);
 			}
 		}
 
@@ -542,7 +539,7 @@ namespace Hog
 
 		vkCmdSetDepthBias(commandBuffer, 0, 0, 0);
 
-		Info.Shader->Bind(commandBuffer);
+		Info.Pipeline->Bind(commandBuffer);
 
 		BindResources(commandBuffer, &s_Data.GetCurrentFrame().DescriptorAllocator);
 
@@ -564,7 +561,7 @@ namespace Hog
 						case ResourceType::PushConstant:
 						{
 							std::memcpy(resource.ConstantDataPointer, &modelMat, resource.ConstantSize);
-							vkCmdPushConstants(commandBuffer, Info.Shader->GetPipelineLayout(), resource.BindLocation, 0, static_cast<uint32_t>(resource.ConstantSize), resource.ConstantDataPointer);
+							vkCmdPushConstants(commandBuffer, Info.Pipeline->GetPipelineLayout(), resource.BindLocation, 0, static_cast<uint32_t>(resource.ConstantSize), resource.ConstantDataPointer);
 						}break;
 						default: break;
 					}
@@ -582,7 +579,7 @@ namespace Hog
 		HG_PROFILE_GPU_EVENT("ForwardCompute Pass");
 		HG_PROFILE_TAG("Name", Info.Name);
 
-		Info.Shader->Bind(commandBuffer);
+		Info.Pipeline->Bind(commandBuffer);
 
 		BindResources(commandBuffer, &s_Data.GetCurrentFrame().DescriptorAllocator);
 
@@ -660,7 +657,7 @@ namespace Hog
 
 		vkCmdSetDepthBias(commandBuffer, 0, 0, 0);
 
-		Info.Shader->Bind(commandBuffer);
+		Info.Pipeline->Bind(commandBuffer);
 
 		BindResources(commandBuffer, &currentFrame.DescriptorAllocator);
 
@@ -737,7 +734,7 @@ namespace Hog
 
 		db.Build(descriptorSet);
 
-		vkCmdBindDescriptorSets(commandBuffer, ToPipelineBindPoint(Info.StageType), Info.Shader->GetPipelineLayout(),
+		vkCmdBindDescriptorSets(commandBuffer, ToPipelineBindPoint(Info.StageType), Info.Pipeline->GetPipelineLayout(),
 			0, 1, &descriptorSet, 0, nullptr);
 
 		for (size_t i = 0; i < imageInfos.size(); i++)

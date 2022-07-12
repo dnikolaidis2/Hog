@@ -45,7 +45,10 @@ void DeferredExample::OnAttach()
 	RenderGraph graph;
 
 	auto shadowPass = graph.AddStage(nullptr, {
-		"Shadow Pass", RendererStageType::ForwardGraphics, Shader::Create("Base", "Shadow.vertex", "Shadow.fragment"),
+		"Shadow Pass", RendererStageType::ForwardGraphics, GraphicsPipeline::Create({
+				.Shaders = {"Shadow.vertex", "Shadow.fragment"},
+			}
+		),
 		{
 			{DataType::Defaults::Float3, "a_Position"},
 		},
@@ -60,7 +63,11 @@ void DeferredExample::OnAttach()
 	});
 
 	auto gbuffer = graph.AddStage(shadowPass, {
-		"GBuffer", RendererStageType::ForwardGraphics, Shader::Create("GBuffer", "GBuffer.vertex", "GBuffer.fragment"),
+		"GBuffer", RendererStageType::ForwardGraphics, GraphicsPipeline::Create({
+				.Shaders = {"GBuffer.vertex", "GBuffer.fragment"},
+				.BlendAttachments = {{}, {}, {}, {}},
+			}
+		),
 		{
 			{DataType::Defaults::Float3, "a_Position"},
 			{DataType::Defaults::Float2, "a_TexCoords"},
@@ -84,7 +91,13 @@ void DeferredExample::OnAttach()
 	});
 
 	auto lightingPass = graph.AddStage(gbuffer, {
-		"Lighting stage", RendererStageType::ScreenSpacePass, Shader::Create("Lighting", "fullscreen.vertex", "Lighting.fragment"),
+		"Lighting stage", RendererStageType::ScreenSpacePass, GraphicsPipeline::Create({
+				.Shaders = {"fullscreen.vertex", "Lighting.fragment"},
+				.Rasterizer = {
+					.CullMode = CullMode::Front,
+				},
+			}
+		),
 		{
 			{"u_Position", ResourceType::Sampler, ShaderType::Defaults::Fragment, positionAttachment, 0, 0},
 			{"u_Normal", ResourceType::Sampler, ShaderType::Defaults::Fragment, normalAttachment, 0, 1},
@@ -98,7 +111,18 @@ void DeferredExample::OnAttach()
 	});
 
 	graph.AddStage(lightingPass, {
-		"BlitStage", RendererStageType::Blit, Shader::Create("Blit", "fullscreen.vertex", "ToneMapping.fragment", false),
+		"BlitStage", RendererStageType::Blit, GraphicsPipeline::Create({
+				.Shaders = {"fullscreen.vertex", "ToneMapping.fragment"},
+				.Rasterizer = {
+					.CullMode = CullMode::Front,
+				},
+				.BlendAttachments = {	
+					{
+						.Enable = false
+					}
+				}
+			}
+		),
 		{{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, colorAttachment, 0, 0, {
 				PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentWrite,
 				PipelineStage::FragmentShader, AccessFlag::ShaderSampledRead,

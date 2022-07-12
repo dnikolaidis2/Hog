@@ -8,15 +8,26 @@
 
 namespace Hog
 {
-	Ref<Pipeline> Pipeline::CreateGraphics(const std::vector<VkVertexInputBindingDescription>& vertexInputBindingDescription, const std::vector<VkVertexInputAttributeDescription>& vertexInputAttributeDescription,
-		VkPipelineLayout layout, VkRenderPass renderPass)
+	Pipeline::~Pipeline()
 	{
-		return CreateRef<GraphicsPipeline>(vertexInputBindingDescription, vertexInputAttributeDescription, layout, renderPass);
+		for (auto& [type, module] : m_ShaderModules)
+		{
+			vkDestroyShaderModule(GraphicsContext::GetDevice(), module, nullptr);
+		}
+
+		vkDestroyPipelineLayout(GraphicsContext::GetDevice(), m_PipelineLayout, nullptr);
+		vkDestroyPipeline(GraphicsContext::GetDevice(), m_Handle, nullptr);
 	}
 
-	Ref<Pipeline> Pipeline::CreateCompute(VkPipelineLayout layout)
+	void Pipeline::AddShader(std::string shader)
 	{
-		return CreateRef<ComputePipeline>(layout);
+		auto shadeSource = ShaderCache::GetShader(shader);
+		if (m_ShaderSources.find(shadeSource->Type) != m_ShaderSources.end())
+		{
+			HG_CORE_WARN("Replacing existing source in shader!");
+		}
+
+		m_ShaderSources[shadeSource->Type] = shadeSource;
 	}
 
 	void Pipeline::AddShaderStage(ShaderType type, VkShaderModule shaderModule, VkSpecializationInfo* specializationInfo, const char* main)
@@ -32,52 +43,129 @@ namespace Hog
 		m_ShaderStageCreateInfos.push_back(info);
 	}
 
-	void Pipeline::Destroy()
+	Ref<Pipeline> GraphicsPipeline::Create(const Configuration& configuration)
 	{
-		vkDestroyPipeline(GraphicsContext::GetDevice(), m_Handle, nullptr);
-		m_Initialized = false;
+		return CreateRef<GraphicsPipeline>(configuration);
 	}
 
-	GraphicsPipeline::GraphicsPipeline(const std::vector<VkVertexInputBindingDescription>& vertexInputBindingDescription, const std::vector<VkVertexInputAttributeDescription>& vertexInputAttributeDescription,
-		VkPipelineLayout layout, VkRenderPass renderPass)
-		:m_PipelineLayout(layout)
+	GraphicsPipeline::GraphicsPipeline(const Configuration& configuration)
+		: m_Config(configuration)
 	{
-		GraphicsPipelineCreateInfo.renderPass = renderPass;
-		MultisamplingStateCreateInfo.rasterizationSamples = GraphicsContext::GetMSAASamples();
+		std::for_each(m_Config.Shaders.begin(), m_Config.Shaders.end(), 
+			[this](const std::string& shader) {
+				AddShader(shader);
+			});
 
-		VertexInputBindingDescriptions = vertexInputBindingDescription;
-		VertexInputAttributeDescriptions = vertexInputAttributeDescription;
+		m_InputAssemblyStateCreateInfo.topology = static_cast<VkPrimitiveTopology>(m_Config.Input.Topology);
+
+		m_RasterizationStateCreateInfo.depthClampEnable = m_Config.Rasterizer.Depth.ClampEnable;
+		m_RasterizationStateCreateInfo.rasterizerDiscardEnable = m_Config.Rasterizer.DiscardEnable;
+		m_RasterizationStateCreateInfo.polygonMode = static_cast<VkPolygonMode>(m_Config.Rasterizer.PolygonMode);
+		m_RasterizationStateCreateInfo.cullMode = static_cast<VkCullModeFlags>(m_Config.Rasterizer.CullMode);
+		m_RasterizationStateCreateInfo.frontFace = static_cast<VkFrontFace>(m_Config.Rasterizer.FrontFace);
+		m_RasterizationStateCreateInfo.depthBiasEnable = m_Config.Rasterizer.Depth.BiasEnable;
+		m_RasterizationStateCreateInfo.depthBiasConstantFactor = m_Config.Rasterizer.Depth.BiasConstantFactor;
+		m_RasterizationStateCreateInfo.depthBiasClamp = m_Config.Rasterizer.Depth.BiasClamp;
+		m_RasterizationStateCreateInfo.depthBiasSlopeFactor = m_Config.Rasterizer.Depth.BiasSlopeFactor;
+		m_RasterizationStateCreateInfo.lineWidth = m_Config.Rasterizer.LineWidth;
+
+		std::for_each(m_Config.BlendAttachments.begin(), m_Config.BlendAttachments.end(),
+			[this](Configuration::ColorBlendAttachment& blendAttachment)
+			{
+				VkPipelineColorBlendAttachmentState result{};
+				result.blendEnable = blendAttachment.Enable;
+				result.srcColorBlendFactor = static_cast<VkBlendFactor>(blendAttachment.SrcColorFactor);
+				result.dstColorBlendFactor = static_cast<VkBlendFactor>(blendAttachment.DstColorFactor);
+				result.colorBlendOp = static_cast<VkBlendOp>(blendAttachment.ColorOp);
+				result.srcAlphaBlendFactor = static_cast<VkBlendFactor>(blendAttachment.SrcAlphaFactor);
+				result.dstAlphaBlendFactor = static_cast<VkBlendFactor>(blendAttachment.DstAlphaFactor);
+				result.alphaBlendOp = static_cast<VkBlendOp>(blendAttachment.AlphaOp);
+				result.colorWriteMask = static_cast<VkColorComponentFlags>(blendAttachment.ColorWriteMask);
+				m_ColorBlendAttachmentStates.emplace_back(result);
+			});
+
+		m_ColorBlendStateCreateInfo.logicOpEnable = m_Config.Blend.LogicOpEnable;
+		m_ColorBlendStateCreateInfo.logicOp = static_cast<VkLogicOp>(m_Config.Blend.LogicOp);
+		m_ColorBlendStateCreateInfo.blendConstants[0] = m_Config.Blend.BlendConstants.r;
+		m_ColorBlendStateCreateInfo.blendConstants[1] = m_Config.Blend.BlendConstants.g;
+		m_ColorBlendStateCreateInfo.blendConstants[2] = m_Config.Blend.BlendConstants.b;
+		m_ColorBlendStateCreateInfo.blendConstants[3] = m_Config.Blend.BlendConstants.a;
+		m_ColorBlendStateCreateInfo.attachmentCount = static_cast<uint32_t>(m_ColorBlendAttachmentStates.size());
+		m_ColorBlendStateCreateInfo.pAttachments = m_ColorBlendAttachmentStates.data();
+
+		m_MultisamplingStateCreateInfo.sampleShadingEnable = m_Config.Multisample.SampleShadingEnable;
+		m_MultisamplingStateCreateInfo.minSampleShading = m_Config.Multisample.MinSampleShading;
+		m_MultisamplingStateCreateInfo.rasterizationSamples = GraphicsContext::GetMSAASamples();
+
+		m_PipelineDepthStencilCreateInfo.depthTestEnable = m_Config.DepthStencil.DepthTestEnable;
+		m_PipelineDepthStencilCreateInfo.depthWriteEnable = m_Config.DepthStencil.DepthWriteEnable;
+		m_PipelineDepthStencilCreateInfo.depthCompareOp = static_cast<VkCompareOp>(m_Config.DepthStencil.DepthCompareOp);
+		m_PipelineDepthStencilCreateInfo.depthBoundsTestEnable = m_Config.DepthStencil.DepthBoundsTestEnable;
+		m_PipelineDepthStencilCreateInfo.stencilTestEnable = m_Config.DepthStencil.StencilTestEnable;
+		m_PipelineDepthStencilCreateInfo.front.failOp = static_cast<VkStencilOp>(m_Config.DepthStencil.Front.FailOp);
+		m_PipelineDepthStencilCreateInfo.front.passOp = static_cast<VkStencilOp>(m_Config.DepthStencil.Front.PassOp);
+		m_PipelineDepthStencilCreateInfo.front.depthFailOp = static_cast<VkStencilOp>(m_Config.DepthStencil.Front.DepthFailOp);
+		m_PipelineDepthStencilCreateInfo.front.compareOp = static_cast<VkCompareOp>(m_Config.DepthStencil.Front.CompareOp);
+		m_PipelineDepthStencilCreateInfo.front.compareMask = m_Config.DepthStencil.Front.CompareMask;
+		m_PipelineDepthStencilCreateInfo.front.writeMask = m_Config.DepthStencil.Front.WriteMask;
+		m_PipelineDepthStencilCreateInfo.front.reference = m_Config.DepthStencil.Front.Reference;
+		m_PipelineDepthStencilCreateInfo.back.failOp = static_cast<VkStencilOp>(m_Config.DepthStencil.Back.FailOp);
+		m_PipelineDepthStencilCreateInfo.back.passOp = static_cast<VkStencilOp>(m_Config.DepthStencil.Back.PassOp);
+		m_PipelineDepthStencilCreateInfo.back.depthFailOp = static_cast<VkStencilOp>(m_Config.DepthStencil.Back.DepthFailOp);
+		m_PipelineDepthStencilCreateInfo.back.compareOp = static_cast<VkCompareOp>(m_Config.DepthStencil.Back.CompareOp);
+		m_PipelineDepthStencilCreateInfo.back.compareMask = m_Config.DepthStencil.Back.CompareMask;
+		m_PipelineDepthStencilCreateInfo.back.writeMask = m_Config.DepthStencil.Back.WriteMask;
+		m_PipelineDepthStencilCreateInfo.back.reference = m_Config.DepthStencil.Back.Reference;
+		m_PipelineDepthStencilCreateInfo.minDepthBounds = m_Config.DepthStencil.MinBounds;
+		m_PipelineDepthStencilCreateInfo.maxDepthBounds = m_Config.DepthStencil.MaxBounds;
+
+		
+		std::for_each(m_Config.DynamicStates.begin(), m_Config.DynamicStates.end(),
+			[this](const DynamicState& state) 
+			{
+				return m_DynamicStates.emplace_back(static_cast<VkDynamicState>(state));
+			});
+
+		m_DynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(m_DynamicStates.size());
+		m_DynamicStateCreateInfo.pDynamicStates = m_DynamicStates.data();
 	}
 
 	GraphicsPipeline::~GraphicsPipeline()
 	{
-		if (m_Initialized)
-			Destroy();
 	}
 
-	VkPipeline GraphicsPipeline::Create()
+	void GraphicsPipeline::Generate(VkRenderPass renderPass, VkSpecializationInfo* specializationInfo)
 	{
-		DynamicStateCreateInfo.dynamicStateCount = (uint32_t)DynamicStates.size();
-		DynamicStateCreateInfo.pDynamicStates = DynamicStates.data();
+		auto data = ShaderReflection::ReflectPipelineLayout(m_ShaderSources);
 
-		VertexInputStateCreateInfo.vertexBindingDescriptionCount = (uint32_t)VertexInputBindingDescriptions.size();
-		VertexInputStateCreateInfo.pVertexBindingDescriptions = VertexInputBindingDescriptions.data(); // Optional
-		VertexInputStateCreateInfo.vertexAttributeDescriptionCount = (uint32_t)VertexInputAttributeDescriptions.size();
-		VertexInputStateCreateInfo.pVertexAttributeDescriptions = VertexInputAttributeDescriptions.data(); // Optional
+		for (const auto& [stage, source] : m_ShaderSources)
+		{
+			VkShaderModuleCreateInfo createInfo{};
+			createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+			createInfo.codeSize = (uint32_t)source->Code.size() * sizeof(uint32_t);
+			createInfo.pCode = source->Code.data();
 
-		GraphicsPipelineCreateInfo.stageCount = (uint32_t)m_ShaderStageCreateInfos.size();
-		GraphicsPipelineCreateInfo.pStages = m_ShaderStageCreateInfos.data();
-		GraphicsPipelineCreateInfo.layout = m_PipelineLayout;
+			VkShaderModule shaderModule;
+			CheckVkResult(vkCreateShaderModule(GraphicsContext::GetDevice(), &createInfo, nullptr, &shaderModule));
 
-		std::for_each(ColorBlendAttachmentStates.begin(), ColorBlendAttachmentStates.end(), [&](VkPipelineColorBlendAttachmentState& blendState) { blendState = ColorBlendAttachmentState; });
+			AddShaderStage(stage, shaderModule, specializationInfo);
+			m_ShaderModules[stage] = shaderModule;
+		}
 
-		ColorBlendStateCreateInfo.attachmentCount = static_cast<uint32_t>(ColorBlendAttachmentStates.size());
-		ColorBlendStateCreateInfo.pAttachments = ColorBlendAttachmentStates.data();
 
-		CheckVkResult(vkCreateGraphicsPipelines(GraphicsContext::GetDevice(), VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &m_Handle));
+		m_PipelineLayout = data.PipelineLayout;
 
-		m_Initialized = true;
-		return m_Handle;
+		m_VertexInputStateCreateInfo.vertexBindingDescriptionCount = (uint32_t)data.VertexInputBindingDescriptions.size();
+		m_VertexInputStateCreateInfo.pVertexBindingDescriptions = data.VertexInputBindingDescriptions.data(); // Optional
+		m_VertexInputStateCreateInfo.vertexAttributeDescriptionCount = (uint32_t)data.VertexInputAttributeDescriptions.size();
+		m_VertexInputStateCreateInfo.pVertexAttributeDescriptions = data.VertexInputAttributeDescriptions.data(); // Optional
+
+		m_GraphicsPipelineCreateInfo.stageCount = (uint32_t)m_ShaderStageCreateInfos.size();
+		m_GraphicsPipelineCreateInfo.pStages = m_ShaderStageCreateInfos.data();
+		m_GraphicsPipelineCreateInfo.layout = m_PipelineLayout;
+		m_GraphicsPipelineCreateInfo.renderPass = renderPass;
+
+		CheckVkResult(vkCreateGraphicsPipelines(GraphicsContext::GetDevice(), VK_NULL_HANDLE, 1, &m_GraphicsPipelineCreateInfo, nullptr, &m_Handle));
 	}
 
 	void GraphicsPipeline::Bind(VkCommandBuffer commandBuffer)
@@ -87,30 +175,55 @@ namespace Hog
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Handle);
 	}
 
-	ComputePipeline::ComputePipeline(VkPipelineLayout layout)
-		:m_PipelineLayout(layout)
+	Ref<Pipeline> ComputePipeline::Create(const Configuration& configuration)
 	{
+		return CreateRef<ComputePipeline>(configuration);
+	}
+
+	ComputePipeline::ComputePipeline(const Configuration& configuration)
+		: m_Config(configuration)
+	{
+		AddShader(m_Config.Shader);
 	}
 
 	ComputePipeline::~ComputePipeline()
 	{
-		vkDestroyPipeline(GraphicsContext::GetDevice(), m_Handle, nullptr);
-		m_Initialized = false;
 	}
 
-	VkPipeline ComputePipeline::Create()
+	void ComputePipeline::Generate(VkRenderPass renderPass, VkSpecializationInfo* specializationInfo)
 	{
-		ComputePipelineCreateInfo.stage = m_ShaderStageCreateInfos[0];
-		ComputePipelineCreateInfo.layout = m_PipelineLayout;
+		auto data = ShaderReflection::ReflectPipelineLayout(m_ShaderSources);
 
-		CheckVkResult(vkCreateComputePipelines(GraphicsContext::GetDevice(), VK_NULL_HANDLE, 1, &ComputePipelineCreateInfo, nullptr, &m_Handle));
+		m_PipelineLayout = data.PipelineLayout;
+		m_ComputePipelineCreateInfo.layout = m_PipelineLayout;
 
-		m_Initialized = true;
-		return m_Handle;
+		for (const auto& [stage, source] : m_ShaderSources)
+		{
+			VkShaderModuleCreateInfo createInfo{};
+			createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+			createInfo.codeSize = (uint32_t)source->Code.size() * sizeof(uint32_t);
+			createInfo.pCode = source->Code.data();
+
+			VkShaderModule shaderModule;
+			CheckVkResult(vkCreateShaderModule(GraphicsContext::GetDevice(), &createInfo, nullptr, &shaderModule));
+		
+			AddShaderStage(stage, shaderModule, specializationInfo);
+			m_ShaderModules[stage] = shaderModule;
+		}
+		
+		m_ComputePipelineCreateInfo.stage = m_ShaderStageCreateInfos[0];
+
+		CheckVkResult(vkCreateComputePipelines(GraphicsContext::GetDevice(), VK_NULL_HANDLE, 1, &m_ComputePipelineCreateInfo, nullptr, &m_Handle));
 	}
 
 	void ComputePipeline::Bind(VkCommandBuffer commandBuffer)
 	{
+		HG_PROFILE_FUNCTION();
+
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_Handle);
+	}
+
+	RayTracingPipeline::RayTracingPipeline()
+	{
 	}
 }

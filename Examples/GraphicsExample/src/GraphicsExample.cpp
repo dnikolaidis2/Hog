@@ -36,7 +36,10 @@ void GraphicsExample::OnAttach()
 
 	RenderGraph graph;
 	auto graphics = graph.AddStage(nullptr, {
-		"ForwardGraphics", RendererStageType::ForwardGraphics, Shader::Create("Basic", "Basic.vertex", "Basic.fragment"),
+		"ForwardGraphics", RendererStageType::ForwardGraphics, 
+		GraphicsPipeline::Create({
+			.Shaders = {"Basic.vertex", "Basic.fragment"},
+		}),
 		{
 			{DataType::Defaults::Float3, "a_Position"},
 			{DataType::Defaults::Float2, "a_TexCoords"},
@@ -58,7 +61,10 @@ void GraphicsExample::OnAttach()
 	});
 
 	auto transparentGraphics = graph.AddStage(graphics, {
-		"ForwardGraphics", RendererStageType::ForwardGraphics, Shader::Create("Basic", "Basic.vertex", "Basic.fragment"),
+		"ForwardGraphics", RendererStageType::ForwardGraphics, 
+		GraphicsPipeline::Create({
+			.Shaders = {"Basic.vertex", "Basic.fragment"},
+		}),
 		{
 			{DataType::Defaults::Float3, "a_Position"},
 			{DataType::Defaults::Float2, "a_TexCoords"},
@@ -91,11 +97,24 @@ void GraphicsExample::OnAttach()
 	//});
 
 	graph.AddStage(transparentGraphics, {
-		"BlitStage", RendererStageType::Blit, Shader::Create("Blit", "fullscreen.vertex", "blit.fragment", false),
-		{{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, colorAttachmentTexture, 0, 0, {
+		"BlitStage", RendererStageType::Blit, 
+		GraphicsPipeline::Create({
+			.Shaders = {"fullscreen.vertex", "blit.fragment"},
+			.Rasterizer = {
+				.CullMode = CullMode::Front,
+			},
+			.BlendAttachments = {
+				{
+					.Enable = false,
+				},
+			},
+		}),
+		{
+			{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, colorAttachmentTexture, 0, 0, {
 				PipelineStage::ColorAttachmentOutput, AccessFlag::ColorAttachmentWrite,
 				PipelineStage::FragmentShader, AccessFlag::ShaderSampledRead,
-		}},},
+			}},
+		},
 		{{"SwapchainImage", AttachmentType::Swapchain, true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::PresentSrcKHR}},},
 	});
 

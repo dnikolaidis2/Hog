@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Hog/Renderer/Shader.h"
+#include "Hog/Renderer/Pipeline.h"
 #include "Hog/Renderer/Buffer.h"
 #include "Hog/Renderer/Mesh.h"
 #include "Hog/Renderer/Texture.h"
@@ -199,7 +199,7 @@ namespace Hog
 	struct StageDescription
 	{
 		std::string Name;
-		Ref<Shader> Shader;
+		Ref<Pipeline> Pipeline;
 		RendererStageType StageType;
 		VertexInputLayout VertexInputLayout;
 		ResourceLayout Resources;
@@ -209,8 +209,8 @@ namespace Hog
 		Ref<Buffer> DispatchBuffer;
 		BarrierDescription BarrierDescription;
 
-		StageDescription(const std::string& name, RendererStageType type, Ref<Hog::Shader> shader, std::initializer_list<ResourceElement> resources, glm::ivec3 groupCounts)
-			: Name(name), Shader(shader), StageType(type), VertexInputLayout({}), Resources(resources), GroupCounts(groupCounts) {}
+		StageDescription(const std::string& name, RendererStageType type, Ref<Hog::Pipeline> pipeline, std::initializer_list<ResourceElement> resources, glm::ivec3 groupCounts)
+			: Name(name), Pipeline(pipeline), StageType(type), VertexInputLayout({}), Resources(resources), GroupCounts(groupCounts) {}
 
 		StageDescription(const std::string& name, RendererStageType type, std::initializer_list<AttachmentElement> attachmentElements)
 			: Name(name), StageType(type), Attachments(attachmentElements) {}
@@ -218,12 +218,12 @@ namespace Hog
 		StageDescription(const std::string& name, RendererStageType type, Hog::BarrierDescription description)
 			: Name(name), StageType(type), BarrierDescription(description) {}
 
-		StageDescription(const std::string& name, RendererStageType type, Ref<Hog::Shader> shader, std::initializer_list<ResourceElement> resources, std::initializer_list<AttachmentElement> attachmentElements)
-			: Name(name), Shader(shader), StageType(type), Resources(resources), Attachments(attachmentElements) {}
+		StageDescription(const std::string& name, RendererStageType type, Ref<Hog::Pipeline> pipeline, std::initializer_list<ResourceElement> resources, std::initializer_list<AttachmentElement> attachmentElements)
+			: Name(name), Pipeline(pipeline), StageType(type), Resources(resources), Attachments(attachmentElements) {}
 
-		StageDescription(const std::string& name, RendererStageType type, Ref<Hog::Shader> shader, std::initializer_list<VertexElement> vertexInput,
+		StageDescription(const std::string& name, RendererStageType type, Ref<Hog::Pipeline> pipeline, std::initializer_list<VertexElement> vertexInput,
 			std::initializer_list<ResourceElement> resources, const std::vector<Ref<Mesh>>& meshes, std::initializer_list<AttachmentElement> attachmentElements)
-			: Name(name), Shader(shader), StageType(type), VertexInputLayout(vertexInput), Resources(resources), Meshes(meshes), Attachments(attachmentElements) {}
+			: Name(name), Pipeline(pipeline), StageType(type), VertexInputLayout(vertexInput), Resources(resources), Meshes(meshes), Attachments(attachmentElements) {}
 
 		StageDescription() = default;
 	};

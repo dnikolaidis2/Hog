@@ -3,180 +3,231 @@
 #include <volk.h>
 
 #include "Hog/Renderer/Types.h"
+#include "Hog/Renderer/Shader.h"
 
 namespace Hog
 {
 	class Pipeline
 	{
 	public:
-		static Ref<Pipeline> CreateGraphics(const std::vector <VkVertexInputBindingDescription>& vertexInputBindingDescription, const std::vector<VkVertexInputAttributeDescription>& vertexInputAttributeDescription,
-			VkPipelineLayout layout, VkRenderPass renderPass);
-		static Ref<Pipeline> CreateCompute(VkPipelineLayout layout);
+		~Pipeline();
 
-		virtual ~Pipeline() = default;
-
-		virtual VkPipeline Create() = 0;
+		virtual void Generate(VkRenderPass renderPass, VkSpecializationInfo* specializationInfo) = 0;
 		virtual void Bind(VkCommandBuffer commandBuffer) = 0;
-		virtual void SetAttachmentCount(uint32_t count) = 0;
-		virtual void SetBlending(bool enable) = 0;
-		virtual void SetCullMode(CullMode cullMode) = 0;
 
-		void AddShaderStage(ShaderType type, VkShaderModule shaderModule, VkSpecializationInfo* specializationInfo, const char* main = "main");
-		void Destroy();
-		operator VkPipeline() const { return m_Handle; }
+		VkPipeline GetHandle() { return m_Handle; }
+		VkPipelineLayout GetPipelineLayout() { return m_PipelineLayout; }
 	protected:
+		void AddShader(std::string shader);
+		void AddShaderStage(ShaderType type, VkShaderModule shaderModule, VkSpecializationInfo* specializationInfo, const char* main = "main");
+	protected:
+		std::unordered_map<ShaderType, Ref<ShaderSource>> m_ShaderSources;
+		std::unordered_map<ShaderType, VkShaderModule> m_ShaderModules;
 		std::vector<VkPipelineShaderStageCreateInfo> m_ShaderStageCreateInfos;
+		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;;
 		VkPipeline m_Handle = VK_NULL_HANDLE;
-		bool m_Initialized = false;
 	};
 
 	class GraphicsPipeline : public Pipeline
 	{
 	public:
-		GraphicsPipeline(const std::vector<VkVertexInputBindingDescription>& vertexInputBindingDescription, const std::vector<VkVertexInputAttributeDescription>& vertexInputAttributeDescription, VkPipelineLayout layout, VkRenderPass renderPass);
-		~GraphicsPipeline() override;
+		struct Configuration
+		{
+			std::vector<std::string> Shaders;
 
-		virtual VkPipeline Create() override;
-		virtual void Bind(VkCommandBuffer commandBuffer) override;
-		virtual void SetAttachmentCount(uint32_t count) override { ColorBlendAttachmentStates.resize(count); }
-		virtual void SetBlending(bool enable) override { ColorBlendAttachmentState.blendEnable = enable; }
-		virtual void SetCullMode(CullMode cullMode) override { RasterizationStateCreateInfo.cullMode = static_cast<VkCullModeFlags>(cullMode); };
+			// VkPipelineInputAssemblyStateCreateInfo
+			struct InputAssemblyState
+			{
+				PrimitiveType Topology = PrimitiveType::TriangleList;
+			} Input;
+			
+			// VkPipelineRasterizationStateCreateInfo
+			struct RasterizationState
+			{
+				bool DiscardEnable 				= false;
+				PolygonMode PolygonMode 		= PolygonMode::Fill;
+				CullMode CullMode 				= CullMode::Back;
+				FrontFace FrontFace 			= FrontFace::CounterClockwise;
+				float LineWidth 				= 1.0f;
+				struct DepthOptions
+				{
+					bool ClampEnable 			= false;
+					bool BiasEnable 			= false;
+					float BiasConstantFactor 	= 0.0f;
+					float BiasClamp 			= 0.0f;
+					float BiasSlopeFactor 		= 0.0f;
+				} Depth;
+			} Rasterizer;
+
+			// VkPipelineColorBlendAttachmentState
+			struct ColorBlendAttachment
+			{
+				bool Enable 					= true;
+
+				BlendFactor SrcColorFactor		= BlendFactor::SrcAlpha;
+				BlendFactor DstColorFactor		= BlendFactor::OneMinusSrcAlpha;
+				BlendOp ColorOp 				= BlendOp::Add;
+				BlendFactor SrcAlphaFactor		= BlendFactor::One;
+				BlendFactor DstAlphaFactor		= BlendFactor::Zero;
+				BlendOp AlphaOp 				= BlendOp::Add;
+				ColorComponent ColorWriteMask	= ColorComponent::RGBA;
+			};
+
+			std::vector<ColorBlendAttachment> BlendAttachments {{}};
+
+			// VkPipelineColorBlendStateCreateInfo
+			struct ColorBlend
+			{
+				bool LogicOpEnable		= false;
+				LogicOp LogicOp			= LogicOp::Copy;
+				glm::vec4 BlendConstants {0.0f, 0.0f, 0.0f, 0.0f};
+			} Blend;
+			
+			// VkPipelineMultisampleStateCreateInfo
+			struct Multisample
+			{
+				bool SampleShadingEnable	= false;
+				float MinSampleShading		= .2f; // Optional
+			}Multisample;
+
+			// VkPipelineDepthStencilStateCreateInfo
+			struct DepthStencil
+			{
+				bool DepthTestEnable = true;
+				bool DepthWriteEnable = true;
+				CompareOp DepthCompareOp = CompareOp::LessOrEqual;
+				bool DepthBoundsTestEnable = false;
+				bool StencilTestEnable = false;
+				struct StencilOpSate
+				{
+					StencilOp FailOp {};
+					StencilOp PassOp {};
+					StencilOp DepthFailOp {};
+					CompareOp CompareOp {};
+					uint32_t CompareMask {};
+					uint32_t WriteMask {};
+					uint32_t Reference {};
+				};
+				
+				StencilOpSate Front {};
+				StencilOpSate Back {};
+				float MinBounds = 0.0f; // Optional
+				float MaxBounds = 0.0f; // Optional
+			}DepthStencil;
+
+			std::vector<DynamicState> DynamicStates { DynamicState::Viewport, DynamicState::Scissor };
+		};
 	public:
-		std::vector<VkVertexInputBindingDescription> VertexInputBindingDescriptions;
-		std::vector<VkVertexInputAttributeDescription> VertexInputAttributeDescriptions;
+		static Ref<Pipeline> Create(const Configuration& configuration);
+	public:
+		GraphicsPipeline(const Configuration& configuration);
+		~GraphicsPipeline();
 
-		VkPipelineVertexInputStateCreateInfo VertexInputStateCreateInfo = {
+		virtual void Generate(VkRenderPass renderPass, VkSpecializationInfo* specializationInfo) override;
+		virtual void Bind(VkCommandBuffer commandBuffer) override;
+	private:
+		Configuration m_Config;
+
+		VkPipelineVertexInputStateCreateInfo m_VertexInputStateCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 		};
 
-		VkPipelineInputAssemblyStateCreateInfo InputAssemblyStateCreateInfo = {
+		VkPipelineInputAssemblyStateCreateInfo m_InputAssemblyStateCreateInfo 
+		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-			.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-			.primitiveRestartEnable = VK_FALSE
 		};
 
-		VkViewport Viewport = {
+		VkViewport m_Viewport 
+		{
 			.x = 0.0f,
 			.y = 0.0f,
 			.minDepth = 0.0f,
 			.maxDepth = 1.0f
 		};
 
-		VkRect2D Scissor = {
+		VkRect2D m_Scissor 
+		{
 			.offset = {0, 0}
 		};
 
-		VkPipelineViewportStateCreateInfo ViewportStateCreateInfo = {
+		VkPipelineViewportStateCreateInfo m_ViewportStateCreateInfo 
+		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
 			.viewportCount = 1,
-			.pViewports = &Viewport,
+			.pViewports = &m_Viewport,
 			.scissorCount = 1,
-			.pScissors = &Scissor,
+			.pScissors = &m_Scissor,
 		};
 
-		VkPipelineRasterizationStateCreateInfo RasterizationStateCreateInfo = {
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-			.depthClampEnable = VK_FALSE,
-			.rasterizerDiscardEnable = VK_FALSE,
-			.polygonMode = VK_POLYGON_MODE_FILL,
-			.cullMode = VK_CULL_MODE_BACK_BIT,
-			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-			.depthBiasEnable = VK_FALSE,
-			.depthBiasConstantFactor = 0.0f,
-			.depthBiasClamp = 0.0f,
-			.depthBiasSlopeFactor = 0.0f,
-			.lineWidth = 1.0f,
-		};
-
-		std::vector<VkPipelineColorBlendAttachmentState> ColorBlendAttachmentStates;
-
-		VkPipelineColorBlendAttachmentState ColorBlendAttachmentState = {
-			.blendEnable = VK_TRUE,
-			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-			.colorBlendOp = VK_BLEND_OP_ADD,
-			.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-			.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
-			.alphaBlendOp = VK_BLEND_OP_ADD,
-			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
-		};
-
-		VkPipelineMultisampleStateCreateInfo MultisamplingStateCreateInfo =
+		VkPipelineRasterizationStateCreateInfo m_RasterizationStateCreateInfo 
 		{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-			.sampleShadingEnable = VK_TRUE,
-			.minSampleShading = .2f, // Optional
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
 		};
 
-		VkPipelineColorBlendStateCreateInfo ColorBlendStateCreateInfo = {
+		std::vector<VkPipelineColorBlendAttachmentState> m_ColorBlendAttachmentStates;
+
+		VkPipelineColorBlendStateCreateInfo m_ColorBlendStateCreateInfo 
+		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-			.logicOpEnable = VK_FALSE,
-			.logicOp = VK_LOGIC_OP_COPY,
-			.blendConstants = {0.0f, 0.0f, 0.0f, 0.0f},
 		};
 
-		std::vector<VkDynamicState> DynamicStates = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-			// VK_DYNAMIC_STATE_LINE_WIDTH
+		VkPipelineMultisampleStateCreateInfo m_MultisamplingStateCreateInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO
 		};
 
-		VkPipelineDepthStencilStateCreateInfo PipelineDepthStencilCreateInfo = {
+		VkPipelineDepthStencilStateCreateInfo m_PipelineDepthStencilCreateInfo 
+		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-			.depthTestEnable = VK_TRUE,
-			.depthWriteEnable = VK_TRUE,
-			.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
-			.depthBoundsTestEnable = VK_FALSE,
-			.stencilTestEnable = VK_FALSE,
-			.back = {
-				.compareOp = VK_COMPARE_OP_ALWAYS,
-			},
-			.minDepthBounds = 0.0f, // Optional
-			.maxDepthBounds = 0.0f, // Optional
 		};
 
-		VkPipelineDynamicStateCreateInfo DynamicStateCreateInfo = {
+		std::vector<VkDynamicState> m_DynamicStates;
+
+		VkPipelineDynamicStateCreateInfo m_DynamicStateCreateInfo = 
+		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-			// .dynamicStateCount = DynamicStates.size(),
-			// .pDynamicStates = DynamicStates.data(),
 		};
 
-		VkGraphicsPipelineCreateInfo GraphicsPipelineCreateInfo = {
+		VkGraphicsPipelineCreateInfo m_GraphicsPipelineCreateInfo = 
+		{
 			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-			// .stageCount = 2,
-			// .pStages = shaderStages,
-			.pVertexInputState = &VertexInputStateCreateInfo,
-			.pInputAssemblyState = &InputAssemblyStateCreateInfo,
-			.pViewportState = &ViewportStateCreateInfo,
-			.pRasterizationState = &RasterizationStateCreateInfo,
-			.pMultisampleState = &MultisamplingStateCreateInfo,
-			.pDepthStencilState = &PipelineDepthStencilCreateInfo, // Optional
-			.pColorBlendState = &ColorBlendStateCreateInfo,
-			.pDynamicState = &DynamicStateCreateInfo, // Optional
-			.subpass = 0,
-			.basePipelineHandle = VK_NULL_HANDLE, // Optional
-			.basePipelineIndex = -1, // Optional
+			.pVertexInputState = &m_VertexInputStateCreateInfo,
+			.pInputAssemblyState = &m_InputAssemblyStateCreateInfo,
+			.pViewportState = &m_ViewportStateCreateInfo,
+			.pRasterizationState = &m_RasterizationStateCreateInfo,
+			.pMultisampleState = &m_MultisamplingStateCreateInfo,
+			.pDepthStencilState = &m_PipelineDepthStencilCreateInfo, // Optional
+			.pColorBlendState = &m_ColorBlendStateCreateInfo,
+			.pDynamicState = &m_DynamicStateCreateInfo,
 		};
-	private:
-		VkPipelineLayout m_PipelineLayout;
 	};
 
 	class ComputePipeline : public Pipeline
 	{
 	public:
-		ComputePipeline(VkPipelineLayout layout);
-		~ComputePipeline() override;
-
-		virtual VkPipeline Create() override;
-		virtual void Bind(VkCommandBuffer commandBuffer) override;
-		virtual void SetAttachmentCount(uint32_t count) override {  };
-		virtual void SetBlending(bool enable) override {  }
-		virtual void SetCullMode(CullMode cullMode) override { };
+		struct Configuration
+		{
+			std::string Shader;
+		};
 	public:
-		VkComputePipelineCreateInfo ComputePipelineCreateInfo = {
+		static Ref<Pipeline> Create(const Configuration& configuration);
+	public:
+		ComputePipeline(const Configuration& configuration);
+		~ComputePipeline();
+
+		virtual void Generate(VkRenderPass renderPass, VkSpecializationInfo* specializationInfo) override;
+		virtual void Bind(VkCommandBuffer commandBuffer) override;
+	private:
+		Configuration m_Config;
+
+		VkComputePipelineCreateInfo m_ComputePipelineCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
 		};
-	private:
-		VkPipelineLayout m_PipelineLayout;
+	};
+
+	class RayTracingPipeline
+	{
+	public:
+		RayTracingPipeline();
 	};
 }

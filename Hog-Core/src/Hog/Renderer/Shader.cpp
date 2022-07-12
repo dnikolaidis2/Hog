@@ -288,135 +288,10 @@ namespace Hog {
 		return shaderData;
 	}
 
-	Ref<Shader> Shader::Create(const std::string& name, const std::string& vertex, const std::string& fragment, bool enableBlending)
+	ShaderReflection::ReflectionData ShaderReflection::ReflectPipelineLayout(const std::unordered_map<ShaderType, Ref<ShaderSource>>& sources)
 	{
-		auto shader = CreateRef<Shader>(name);
-		shader->AddStage(vertex);
-		shader->AddStage(fragment);
-
-		shader->SetBlending(enableBlending);
-
-		return shader;
-	}
-
-	Ref<Shader> Shader::Create(const std::string& name, const std::string& vertex, const std::string& fragment, const std::string& geometry, bool enableBlending)
-	{
-		auto shader = CreateRef<Shader>(name);
-		shader->AddStage(vertex);
-		shader->AddStage(fragment);
-		shader->AddStage(geometry);
-
-		shader->SetBlending(enableBlending);
-
-		return shader;
-	}
-
-	Ref<Shader> Shader::Create(const std::string& name)
-	{
-		auto shader = CreateRef<Shader>(name);
-		shader->AddStage(name);
-
-		return shader;
-	}
-
-	Shader::~Shader()
-	{
-		/*for (auto& layout : m_DescriptorSetLayouts)
-		{
-			vkDestroyDescriptorSetLayout(GraphicsContext::GetDevice(), layout, nullptr);
-		}*/
-
-		vkDestroyPipelineLayout(GraphicsContext::GetDevice(), m_PipelineLayout, nullptr);
-
-		for (auto& [stage, shaderModule] : m_Modules)
-		{
-			vkDestroyShaderModule(GraphicsContext::GetDevice(), shaderModule, nullptr);
-		}
-		
-		m_Sources.clear();
-	}
-
-	void Shader::AddStage(Ref<ShaderSource> source)
-	{
-		if (m_Sources.find(source->Type) != m_Sources.end())
-		{
-			HG_CORE_WARN("Replacing existing source in shader!");
-		}
-
-		m_Sources[source->Type] = source;
-	}
-
-	void Shader::AddStage(const std::string& name)
-	{
-		Ref<ShaderSource> source = ShaderCache::GetShader(name);
-		AddStage(source);
-	}
-
-	void Shader::Generate(VkSpecializationInfo specializationInfo)
-	{
-		ReflectPipelineLayout();
-
-
-		m_Pipeline = Pipeline::CreateCompute(m_PipelineLayout);
-
-		for (const auto& [stage, source] : m_Sources)
-		{
-			VkShaderModuleCreateInfo createInfo{};
-			createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-			createInfo.codeSize = (uint32_t)source->Code.size() * sizeof(uint32_t);
-			createInfo.pCode = source->Code.data();
-
-			VkShaderModule shaderModule;
-			CheckVkResult(vkCreateShaderModule(GraphicsContext::GetDevice(), &createInfo, nullptr, &shaderModule));
-
-			m_Pipeline->AddShaderStage(stage, shaderModule, &specializationInfo);
-			m_Modules[stage] = shaderModule;
-		}
-
-		m_Pipeline->Create();
-	}
-
-	void Shader::Generate(VkRenderPass renderPass, VkSpecializationInfo specializationInfo, uint32_t attachmentCount)
-	{
-		ReflectPipelineLayout();
-
-		m_Pipeline = Pipeline::CreateGraphics(m_VertexInputBindingDescriptions, m_VertexInputAttributeDescriptions, m_PipelineLayout, renderPass);
-
-		for (const auto& [stage, source] : m_Sources)
-		{
-			VkShaderModuleCreateInfo createInfo{};
-			createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-			createInfo.codeSize = (uint32_t)source->Code.size() * sizeof(uint32_t);
-			createInfo.pCode = source->Code.data();
-
-			VkShaderModule shaderModule;
-			CheckVkResult(vkCreateShaderModule(GraphicsContext::GetDevice(), &createInfo, nullptr, &shaderModule));
-
-			m_Pipeline->AddShaderStage(stage, shaderModule, &specializationInfo);
-			m_Modules[stage] = shaderModule;
-		}
-
-		m_Pipeline->SetAttachmentCount(attachmentCount);
-		m_Pipeline->SetBlending(m_EnableBlending);
-		
-		if (m_CullMode != CullMode::MaxEnum)
-			m_Pipeline->SetCullMode(m_CullMode);
-
-		m_Pipeline->Create();
-	}
-
-	void Shader::Bind(VkCommandBuffer commandBuffer)
-	{
-		m_Pipeline->Bind(commandBuffer);
-	}
-
-	void Shader::Reaload()
-	{
-	}
-
-	void Shader::ReflectPipelineLayout()
-	{
-		for (const auto& [stage, source] : m_Sources)
+		ShaderReflection::ReflectionData data{};
+		for (const auto& [stage, source] : sources)
 		{
 			SpvReflectShaderModule spvmodule;
 			SpvReflectResult result = spvReflectCreateShaderModule(source->Code.size() * sizeof(uint32_t), source->Code.data(), &spvmodule);
@@ -431,16 +306,16 @@ namespace Hog {
 			for (size_t i_set = 0; i_set < sets.size(); ++i_set)
 			{
 				const SpvReflectDescriptorSet& refl_set = *(sets[i_set]);
-				for (uint32_t i_binding = 0; i_binding < refl_set.binding_count; ++i_binding) 
+				for (uint32_t i_binding = 0; i_binding < refl_set.binding_count; ++i_binding)
 				{
 					const SpvReflectDescriptorBinding& refl_binding = *(refl_set.bindings[i_binding]);
 
-					if (m_DescriptorSetLayoutBinding[refl_set.set].size() < refl_binding.binding + 1)
+					if (data.DescriptorSetLayoutBinding[refl_set.set].size() < refl_binding.binding + 1)
 					{
-						m_DescriptorSetLayoutBinding[refl_set.set].resize(refl_binding.binding + 1);
+						data.DescriptorSetLayoutBinding[refl_set.set].resize(refl_binding.binding + 1);
 					}
 
-					VkDescriptorSetLayoutBinding& layoutBinding = m_DescriptorSetLayoutBinding[refl_set.set][refl_binding.binding];
+					VkDescriptorSetLayoutBinding& layoutBinding = data.DescriptorSetLayoutBinding[refl_set.set][refl_binding.binding];
 					layoutBinding.binding = refl_binding.binding;
 					layoutBinding.descriptorType = static_cast<VkDescriptorType>(refl_binding.descriptor_type);
 					layoutBinding.descriptorCount = 1;
@@ -465,7 +340,7 @@ namespace Hog {
 				pushConstant.size = pconstants[i_const]->size;
 				pushConstant.stageFlags |= static_cast<VkShaderStageFlags>(stage);
 
-				m_PushConstantRanges.push_back(pushConstant);
+				data.PushConstantRanges.push_back(pushConstant);
 			}
 
 			if (stage == ShaderType::Defaults::Vertex)
@@ -482,7 +357,7 @@ namespace Hog {
 				bindingDescription.stride = 0;  // computed below
 				bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-				m_VertexInputAttributeDescriptions.reserve(inputVariables.size());
+				data.VertexInputAttributeDescriptions.reserve(inputVariables.size());
 				for (size_t i_var = 0; i_var < inputVariables.size(); ++i_var) {
 					const SpvReflectInterfaceVariable& refl_var = *(inputVariables[i_var]);
 					// ignore built-in variables
@@ -494,14 +369,14 @@ namespace Hog {
 					attr_desc.binding = bindingDescription.binding;
 					attr_desc.format = static_cast<VkFormat>(refl_var.format);
 					attr_desc.offset = 0;  // final offset computed below after sorting.
-					m_VertexInputAttributeDescriptions.push_back(attr_desc);
+					data.VertexInputAttributeDescriptions.push_back(attr_desc);
 				}
 				// Sort attributes by location
-				std::sort(std::begin(m_VertexInputAttributeDescriptions), std::end(m_VertexInputAttributeDescriptions),
+				std::sort(std::begin(data.VertexInputAttributeDescriptions), std::end(data.VertexInputAttributeDescriptions),
 					[](const VkVertexInputAttributeDescription& a, const VkVertexInputAttributeDescription& b) {
 						return a.location < b.location; });
 				// Compute final offsets of each attribute, and total vertex stride.
-				for (auto& attribute : m_VertexInputAttributeDescriptions) {
+				for (auto& attribute : data.VertexInputAttributeDescriptions) {
 					uint32_t format_size = DataType(attribute.format).TypeSize();
 					attribute.offset = bindingDescription.stride;
 					bindingDescription.stride += format_size;
@@ -509,18 +384,18 @@ namespace Hog {
 				// Nothing further is done with attribute_descriptions or binding_description
 				// in this sample. A real application would probably derive this information from its
 				// mesh format(s); a similar mechanism could be used to ensure mesh/shader compatibility.
-				if (!m_VertexInputAttributeDescriptions.empty())
+				if (!data.VertexInputAttributeDescriptions.empty())
 				{
-					m_VertexInputBindingDescriptions.push_back(bindingDescription);
+					data.VertexInputBindingDescriptions.push_back(bindingDescription);
 				}
 			}
 
 			spvReflectDestroyShaderModule(&spvmodule);
 		}
 
-		for (int i = 0; i < m_DescriptorSetLayoutBinding.size(); ++i)
+		for (int i = 0; i < data.DescriptorSetLayoutBinding.size(); ++i)
 		{
-			std::vector<VkDescriptorBindingFlags> bindingFlags(m_DescriptorSetLayoutBinding[i].size(), VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
+			std::vector<VkDescriptorBindingFlags> bindingFlags(data.DescriptorSetLayoutBinding[i].size(), VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
 
 			VkDescriptorSetLayoutBindingFlagsCreateInfo layoutBindingFlags = {
 				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
@@ -531,18 +406,22 @@ namespace Hog {
 			VkDescriptorSetLayoutCreateInfo layoutInfo{};
 			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 			layoutInfo.pNext = &layoutBindingFlags;
-			layoutInfo.bindingCount = (uint32_t)m_DescriptorSetLayoutBinding[i].size();
-			layoutInfo.pBindings = m_DescriptorSetLayoutBinding[i].data();
+			layoutInfo.bindingCount = (uint32_t)data.DescriptorSetLayoutBinding[i].size();
+			layoutInfo.pBindings = data.DescriptorSetLayoutBinding[i].data();
 
-			 m_DescriptorSetLayouts[i] = Renderer::GetDescriptorLayoutCache()->CreateDescriptorLayout(&layoutInfo);
-			// CheckVkResult(vkCreateDescriptorSetLayout(GraphicsContext::GetDevice(), &layoutInfo, nullptr, &m_DescriptorSetLayouts[i]));
+			data.DescriptorSetLayouts[i] = Renderer::GetDescriptorLayoutCache()->CreateDescriptorLayout(&layoutInfo);
+			// CheckVkResult(vkCreateDescriptorSetLayout(GraphicsContext::GetDevice(), &layoutInfo, nullptr, &data.DescriptorSetLayouts[i]));
 		}
 
-		m_PipelineLayoutCreateInfo.pushConstantRangeCount = (uint32_t)m_PushConstantRanges.size();
-		m_PipelineLayoutCreateInfo.pPushConstantRanges = m_PushConstantRanges.data();
-		m_PipelineLayoutCreateInfo.setLayoutCount = (uint32_t)m_DescriptorSetLayouts.size(); // Optional
-		m_PipelineLayoutCreateInfo.pSetLayouts = m_DescriptorSetLayouts.data(); // Optional
+		VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo = { .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
-		CheckVkResult(vkCreatePipelineLayout(GraphicsContext::GetDevice(), &m_PipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
+		PipelineLayoutCreateInfo.pushConstantRangeCount = (uint32_t)data.PushConstantRanges.size();
+		PipelineLayoutCreateInfo.pPushConstantRanges = data.PushConstantRanges.data();
+		PipelineLayoutCreateInfo.setLayoutCount = (uint32_t)data.DescriptorSetLayouts.size(); // Optional
+		PipelineLayoutCreateInfo.pSetLayouts = data.DescriptorSetLayouts.data(); // Optional
+
+		CheckVkResult(vkCreatePipelineLayout(GraphicsContext::GetDevice(), &PipelineLayoutCreateInfo, nullptr, &data.PipelineLayout));
+
+		return data;
 	}
 }

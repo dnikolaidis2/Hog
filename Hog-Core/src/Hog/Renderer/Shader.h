@@ -4,7 +4,6 @@
 #include <yaml-cpp/yaml.h>
 #include <volk.h>
 
-#include "Hog/Renderer/Pipeline.h"
 #include "Hog/Renderer/Types.h"
 
 namespace Hog {
@@ -67,56 +66,22 @@ namespace Hog {
 		std::unordered_map<std::string, Ref<ShaderSource>> m_ShaderCache;
 	};
 
-	class Shader
+	class ShaderReflection
 	{
 	public:
-		static Ref<Shader> Create(const std::string& name, const std::string& vertex, const std::string& fragment, bool enableBlending = true);
-		static Ref<Shader> Create(const std::string& name, const std::string& vertex, const std::string& fragment, const std::string& geometry, bool enableBlending = true);
-		static Ref<Shader> Create(const std::string& name);
-	public:
-		Shader(const std::string& name)
-			: m_Name(name) {}
-		~Shader();
+		struct ReflectionData
+		{
+			std::array<std::vector<VkDescriptorSetLayoutBinding>, 4> DescriptorSetLayoutBinding;
+			std::array<VkDescriptorSetLayout, 4> DescriptorSetLayouts = { VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE };
 
-		void AddStage(Ref<ShaderSource> source);
-		void AddStage(const std::string& name);
-		void Generate(VkSpecializationInfo specializationInfo);
-		void Generate(VkRenderPass, VkSpecializationInfo specializationInfo, uint32_t attachmentCount);
-		void Bind(VkCommandBuffer commandBuffer);
-		void Reaload();
+			std::vector<VkVertexInputBindingDescription> VertexInputBindingDescriptions;
+			std::vector<VkVertexInputAttributeDescription> VertexInputAttributeDescriptions;
 
-		const std::string& GetName() const { return m_Name; }
-		void SetName(const std::string& name) { m_Name = name; }
+			std::vector<VkPushConstantRange> PushConstantRanges;
 
-		VkPipelineLayout GetPipelineLayout() const { return m_PipelineLayout; }
-		const std::array<VkDescriptorSetLayout, 4>& GetDescriptorSetLayouts() const { return m_DescriptorSetLayouts; }
-		const std::vector<VkVertexInputAttributeDescription>& GetVertexInputAttributeDescriptions() { return m_VertexInputAttributeDescriptions; }
-		const std::vector<VkVertexInputBindingDescription>& GetVertexInputBindingDescriptions() const { return m_VertexInputBindingDescriptions; }
-
-		void SetBlending(bool enable) { m_EnableBlending = enable; }
-		void SetCullMode(CullMode cullMode) { m_CullMode = cullMode; }
-	private:
-		void ReflectPipelineLayout();
-	private:
-		std::string m_Name;
-		std::unordered_map<ShaderType, Ref<ShaderSource>> m_Sources;
-		std::unordered_map<ShaderType, VkShaderModule> m_Modules;
-
-		std::array<std::vector<VkDescriptorSetLayoutBinding>, 4> m_DescriptorSetLayoutBinding;
-		std::array<VkDescriptorSetLayout, 4> m_DescriptorSetLayouts = {VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE};
-
-		std::vector<VkVertexInputBindingDescription> m_VertexInputBindingDescriptions;
-		std::vector<VkVertexInputAttributeDescription> m_VertexInputAttributeDescriptions;
-
-		std::vector<VkPushConstantRange> m_PushConstantRanges;
-
-		VkPipelineLayoutCreateInfo m_PipelineLayoutCreateInfo = {
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			VkPipelineLayout PipelineLayout;
 		};
-
-		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
-		bool m_EnableBlending = true;
-		CullMode m_CullMode = CullMode::MaxEnum;
-		Ref<Pipeline> m_Pipeline;
+	public:
+		static ReflectionData ReflectPipelineLayout(const std::unordered_map<ShaderType, Ref<ShaderSource>>& sources);
 	};
 }
