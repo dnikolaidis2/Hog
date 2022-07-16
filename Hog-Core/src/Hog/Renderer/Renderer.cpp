@@ -490,7 +490,7 @@ namespace Hog
 	void RendererStage::ForwardGraphics(VkCommandBuffer commandBuffer)
 	{
 		HG_PROFILE_GPU_EVENT("ForwardGraphics Pass");
-		HG_PROFILE_TAG("Name", Info.Name);
+		HG_PROFILE_TAG("Name", Info.Name.c_str());
 
 		RendererFrame& currentFrame = s_Data.GetCurrentFrame();
 		VkExtent2D extent = Info.Attachments.begin()->Image->GetExtent();
@@ -577,7 +577,7 @@ namespace Hog
 	void RendererStage::ForwardCompute(VkCommandBuffer commandBuffer)
 	{
 		HG_PROFILE_GPU_EVENT("ForwardCompute Pass");
-		HG_PROFILE_TAG("Name", Info.Name);
+		HG_PROFILE_TAG("Name", Info.Name.c_str());
 
 		Info.Pipeline->Bind(commandBuffer);
 

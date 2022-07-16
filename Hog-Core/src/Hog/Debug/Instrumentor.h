@@ -250,11 +250,11 @@ namespace Hog {
 		#define HG_PROFILE_FUNCTION() OPTICK_EVENT()
 		#define HG_PROFILE_START_FRAME(name) OPTICK_FRAME(name)
 
-		#define HG_PROFILE_GPU_INIT_VULKAN(devices, physical_devices, cnd_queues, cnd_queues_family, num_cmd_queus, functions) \
-			OPTICK_GPU_INIT_VULKAN(devices, physical_devices, cnd_queues, cnd_queues_family, num_cmd_queus, functions)
-		#define HG_PROFILE_GPU_CONTEXT(...) OPTICK_GPU_CONTEXT(__VA_ARGS__)
-		#define HG_PROFILE_GPU_EVENT(name) OPTICK_GPU_EVENT(name)
-		#define HG_PROFILE_GPU_FLIP(swap_chain) OPTICK_GPU_FLIP(swap_chain)
+		#define HG_PROFILE_GPU_INIT_VULKAN(devices, physical_devices, cnd_queues, cnd_queues_family, num_cmd_queus, functions)
+			//OPTICK_GPU_INIT_VULKAN(devices, physical_devices, cnd_queues, cnd_queues_family, num_cmd_queus, functions)
+		#define HG_PROFILE_GPU_CONTEXT(...) //OPTICK_GPU_CONTEXT(__VA_ARGS__)
+		#define HG_PROFILE_GPU_EVENT(name) //OPTICK_GPU_EVENT(name)
+		#define HG_PROFILE_GPU_FLIP(swap_chain) //OPTICK_GPU_FLIP(swap_chain)
 	#endif
 #else
 	#define HG_PROFILE_BEGIN_SESSION(name, filepath)

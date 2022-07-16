@@ -150,6 +150,8 @@ namespace Hog {
 		CreateCommandBuffers();
 		CreateSwapChain();
 
+		HG_PROFILE_GPU_INIT_VULKAN(&Device, &PhysicalDevice, &Queue, &QueueFamilyIndex, 1, nullptr);
+
 		m_Initialized = true;
 	}
 

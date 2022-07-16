@@ -94,6 +94,7 @@ namespace Hog {
 		static std::vector<Ref<Image>>& GetSwapchainImages() { return Get().SwapchainImages; }
 		static VkFormat GetSwapchainFormat() { return Get().SwapchainFormat; }
 		static VkQueue GetQueue() { return Get().Queue; }
+		static uint32_t GetQueueFamily() { return Get().QueueFamilyIndex; }
 		static VkSampleCountFlagBits GetMSAASamples() { return Get().MSAASamples; }
 		static GPUInfo* GetGPUInfo() { return Get().GPU; }
 

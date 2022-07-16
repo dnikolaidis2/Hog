@@ -17,8 +17,6 @@ void ComputeExample::OnAttach()
 
 	GraphicsContext::Initialize();
 
-	HG_PROFILE_GPU_INIT_VULKAN(&(context.Device), &(context.PhysicalDevice), &(context.Queue), &(context.QueueFamilyIndex), 1, nullptr);
-
 	m_ComputeBuffer = Buffer::Create(BufferDescription::Defaults::ReadbackStorageBuffer, BufferElements * sizeof(uint32_t));
 
 	uint32_t n = 0;
