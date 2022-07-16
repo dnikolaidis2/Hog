@@ -141,7 +141,7 @@ namespace Hog {
 
 		CreateInstance();
 		SetupDebugMessenger();
-		Application::Get().GetWindow().CreateSurface(Instance, nullptr, &(Surface));
+		Application::Get().GetWindow().CreateSurface(m_Instance, nullptr, &(m_Surface));
 		EnumeratePhysicalDevices();
 		SelectPhysicalDevice();
 		CreateLogicalDeviceAndQueues();
@@ -150,32 +150,32 @@ namespace Hog {
 		CreateCommandBuffers();
 		CreateSwapChain();
 
-		HG_PROFILE_GPU_INIT_VULKAN(&Device, &PhysicalDevice, &Queue, &QueueFamilyIndex, 1, nullptr);
+		HG_PROFILE_GPU_INIT_VULKAN(&m_Device, &m_PhysicalDevice, &m_Queue, &m_QueueFamilyIndex, 1, nullptr);
 
 		m_Initialized = true;
 	}
 
 	void GraphicsContext::DeinitializeImpl()
 	{
-		for (auto& image : SwapchainImages)
+		for (auto& image : m_SwapchainImages)
 		{
 			image.reset();
 		}
 
-		vkDestroySwapchainKHR(Device, Swapchain, nullptr);
+		vkDestroySwapchainKHR(m_Device, m_Swapchain, nullptr);
 
-		vkDestroyFence(Device, UploadFence, nullptr);
+		vkDestroyFence(m_Device, UploadFence, nullptr);
 
-		vkDestroyCommandPool(Device, UploadCommandPool, nullptr);
+		vkDestroyCommandPool(m_Device, m_UploadCommandPool, nullptr);
 
-		vmaDestroyAllocator(Allocator);
+		vmaDestroyAllocator(m_Allocator);
 
-		vkDestroyDevice(Device, nullptr);
-		vkDestroySurfaceKHR(Instance, Surface, nullptr);
+		vkDestroyDevice(m_Device, nullptr);
+		vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 
 		if (CVar_ValidationLayers.Get())
 		{
-			DestroyDebugUtilsMessengerEXT(Instance, DebugMessenger, nullptr);
+			DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
 		}
 
 		DestroyInstance();
@@ -185,22 +185,22 @@ namespace Hog {
 
 	void GraphicsContext::RecreateSwapChainImpl()
 	{
-		vkDeviceWaitIdle(Device);
+		vkDeviceWaitIdle(m_Device);
 
 		CleanupSwapChain();
 
-		CheckVkResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(GPU->Device, Surface, &GPU->SurfaceCapabilities));
+		CheckVkResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_GPU->Device, m_Surface, &m_GPU->SurfaceCapabilities));
 		CreateSwapChain();
 	}
 
 	void GraphicsContext::WaitIdleImpl()
 	{
-		vkDeviceWaitIdle(Device);
+		vkDeviceWaitIdle(m_Device);
 	}
 
 	void GraphicsContext::GetImGuiDescriptorPoolImpl()
 	{
-		if (ImGuiDescriptorPool) return;
+		if (m_ImGuiDescriptorPool) return;
 
 		//1: create descriptor pool for IMGUI
 		// the size of the pool is very oversize, but it's copied from imgui demo itself.
@@ -226,12 +226,12 @@ namespace Hog {
 		pool_info.poolSizeCount = (uint32_t)std::size(pool_sizes);
 		pool_info.pPoolSizes = pool_sizes;
 
-		CheckVkResult(vkCreateDescriptorPool(Device, &pool_info, nullptr, &ImGuiDescriptorPool));
+		CheckVkResult(vkCreateDescriptorPool(m_Device, &pool_info, nullptr, &m_ImGuiDescriptorPool));
 	}
 
 	void GraphicsContext::DestroyImGuiDescriptorPoolImpl()
 	{
-		vkDestroyDescriptorPool(Device, ImGuiDescriptorPool, nullptr);
+		vkDestroyDescriptorPool(m_Device, m_ImGuiDescriptorPool, nullptr);
 	}
 
 	void GraphicsContext::ImmediateSubmitImpl(std::function<void(VkCommandBuffer commandBuffer)>&& function)
@@ -244,14 +244,14 @@ namespace Hog {
 		commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
 		// The command pool we created above
-		commandBufferAllocateInfo.commandPool = UploadCommandPool;
+		commandBufferAllocateInfo.commandPool = m_UploadCommandPool;
 
 		// We'll have two command buffers.  One will be in flight
 		// while the other is being built.
 		commandBufferAllocateInfo.commandBufferCount = 1;
 
 		VkCommandBuffer commandBuffer;
-		CheckVkResult(vkAllocateCommandBuffers(Device, &commandBufferAllocateInfo, &commandBuffer));
+		CheckVkResult(vkAllocateCommandBuffers(m_Device, &commandBufferAllocateInfo, &commandBuffer));
 
 		//begin the command buffer recording. We will use this command buffer exactly once, so we want to let vulkan know that
 		VkCommandBufferBeginInfo beginInfo{};
@@ -275,13 +275,13 @@ namespace Hog {
 
 		//submit command buffer to the queue and execute it.
 		// _uploadFence will now block until the graphic commands finish execution
-		CheckVkResult(vkQueueSubmit(Queue, 1, &submitInfo, UploadFence));
+		CheckVkResult(vkQueueSubmit(m_Queue, 1, &submitInfo, UploadFence));
 
-		vkWaitForFences(Device, 1, &UploadFence, true, 9999999999);
-		vkResetFences(Device, 1, &UploadFence);
+		vkWaitForFences(m_Device, 1, &UploadFence, true, 9999999999);
+		vkResetFences(m_Device, 1, &UploadFence);
 
 		//clear the command pool. This will free the command buffer too
-		vkResetCommandPool(Device, UploadCommandPool, 0);
+		vkResetCommandPool(m_Device, m_UploadCommandPool, 0);
 	}
 
 	VkFence GraphicsContext::CreateFenceImpl(bool signaled)
@@ -292,7 +292,7 @@ namespace Hog {
 		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fenceCreateInfo.flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
 
-		CheckVkResult(vkCreateFence(Device, &fenceCreateInfo, nullptr, &fence));
+		CheckVkResult(vkCreateFence(m_Device, &fenceCreateInfo, nullptr, &fence));
 
 		return fence;
 	}
@@ -305,7 +305,7 @@ namespace Hog {
 			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
 		};
 
-		CheckVkResult(vkCreateSemaphore(Device, &semaphoreCreateInfo, nullptr, &semaphore));
+		CheckVkResult(vkCreateSemaphore(m_Device, &semaphoreCreateInfo, nullptr, &semaphore));
 
 		return semaphore;
 	}
@@ -317,9 +317,9 @@ namespace Hog {
 		VkCommandPoolCreateInfo commandPoolCreateInfo = {};
 		commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		commandPoolCreateInfo.queueFamilyIndex = QueueFamilyIndex;
+		commandPoolCreateInfo.queueFamilyIndex = m_QueueFamilyIndex;
 
-		CheckVkResult(vkCreateCommandPool(Device, &commandPoolCreateInfo, nullptr, &commandPool));
+		CheckVkResult(vkCreateCommandPool(m_Device, &commandPoolCreateInfo, nullptr, &commandPool));
 
 		return commandPool;
 	}
@@ -334,7 +334,7 @@ namespace Hog {
 		commandBufferAllocateInfo.commandPool = commandPool;
 		commandBufferAllocateInfo.commandBufferCount = 1;
 
-		CheckVkResult(vkAllocateCommandBuffers(Device, &commandBufferAllocateInfo, &commandBuffer));
+		CheckVkResult(vkAllocateCommandBuffers(m_Device, &commandBufferAllocateInfo, &commandBuffer));
 
 		return commandBuffer;
 	}
@@ -345,10 +345,10 @@ namespace Hog {
 
 		VkInstanceCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		createInfo.pApplicationInfo = &(ApplicationInfo);
+		createInfo.pApplicationInfo = &(m_ApplicationInfo);
 
 		if (CVar_ValidationLayers.Get()) {
-			InstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+			m_InstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		}
 
 		uint32_t extensionCount = 0;
@@ -358,7 +358,7 @@ namespace Hog {
 
 		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-		for (auto instanceExtension : InstanceExtensions)
+		for (auto instanceExtension : m_InstanceExtensions)
 		{
 			bool exists = false;
 			for (const auto& extension : extensions)
@@ -381,7 +381,7 @@ namespace Hog {
 			std::vector<VkLayerProperties> availableLayers(layerCount);
 			vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-			for (auto validationLayer : ValidationLayers)
+			for (auto validationLayer : m_ValidationLayers)
 			{
 				bool exists = false;
 				for (const auto& layer : availableLayers)
@@ -396,27 +396,27 @@ namespace Hog {
 				HG_ASSERT(exists, "Extension not supported");
 			}
 
-			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&DebugMessengerCreateInfo;
+			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&m_DebugMessengerCreateInfo;
 		}
 		else
 		{
-			ValidationLayers.clear();
+			m_ValidationLayers.clear();
 		}
 
 		// Give all the extensions/layers to the create info.
-		createInfo.enabledExtensionCount = (uint32_t)InstanceExtensions.size();
-		createInfo.ppEnabledExtensionNames = InstanceExtensions.data();
-		createInfo.enabledLayerCount = (uint32_t)ValidationLayers.size();
-		createInfo.ppEnabledLayerNames = ValidationLayers.data();
+		createInfo.enabledExtensionCount = (uint32_t)m_InstanceExtensions.size();
+		createInfo.ppEnabledExtensionNames = m_InstanceExtensions.data();
+		createInfo.enabledLayerCount = (uint32_t)m_ValidationLayers.size();
+		createInfo.ppEnabledLayerNames = m_ValidationLayers.data();
 
-		CheckVkResult(vkCreateInstance(&createInfo, nullptr, &Instance));
+		CheckVkResult(vkCreateInstance(&createInfo, nullptr, &m_Instance));
 
-		volkLoadInstance(Instance);
+		volkLoadInstance(m_Instance);
 	}
 
 	void GraphicsContext::DestroyInstance()
 	{
-		vkDestroyInstance(Instance, nullptr);
+		vkDestroyInstance(m_Instance, nullptr);
 	}
 
 	void GraphicsContext::SetupDebugMessenger()
@@ -424,7 +424,7 @@ namespace Hog {
 		HG_PROFILE_FUNCTION();
 		if (!CVar_ValidationLayers.Get()) return;
 
-		CheckVkResult(CreateDebugUtilsMessengerEXT(Instance, &DebugMessengerCreateInfo, nullptr, &DebugMessenger));
+		CheckVkResult(CreateDebugUtilsMessengerEXT(m_Instance, &m_DebugMessengerCreateInfo, nullptr, &m_DebugMessenger));
 	}
 
 	void GraphicsContext::EnumeratePhysicalDevices()
@@ -435,22 +435,22 @@ namespace Hog {
 
 		// First just get the number of devices.
 		uint32_t numDevices = 0;
-		CheckVkResult(vkEnumeratePhysicalDevices(Instance, &numDevices, nullptr));
+		CheckVkResult(vkEnumeratePhysicalDevices(m_Instance, &numDevices, nullptr));
 		HG_ASSERT(numDevices > 0, "vkEnumeratePhysicalDevices returned zero devices.")
 
 			std::vector<VkPhysicalDevice> devices(numDevices);
 
 		// Now get the actual devices
-		CheckVkResult(vkEnumeratePhysicalDevices(Instance, &numDevices, devices.data()));
+		CheckVkResult(vkEnumeratePhysicalDevices(m_Instance, &numDevices, devices.data()));
 		HG_ASSERT(numDevices > 0, "vkEnumeratePhysicalDevices returned zero devices.")
 
-			// GPU is a VkNeo struct which stores details about the physical device.
-			// We'll use various API calls to get the necessary information.
-			GPUs.resize(numDevices);
+		// GPU is a VkNeo struct which stores details about the physical device.
+		// We'll use various API calls to get the necessary information.
+		m_GPUs.resize(numDevices);
 
 		for (uint32_t i = 0; i < numDevices; ++i)
 		{
-			GPUInfo& gpu = GPUs[i];
+			GPUInfo& gpu = m_GPUs[i];
 			gpu.Device = devices[i];
 
 			{
@@ -478,28 +478,28 @@ namespace Hog {
 
 			// Surface capabilities basically describes what kind of image you can render to the user.
 			// Look up VkSurfaceCapabilitiesKHR in the Vulkan documentation.
-			CheckVkResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu.Device, Surface, &gpu.SurfaceCapabilities));
+			CheckVkResult(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu.Device, m_Surface, &gpu.SurfaceCapabilities));
 
 			{
 				// Get the supported surface formats.  This includes image format and color space.
 				// A common format is VK_FORMAT_R8G8B8A8_UNORM which is 8 bits for red, green, blue, alpha making for 32 total
 				uint32_t numFormats;
-				CheckVkResult(vkGetPhysicalDeviceSurfaceFormatsKHR(gpu.Device, Surface, &numFormats, nullptr));
+				CheckVkResult(vkGetPhysicalDeviceSurfaceFormatsKHR(gpu.Device, m_Surface, &numFormats, nullptr));
 				HG_ASSERT(numFormats > 0, "vkGetPhysicalDeviceSurfaceFormatsKHR returned zero surface formats.");
 
 				gpu.SurfaceFormats.resize(numFormats);
-				CheckVkResult(vkGetPhysicalDeviceSurfaceFormatsKHR(gpu.Device, Surface, &numFormats, gpu.SurfaceFormats.data()));
+				CheckVkResult(vkGetPhysicalDeviceSurfaceFormatsKHR(gpu.Device, m_Surface, &numFormats, gpu.SurfaceFormats.data()));
 				HG_ASSERT(numFormats > 0, "vkGetPhysicalDeviceSurfaceFormatsKHR returned zero surface formats.");
 			}
 
 			{
 				// Vulkan supports multiple presentation modes, and I'll linkn to some good documentation on that in just a bit.
 				uint32_t numPresentModes;
-				CheckVkResult(vkGetPhysicalDeviceSurfacePresentModesKHR(gpu.Device, Surface, &numPresentModes, nullptr));
+				CheckVkResult(vkGetPhysicalDeviceSurfacePresentModesKHR(gpu.Device, m_Surface, &numPresentModes, nullptr));
 				HG_ASSERT(numPresentModes > 0, "vkGetPhysicalDeviceSurfacePresentModesKHR returned zero present modes.");
 
 				gpu.PresentModes.resize(numPresentModes);
-				CheckVkResult(vkGetPhysicalDeviceSurfacePresentModesKHR(gpu.Device, Surface, &numPresentModes, gpu.PresentModes.data()));
+				CheckVkResult(vkGetPhysicalDeviceSurfacePresentModesKHR(gpu.Device, m_Surface, &numPresentModes, gpu.PresentModes.data()));
 				HG_ASSERT(numPresentModes > 0, "vkGetPhysicalDeviceSurfacePresentModesKHR returned zero present modes.");
 			}
 
@@ -523,14 +523,14 @@ namespace Hog {
 	{
 		HG_PROFILE_FUNCTION();
 		// Let's pick a GPU!
-		for (uint32_t i = 0; i < GPUs.size(); i++)
+		for (uint32_t i = 0; i < m_GPUs.size(); i++)
 		{
-			GPUInfo* gpu = &(GPUs[i]);
+			GPUInfo* gpu = &(m_GPUs[i]);
 			int queueIdx = -1;
 
 			// Remember when we created our instance we got all those device extensions?
 			// Now we need to make sure our physical device supports them.
-			if (!CheckPhysicalDeviceExtensionSupport(gpu, DeviceExtensions))
+			if (!CheckPhysicalDeviceExtensionSupport(gpu, m_DeviceExtensions))
 			{
 				continue;
 			}
@@ -566,7 +566,7 @@ namespace Hog {
 				// A rather perplexing call in the Vulkan API, but
 				// it is a necessity to call.
 				VkBool32 supportsPresent = VK_FALSE;
-				vkGetPhysicalDeviceSurfaceSupportKHR(gpu->Device, j, Surface, &supportsPresent);
+				vkGetPhysicalDeviceSurfaceSupportKHR(gpu->Device, j, m_Surface, &supportsPresent);
 				if (props.queueFlags & VK_QUEUE_GRAPHICS_BIT && props.queueFlags & VK_QUEUE_COMPUTE_BIT && supportsPresent)
 				{
 					// Got it!
@@ -576,22 +576,22 @@ namespace Hog {
 			}
 
 			// Check that all features are supported.
-			if (!CheckPhysicalDeviceFeatureSupport(gpu, DeviceFeatures))
+			if (!CheckPhysicalDeviceFeatureSupport(gpu, m_DeviceFeatures))
 			{
 				continue;
 			}
 
-			if (!CheckPhysicalDeviceFeatureSupport11(gpu, DeviceFeatures11))
+			if (!CheckPhysicalDeviceFeatureSupport11(gpu, m_DeviceFeatures11))
 			{
 				continue;
 			}
 
-			if (!CheckPhysicalDeviceFeatureSupport12(gpu, DeviceFeatures12))
+			if (!CheckPhysicalDeviceFeatureSupport12(gpu, m_DeviceFeatures12))
 			{
 				continue;
 			}
 
-			if (!CheckPhysicalDeviceFeatureSupport13(gpu, DeviceFeatures13))
+			if (!CheckPhysicalDeviceFeatureSupport13(gpu, m_DeviceFeatures13))
 			{
 				continue;
 			}
@@ -599,12 +599,12 @@ namespace Hog {
 			// Did we find a device supporting both graphics and present.
 			if (queueIdx >= 0)
 			{
-				QueueFamilyIndex = (uint32_t)queueIdx;
-				PhysicalDevice = gpu->Device;
-				GPU = gpu;
+				m_QueueFamilyIndex = (uint32_t)queueIdx;
+				m_PhysicalDevice = gpu->Device;
+				m_GPU = gpu;
 				if (CVar_MSAA.Get())
 				{
-					MSAASamples = GetMaxMSAASampleCount();
+					m_MSAASamples = GetMaxMSAASampleCount();
 				}
 				return;
 			}
@@ -628,7 +628,7 @@ namespace Hog {
 		
 		VkDeviceQueueCreateInfo qinfo = {};
 		qinfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		qinfo.queueFamilyIndex = QueueFamilyIndex;
+		qinfo.queueFamilyIndex = m_QueueFamilyIndex;
 		qinfo.queueCount = 1;
 
 		// Don't worry about priority
@@ -639,29 +639,29 @@ namespace Hog {
 		// Put it all together.
 		VkDeviceCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-		info.pNext = &DeviceFeatures11;
+		info.pNext = &m_DeviceFeatures11;
 		info.queueCreateInfoCount = (uint32_t)devqInfo.size();
 		info.pQueueCreateInfos = devqInfo.data();
-		info.pEnabledFeatures = &DeviceFeatures;
-		info.enabledExtensionCount = (uint32_t)DeviceExtensions.size();
-		info.ppEnabledExtensionNames = DeviceExtensions.data();
+		info.pEnabledFeatures = &m_DeviceFeatures;
+		info.enabledExtensionCount = (uint32_t)m_DeviceExtensions.size();
+		info.ppEnabledExtensionNames = m_DeviceExtensions.data();
 
 		// If validation layers are enabled supply them here.
 		if (CVar_ValidationLayers.Get()) {
-			info.enabledLayerCount = (uint32_t)ValidationLayers.size();
-			info.ppEnabledLayerNames = ValidationLayers.data();
+			info.enabledLayerCount = (uint32_t)m_ValidationLayers.size();
+			info.ppEnabledLayerNames = m_ValidationLayers.data();
 		}
 		else {
 			info.enabledLayerCount = 0;
 		}
 
 		// Create the device
-		CheckVkResult(vkCreateDevice(PhysicalDevice, &info, nullptr, &Device));
+		CheckVkResult(vkCreateDevice(m_PhysicalDevice, &info, nullptr, &m_Device));
 
-		volkLoadDevice(Device);
+		volkLoadDevice(m_Device);
 
 		// Now get the queues from the devie we just created.
-		vkGetDeviceQueue(Device, QueueFamilyIndex, 0, &Queue);
+		vkGetDeviceQueue(m_Device, m_QueueFamilyIndex, 0, &m_Queue);
 	}
 
 	void GraphicsContext::InitializeAllocator()
@@ -696,13 +696,13 @@ namespace Hog {
 
 		VmaAllocatorCreateInfo allocatorInfo = {};
 		allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_2;
-		allocatorInfo.physicalDevice = PhysicalDevice;
-		allocatorInfo.device = Device;
-		allocatorInfo.instance = Instance;
+		allocatorInfo.physicalDevice = m_PhysicalDevice;
+		allocatorInfo.device = m_Device;
+		allocatorInfo.instance = m_Instance;
 		allocatorInfo.flags |= VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT | VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 		allocatorInfo.pVulkanFunctions = &vulkanFunctions;
 
-		vmaCreateAllocator(&allocatorInfo, &Allocator);
+		vmaCreateAllocator(&allocatorInfo, &m_Allocator);
 	}
 
 	void GraphicsContext::CreateCommandPools()
@@ -720,9 +720,9 @@ namespace Hog {
 		commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 		// We'll be building command buffers to send to the graphics queue
-		commandPoolCreateInfo.queueFamilyIndex = QueueFamilyIndex;
+		commandPoolCreateInfo.queueFamilyIndex = m_QueueFamilyIndex;
 
-		CheckVkResult(vkCreateCommandPool(Device, &commandPoolCreateInfo, nullptr, &UploadCommandPool));
+		CheckVkResult(vkCreateCommandPool(m_Device, &commandPoolCreateInfo, nullptr, &m_UploadCommandPool));
 	}
 
 	void GraphicsContext::CreateCommandBuffers()
@@ -734,13 +734,13 @@ namespace Hog {
 		VkFenceCreateInfo fenceCreateInfo = {};
 		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
-		CheckVkResult(vkCreateFence(Device, &fenceCreateInfo, nullptr, &UploadFence));
+		CheckVkResult(vkCreateFence(m_Device, &fenceCreateInfo, nullptr, &UploadFence));
 	}
 
 	void GraphicsContext::CreateSwapChain()
 	{
 		HG_PROFILE_FUNCTION();
-		GPUInfo& gpu = *GPU;
+		GPUInfo& gpu = *m_GPU;
 
 		// Take our selected gpu and pick three things.
 		// 1.) Surface format as described earlier.
@@ -752,7 +752,7 @@ namespace Hog {
 
 		VkSwapchainCreateInfoKHR info = {};
 		info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		info.surface = Surface;
+		info.surface = m_Surface;
 
 		// double buffer again!
 		info.minImageCount = CVar_FrameCount.Get();
@@ -780,15 +780,15 @@ namespace Hog {
 		// Is Vulkan allowed to discard operations outside of the renderable space?
 		info.clipped = VK_TRUE;
 
-		info.oldSwapchain = Swapchain;
+		info.oldSwapchain = m_Swapchain;
 
 		// Create the swapchain
-		CheckVkResult(vkCreateSwapchainKHR(Device, &info, nullptr, &Swapchain));
+		CheckVkResult(vkCreateSwapchainKHR(m_Device, &info, nullptr, &m_Swapchain));
 
 		// Save off swapchain details
-		SwapchainFormat = surfaceFormat.format;
-		PresentMode = presentMode;
-		SwapchainExtent = extent;
+		m_SwapchainFormat = surfaceFormat.format;
+		m_PresentMode = presentMode;
+		m_SwapchainExtent = extent;
 
 		// Retrieve the swapchain images from the device.
 		// Note that VkImage is simply a handle like everything else.
@@ -796,14 +796,14 @@ namespace Hog {
 		// First call gets numImages.
 		uint32_t numImages = 0;
 		std::vector<VkImage> swapchainImages(CVar_FrameCount.Get());
-		CheckVkResult(vkGetSwapchainImagesKHR(Device, Swapchain, &numImages, nullptr));
+		CheckVkResult(vkGetSwapchainImagesKHR(m_Device, m_Swapchain, &numImages, nullptr));
 		HG_ASSERT(numImages > 0, "vkGetSwapchainImagesKHR returned a zero image count.")
 
 			// Second call uses numImages
-			CheckVkResult(vkGetSwapchainImagesKHR(Device, Swapchain, &numImages, swapchainImages.data()));
+			CheckVkResult(vkGetSwapchainImagesKHR(m_Device, m_Swapchain, &numImages, swapchainImages.data()));
 		HG_ASSERT(numImages > 0, "vkGetSwapchainImagesKHR returned a zero image count.");
 
-		SwapchainImages.resize(CVar_FrameCount.Get());
+		m_SwapchainImages.resize(CVar_FrameCount.Get());
 
 		// New concept - Image Views
 		// Much like the logical device is an interface to the physical device,
@@ -838,7 +838,7 @@ namespace Hog {
 			info.subresourceRange.layerCount = 1;
 			info.flags = 0;
 
-			SwapchainImages[i] = Image::CreateSwapChainImage(swapchainImages[i], ImageDescription::Defaults::RenderTarget, SwapchainFormat, SwapchainExtent, info);
+			m_SwapchainImages[i] = Image::CreateSwapChainImage(swapchainImages[i], ImageDescription::Defaults::RenderTarget, m_SwapchainFormat, m_SwapchainExtent, info);
 		}
 	}
 
@@ -850,7 +850,7 @@ namespace Hog {
 			VkFormat format = formats[i];
 
 			VkFormatProperties props;
-			vkGetPhysicalDeviceFormatProperties(PhysicalDevice, format, &props);
+			vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, format, &props);
 
 			if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
 			{
@@ -871,14 +871,14 @@ namespace Hog {
 	{
 		HG_PROFILE_FUNCTION();
 
-		for (size_t i = 0; i < SwapchainImages.size(); i++) {
-			SwapchainImages[i].reset();
+		for (size_t i = 0; i < m_SwapchainImages.size(); i++) {
+			m_SwapchainImages[i].reset();
 		}
 	}
 
 	VkSampleCountFlagBits GraphicsContext::GetMaxMSAASampleCount()
 	{
-		const VkSampleCountFlags counts = GPU->DeviceProperties.limits.framebufferColorSampleCounts & GPU->DeviceProperties.limits.framebufferDepthSampleCounts;
+		const VkSampleCountFlags counts = m_GPU->DeviceProperties.limits.framebufferColorSampleCounts & m_GPU->DeviceProperties.limits.framebufferDepthSampleCounts;
 
 		if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
 		if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }

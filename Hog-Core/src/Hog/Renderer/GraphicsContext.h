@@ -83,20 +83,20 @@ namespace Hog {
 		static void Deinitialize() { Get().DeinitializeImpl(); }
 		static void RecreateSwapChain() { Get().RecreateSwapChainImpl(); }
 		static void WaitIdle() { Get().WaitIdleImpl(); }
-		static VkDescriptorPool GetImGuiDescriptorPool() { Get().GetImGuiDescriptorPoolImpl(); return Get().ImGuiDescriptorPool; }
+		static VkDescriptorPool GetImGuiDescriptorPool() { Get().GetImGuiDescriptorPoolImpl(); return Get().m_ImGuiDescriptorPool; }
 		static void DestroyImGuiDescriptorPool() { Get().DestroyImGuiDescriptorPoolImpl(); }
-		static VmaAllocator GetAllocator() { return Get().Allocator; }
-		static VkInstance GetInstance() { return Get().Instance; }
-		static VkPhysicalDevice GetPhysicalDevice() { return Get().PhysicalDevice; }
-		static VkDevice GetDevice() { return Get().Device; }
-		static VkExtent2D GetExtent() { return Get().SwapchainExtent; }
-		static VkSwapchainKHR GetSwapchain() { return Get().Swapchain; }
-		static std::vector<Ref<Image>>& GetSwapchainImages() { return Get().SwapchainImages; }
-		static VkFormat GetSwapchainFormat() { return Get().SwapchainFormat; }
-		static VkQueue GetQueue() { return Get().Queue; }
-		static uint32_t GetQueueFamily() { return Get().QueueFamilyIndex; }
-		static VkSampleCountFlagBits GetMSAASamples() { return Get().MSAASamples; }
-		static GPUInfo* GetGPUInfo() { return Get().GPU; }
+		static VmaAllocator GetAllocator() { return Get().m_Allocator; }
+		static VkInstance GetInstance() { return Get().m_Instance; }
+		static VkPhysicalDevice GetPhysicalDevice() { return Get().m_PhysicalDevice; }
+		static VkDevice GetDevice() { return Get().m_Device; }
+		static VkExtent2D GetExtent() { return Get().m_SwapchainExtent; }
+		static VkSwapchainKHR GetSwapchain() { return Get().m_Swapchain; }
+		static std::vector<Ref<Image>>& GetSwapchainImages() { return Get().m_SwapchainImages; }
+		static VkFormat GetSwapchainFormat() { return Get().m_SwapchainFormat; }
+		static VkQueue GetQueue() { return Get().m_Queue; }
+		static uint32_t GetQueueFamily() { return Get().m_QueueFamilyIndex; }
+		static VkSampleCountFlagBits GetMSAASamples() { return Get().m_MSAASamples; }
+		static GPUInfo* GetGPUInfo() { return Get().m_GPU; }
 
 		static VkCommandPool CreateCommandPool() { return Get().CreateCommandPoolImpl(); }
 		static VkCommandBuffer CreateCommandBuffer(VkCommandPool commandPool) { return Get().CreateCommandBufferImpl(commandPool); }
@@ -126,7 +126,7 @@ namespace Hog {
 		VkSemaphore CreateSemaphoreImpl();
 		VkSampleCountFlagBits GetMaxMSAASampleCount();
 
-		std::vector<const char*>& GetInstanceExtensionsImpl() { return InstanceExtensions; }
+		std::vector<const char*>& GetInstanceExtensionsImpl() { return m_InstanceExtensions; }
 
 		void CreateInstance();
 		void DestroyInstance();
@@ -145,38 +145,38 @@ namespace Hog {
 	private:
 		bool m_Initialized = false;
 
-		VkInstance Instance = VK_NULL_HANDLE;
-		VkDebugUtilsMessengerEXT DebugMessenger = VK_NULL_HANDLE;
+		VkInstance m_Instance = VK_NULL_HANDLE;
+		VkDebugUtilsMessengerEXT m_DebugMessenger = VK_NULL_HANDLE;
 
-		GPUInfo* GPU = nullptr;
-		VkPhysicalDevice PhysicalDevice = VK_NULL_HANDLE;
-		VkDevice Device = VK_NULL_HANDLE;
+		GPUInfo* m_GPU = nullptr;
+		VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
+		VkDevice m_Device = VK_NULL_HANDLE;
 
-		uint32_t QueueFamilyIndex;
+		uint32_t m_QueueFamilyIndex;
 
-		VkQueue Queue = VK_NULL_HANDLE;
+		VkQueue m_Queue = VK_NULL_HANDLE;
 
-		VkSurfaceKHR Surface = VK_NULL_HANDLE;
+		VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
 
-		VmaAllocator Allocator = VK_NULL_HANDLE;
+		VmaAllocator m_Allocator = VK_NULL_HANDLE;
 
-		VkSwapchainKHR Swapchain = VK_NULL_HANDLE;
-		VkFormat SwapchainFormat = VK_FORMAT_UNDEFINED;
+		VkSwapchainKHR m_Swapchain = VK_NULL_HANDLE;
+		VkFormat m_SwapchainFormat = VK_FORMAT_UNDEFINED;
 
-		VkPresentModeKHR PresentMode = VK_PRESENT_MODE_MAX_ENUM_KHR;
-		VkExtent2D SwapchainExtent = { 0 };
+		VkPresentModeKHR m_PresentMode = VK_PRESENT_MODE_MAX_ENUM_KHR;
+		VkExtent2D m_SwapchainExtent = { 0 };
 
-		std::vector<Ref<Image>> SwapchainImages;
+		std::vector<Ref<Image>> m_SwapchainImages;
 
-		VkCommandPool UploadCommandPool;
+		VkCommandPool m_UploadCommandPool;
 
 		VkFence UploadFence;
 
-		VkSampleCountFlagBits MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+		VkSampleCountFlagBits m_MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-		VkDescriptorPool ImGuiDescriptorPool;
+		VkDescriptorPool m_ImGuiDescriptorPool;
 
-		VkApplicationInfo ApplicationInfo =
+		VkApplicationInfo m_ApplicationInfo =
 		{
 			.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
 			.pApplicationName = "Test app",
@@ -186,7 +186,7 @@ namespace Hog {
 			.apiVersion = VK_MAKE_VERSION(1, 3, VK_HEADER_VERSION)
 		};
 
-		VkDebugUtilsMessengerCreateInfoEXT DebugMessengerCreateInfo =
+		VkDebugUtilsMessengerCreateInfoEXT m_DebugMessengerCreateInfo =
 		{
 			.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
 			.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
@@ -195,15 +195,15 @@ namespace Hog {
 			.pUserData = nullptr // Optional
 		};
 
-		VkPhysicalDeviceVulkan13Features DeviceFeatures13 = {
+		VkPhysicalDeviceVulkan13Features m_DeviceFeatures13 = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
 			.synchronization2 = VK_TRUE,
 			.maintenance4 = VK_TRUE,
 		};
 
-		VkPhysicalDeviceVulkan12Features DeviceFeatures12 = {
+		VkPhysicalDeviceVulkan12Features m_DeviceFeatures12 = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-			.pNext = &DeviceFeatures13,
+			.pNext = &m_DeviceFeatures13,
 	        .descriptorIndexing = VK_TRUE,
 	        .shaderInputAttachmentArrayDynamicIndexing = VK_TRUE,
 	        .shaderUniformTexelBufferArrayDynamicIndexing = VK_TRUE,
@@ -228,13 +228,13 @@ namespace Hog {
 			.bufferDeviceAddress = VK_TRUE,
 		};
 
-		VkPhysicalDeviceVulkan11Features DeviceFeatures11 = {
+		VkPhysicalDeviceVulkan11Features m_DeviceFeatures11 = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
-			.pNext = &DeviceFeatures12,
+			.pNext = &m_DeviceFeatures12,
 			.multiview = VK_TRUE,
 		};
 
-		VkPhysicalDeviceFeatures DeviceFeatures =
+		VkPhysicalDeviceFeatures m_DeviceFeatures =
 		{
 			.imageCubeArray = VK_TRUE,
 			.geometryShader = VK_TRUE,
@@ -248,8 +248,8 @@ namespace Hog {
 			.shaderSampledImageArrayDynamicIndexing = VK_TRUE,
 		};
 
-		std::vector<const char*> InstanceExtensions = {  };
-		std::vector<const char*> DeviceExtensions = { 
+		std::vector<const char*> m_InstanceExtensions = {  };
+		std::vector<const char*> m_DeviceExtensions = { 
 			VK_KHR_MAINTENANCE_1_EXTENSION_NAME,
 			VK_KHR_MAINTENANCE_4_EXTENSION_NAME,
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -262,8 +262,8 @@ namespace Hog {
 			VK_KHR_SPIRV_1_4_EXTENSION_NAME
 		};
 
-		std::vector<const char*> ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
+		std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 
-		std::vector<GPUInfo> GPUs;
+		std::vector<GPUInfo> m_GPUs;
 	};
 }
