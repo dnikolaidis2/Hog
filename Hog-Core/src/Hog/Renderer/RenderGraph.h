@@ -243,7 +243,7 @@ namespace Hog
 			return ref;
 		}
 
-		static Ref<Node> Create(Ref<Node> parent, StageDescription stageInfo)
+		static Ref<Node> Create(Ref<Node> parent, const StageDescription& stageInfo)
 		{
 			auto ref = CreateRef<Node>(stageInfo);
 			parent->AddChild(ref);
@@ -252,7 +252,7 @@ namespace Hog
 			return ref;
 		}
 
-		static Ref<Node> Create(StageDescription stageInfo)
+		static Ref<Node> Create(const StageDescription& stageInfo)
 		{
 			return CreateRef<Node>(stageInfo);
 		}
@@ -261,7 +261,7 @@ namespace Hog
 		std::vector<WeakRef<Node>> ParentList;
 		StageDescription StageInfo;
 
-		Node(StageDescription stageInfo)
+		Node(const StageDescription& stageInfo)
 			:StageInfo(stageInfo) {}
 
 		void AddChild(Ref<Node> child)
@@ -292,8 +292,8 @@ namespace Hog
 		RenderGraph() = default;
 		void Cleanup();
 
-		Ref<Node> AddStage(Ref<Node> parent, StageDescription stageInfo);
-		Ref<Node> AddStage(const std::vector<Ref<Node>>& parents, StageDescription stageInfo);
+		Ref<Node> AddStage(Ref<Node> parent, const StageDescription& stageInfo);
+		Ref<Node> AddStage(const std::vector<Ref<Node>>& parents, const StageDescription& stageInfo);
 		std::vector<Ref<Node>> GetStages();
 		std::vector<Ref<Node>> GetFinalStages();
 

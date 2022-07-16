@@ -29,7 +29,7 @@ namespace Hog
 		m_StartingPoints.clear();
 	}
 
-	Ref<Node> RenderGraph::AddStage(Ref<Node> parent, StageDescription stageInfo)
+	Ref<Node> RenderGraph::AddStage(Ref<Node> parent, const StageDescription& stageInfo)
 	{
 		if (parent == nullptr)
 		{
@@ -44,7 +44,7 @@ namespace Hog
 		}
 	}
 
-	Ref<Node> RenderGraph::AddStage(const std::vector<Ref<Node>>& parents, StageDescription stageInfo)
+	Ref<Node> RenderGraph::AddStage(const std::vector<Ref<Node>>& parents, const StageDescription& stageInfo)
 	{
 		return Node::Create(parents, stageInfo);
 	}
