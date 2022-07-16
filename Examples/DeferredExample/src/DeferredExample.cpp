@@ -65,7 +65,7 @@ void DeferredExample::OnAttach()
 	auto gbuffer = graph.AddStage(shadowPass, {
 		"GBuffer", RendererStageType::ForwardGraphics, GraphicsPipeline::Create({
 				.Shaders = {"GBuffer.vertex", "GBuffer.fragment"},
-				.BlendAttachments = {{}, {}, {}, {}},
+				.BlendAttachments = {{}, {}, {},},
 			}
 		),
 		{
