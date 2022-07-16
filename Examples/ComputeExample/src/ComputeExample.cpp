@@ -15,6 +15,7 @@ void ComputeExample::OnAttach()
 
 	CVarSystem::Get()->SetIntCVar("application.enableImGui", 0);
 
+	ShaderCache::Initialize();
 	GraphicsContext::Initialize();
 
 	m_ComputeBuffer = Buffer::Create(BufferDescription::Defaults::ReadbackStorageBuffer, BufferElements * sizeof(uint32_t));

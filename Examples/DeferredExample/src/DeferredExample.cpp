@@ -19,6 +19,7 @@ void DeferredExample::OnAttach()
 	CVarSystem::Get()->SetIntCVar("renderer.enableMipMapping", 1);
 	CVarSystem::Get()->SetStringCVar("shader.compilation.macros", "MATERIAL_ARRAY_SIZE=128;TEXTURE_ARRAY_SIZE=512;LIGHT_ARRAY_SIZE=32");
 
+	ShaderCache::Initialize();
 	GraphicsContext::Initialize();
 
 	// LoadGltfFile("assets/models/sponza-intel/NewSponza_Main_Blender_glTF.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);

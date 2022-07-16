@@ -20,6 +20,7 @@ void GraphicsExample::OnAttach()
 	CVarSystem::Get()->SetStringCVar("shader.compilation.macros", "MATERIAL_ARRAY_SIZE=128;TEXTURE_ARRAY_SIZE=512");
 	CVarSystem::Get()->SetIntCVar("material.array.size", 128);
 
+	ShaderCache::Initialize();
 	GraphicsContext::Initialize();
 
 	// LoadGltfFile("assets/models/sponza-intel/NewSponza_Main_Blender_glTF.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);

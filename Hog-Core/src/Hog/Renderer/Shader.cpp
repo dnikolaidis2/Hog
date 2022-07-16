@@ -15,6 +15,7 @@
 #include "Hog/Utils/Filesystem.h"
 #include "Hog/Utils/RendererUtils.h"
 #include "Hog/Renderer/GraphicsContext.h"
+#include "Hog/Debug/Instrumentor.h"
 
 AutoCVar_String CVar_ShaderCacheDBFile("shader.cacheDBFile", "Shader cache database filename", ".db", CVarFlags::EditReadOnly);
 AutoCVar_String CVar_ShaderCacheDir("shader.cachePath", "Shader cache directory", "assets/cache/shader/vulkan", CVarFlags::EditReadOnly);
@@ -29,6 +30,8 @@ namespace Hog {
 
 	static void CreateCacheDirectoryIfNeeded()
 	{
+		HG_PROFILE_FUNCTION();
+
 		const std::string cacheDirectory(CVar_ShaderCacheDir.Get());
 		if (!std::filesystem::exists(cacheDirectory))
 			std::filesystem::create_directories(cacheDirectory);
@@ -36,6 +39,8 @@ namespace Hog {
 
 	Ref<ShaderSource> ShaderSource::Deserialize(YAML::Node& info)
 	{
+		HG_PROFILE_FUNCTION();
+
 		std::string name = info["Name"].as<std::string>();
 		std::filesystem::path filepath = std::filesystem::path(info["FilePath"].as<std::string>());
 		std::filesystem::path cacheFilepath = std::filesystem::path(info["CacheFilePath"].as<std::string>());
@@ -54,6 +59,8 @@ namespace Hog {
 
 	void ShaderSource::Serialize(YAML::Emitter& emitter)
 	{
+		HG_PROFILE_FUNCTION();
+
 		CacheFilePath = std::filesystem::path(CVar_ShaderCacheDir.Get()) /
 			std::filesystem::path(Name + CVar_ShaderCompiledFileExtension.Get());
 
@@ -73,6 +80,8 @@ namespace Hog {
 
 	void ShaderCache::InitializeImpl()
 	{
+		HG_PROFILE_FUNCTION();
+
 		auto cacheDir = std::filesystem::path(CVar_ShaderCacheDir.Get());
 		auto dbFilename = std::filesystem::path(CVar_ShaderCacheDBFile.Get());
 		auto dbFile = cacheDir / dbFilename;
@@ -117,11 +126,15 @@ namespace Hog {
 
 	void ShaderCache::DeinitializeImpl()
 	{
+		HG_PROFILE_FUNCTION();
+
 		SaveToFilesystem();
 	}
 
 	Ref<ShaderSource> ShaderCache::GetShaderImpl(const std::string& name)
 	{
+		HG_PROFILE_FUNCTION();
+
 		// Read shader file
 		const std::filesystem::path shaderDir(CVar_ShaderSourceDir.Get());
 		const std::filesystem::path file(name);
@@ -171,6 +184,8 @@ namespace Hog {
 
 	Ref<ShaderSource> ShaderCache::ReloadShaderImpl(const std::string& name)
 	{
+		HG_PROFILE_FUNCTION();
+
 		// Read shader file
 		const std::filesystem::path shaderDir(CVar_ShaderCacheDir.Get());
 		const std::filesystem::path file(name);
@@ -211,6 +226,8 @@ namespace Hog {
 
 	void ShaderCache::SaveToFilesystem()
 	{
+		HG_PROFILE_FUNCTION();
+
 		CreateCacheDirectoryIfNeeded();
 
 		YAML::Emitter out;
@@ -233,6 +250,8 @@ namespace Hog {
 
 	std::vector<uint32_t> ShaderCache::CompileShader(const std::string& source, ShaderType type, const std::filesystem::path& filepath)
 	{
+		HG_PROFILE_FUNCTION();
+
 		Timer timer;
 
 		shaderc::Compiler compiler;
@@ -290,6 +309,8 @@ namespace Hog {
 
 	ShaderReflection::ReflectionData ShaderReflection::ReflectPipelineLayout(const std::unordered_map<ShaderType, Ref<ShaderSource>>& sources)
 	{
+		HG_PROFILE_FUNCTION();
+
 		ShaderReflection::ReflectionData data{};
 		for (const auto& [stage, source] : sources)
 		{
