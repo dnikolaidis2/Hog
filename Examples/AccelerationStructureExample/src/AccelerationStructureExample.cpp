@@ -74,6 +74,14 @@ void AccelerationStructureExample::OnDetach()
 	Renderer::Cleanup();
 
 	m_ComputeBuffer.reset();
+	m_OpaqueMeshes.clear();
+	m_TransparentMeshes.clear();
+	m_Textures.clear();
+	m_Materials.clear();
+	m_Lights.clear();
+	m_MaterialBuffer.reset();
+	m_LightBuffer.reset();
+	m_ViewProjection.reset();
 
 	GraphicsContext::Deinitialize();
 }

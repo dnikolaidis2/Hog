@@ -11,6 +11,7 @@ namespace Hog{
 		static Ref<AccelerationStructure> Create(const std::vector<Ref<Mesh>>& meshes);
 		AccelerationStructure(const Ref<Mesh>& primitive);
 		AccelerationStructure(const std::vector<Ref<AccelerationStructure>>& bottomLevelStructures);
+		~AccelerationStructure();
 
 		VkDeviceAddress GetDeviceAddress() const { return m_DeviceAddress; }
 		VkAccelerationStructureKHR GetHandle() const { return m_Handle; }

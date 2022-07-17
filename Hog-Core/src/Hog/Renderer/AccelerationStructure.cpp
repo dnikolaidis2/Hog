@@ -15,7 +15,11 @@ namespace Hog
 			bottomLevelStructures.push_back(CreateRef<AccelerationStructure>(mesh));
 		}
 
-		return CreateRef<AccelerationStructure>(bottomLevelStructures);
+		auto ref = CreateRef<AccelerationStructure>(bottomLevelStructures);
+
+		GraphicsContext::WaitIdle();
+
+		return ref;
 	}
 
 	AccelerationStructure::AccelerationStructure(const Ref<Mesh>& mesh)
@@ -39,18 +43,16 @@ namespace Hog
 			accelerationStructureGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
 			accelerationStructureGeometry.geometry.triangles.vertexData.deviceAddress = mesh->GetVertexBuffer()->GetBufferDeviceAddress() + primitive->GetVertexOffset();
 			accelerationStructureGeometry.geometry.triangles.vertexStride = sizeof(Vertex);
-			accelerationStructureGeometry.geometry.triangles.maxVertex = primitive->GetVertexCount();
+			accelerationStructureGeometry.geometry.triangles.maxVertex = static_cast<uint32_t>(primitive->GetVertexCount());
 			accelerationStructureGeometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT16;
 			accelerationStructureGeometry.geometry.triangles.indexData.deviceAddress = mesh->GetIndexBuffer()->GetBufferDeviceAddress();
 			accelerationStructureGeometry.geometry.triangles.transformData.deviceAddress = m_TransformBuffer->GetBufferDeviceAddress();
 			accelerationStructureGeometries.push_back(accelerationStructureGeometry);
-			triangleCounts.push_back(primitive->GetIndexCount() / 3);
+			triangleCounts.push_back(static_cast<uint32_t>(primitive->GetIndexCount() / 3));
 
 			VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
-			accelerationStructureBuildRangeInfo.primitiveCount = primitive->GetIndexCount() / 3;
-			accelerationStructureBuildRangeInfo.primitiveOffset = primitive->GetIndexOffset();
-			accelerationStructureBuildRangeInfo.firstVertex = 0;
-			accelerationStructureBuildRangeInfo.transformOffset = 0;
+			accelerationStructureBuildRangeInfo.primitiveCount = static_cast<uint32_t>(primitive->GetIndexCount() / 3);
+			accelerationStructureBuildRangeInfo.primitiveOffset = static_cast<uint32_t>(primitive->GetIndexOffset());
 			accelerationBuildStructureRangeInfos.push_back(accelerationStructureBuildRangeInfo);
 		}
 
@@ -175,21 +177,12 @@ namespace Hog
 		// Create a small scratch buffer used during build of the top level acceleration structure
 		auto scratchBuffer = Buffer::Create(BufferDescription::Defaults::AccelerationStructureScratchBuffer, accelerationStructureBuildSizesInfo.buildScratchSize);
 
-		VkAccelerationStructureBuildGeometryInfoKHR accelerationBuildGeometryInfo{};
-		accelerationBuildGeometryInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
-		accelerationBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-		accelerationBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
-		accelerationBuildGeometryInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-		accelerationBuildGeometryInfo.dstAccelerationStructure = m_Handle;
-		accelerationBuildGeometryInfo.geometryCount = 1;
-		accelerationBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
-		accelerationBuildGeometryInfo.scratchData.deviceAddress = scratchBuffer->GetBufferDeviceAddress();
+		accelerationStructureBuildGeometryInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+		accelerationStructureBuildGeometryInfo.dstAccelerationStructure = m_Handle;
+		accelerationStructureBuildGeometryInfo.scratchData.deviceAddress = scratchBuffer->GetBufferDeviceAddress();
 
 		VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
-		accelerationStructureBuildRangeInfo.primitiveCount = 1;
-		accelerationStructureBuildRangeInfo.primitiveOffset = 0;
-		accelerationStructureBuildRangeInfo.firstVertex = 0;
-		accelerationStructureBuildRangeInfo.transformOffset = 0;
+		accelerationStructureBuildRangeInfo.primitiveCount = primitive_count;
 		std::vector<VkAccelerationStructureBuildRangeInfoKHR*> accelerationBuildStructureRangeInfos = { &accelerationStructureBuildRangeInfo };
 
 		// Build the acceleration structure on the device via a one-time command buffer submission
@@ -199,7 +192,7 @@ namespace Hog
 				vkCmdBuildAccelerationStructuresKHR(
 					commandBuffer,
 					1,
-					&accelerationBuildGeometryInfo,
+					&accelerationStructureBuildGeometryInfo,
 					accelerationBuildStructureRangeInfos.data());
 			});
 
@@ -207,5 +200,13 @@ namespace Hog
 		accelerationDeviceAddressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
 		accelerationDeviceAddressInfo.accelerationStructure = m_Handle;
 		m_DeviceAddress = vkGetAccelerationStructureDeviceAddressKHR(GraphicsContext::GetDevice(), &accelerationDeviceAddressInfo);
+	}
+	
+	AccelerationStructure::~AccelerationStructure()
+	{
+		m_TransformBuffer.reset();
+		m_AccelerationStructureBuffer.reset();
+		m_InstanceBuffer.reset();
+		vkDestroyAccelerationStructureKHR(GraphicsContext::GetDevice(), m_Handle, nullptr);
 	}
 }
