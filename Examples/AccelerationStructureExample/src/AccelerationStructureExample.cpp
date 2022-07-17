@@ -82,6 +82,7 @@ void AccelerationStructureExample::OnDetach()
 	m_MaterialBuffer.reset();
 	m_LightBuffer.reset();
 	m_ViewProjection.reset();
+	m_TopLevelAS.reset();
 
 	GraphicsContext::Deinitialize();
 }

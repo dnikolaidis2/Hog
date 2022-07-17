@@ -8,52 +8,48 @@ namespace Hog
 {
 	Ref<AccelerationStructure> AccelerationStructure::Create(const std::vector<Ref<Mesh>>& meshes)
 	{
-		std::vector<Ref<AccelerationStructure>> bottomLevelStructures;
-		size_t indexOffset = 0;
-		for (auto mesh : meshes)
-		{
-			bottomLevelStructures.push_back(CreateRef<AccelerationStructure>(mesh));
-		}
-
-		auto ref = CreateRef<AccelerationStructure>(bottomLevelStructures);
-
-		GraphicsContext::WaitIdle();
+		auto ref = CreateRef<AccelerationStructure>(CreateRef<AccelerationStructure>(meshes));
 
 		return ref;
 	}
 
-	AccelerationStructure::AccelerationStructure(const Ref<Mesh>& mesh)
+	AccelerationStructure::AccelerationStructure(const std::vector<Ref<Mesh>>& meshes)
+		: m_Meshes(meshes)
 	{
-		glm::mat4 transformMatrix = mesh->GetModelMatrix();
-		m_TransformBuffer = Buffer::Create(BufferDescription::Defaults::AccelerationStructureBuildInput, sizeof(VkTransformMatrixKHR));
-		m_TransformBuffer->WriteData(&transformMatrix, sizeof(VkTransformMatrixKHR));
-
 		std::vector<VkAccelerationStructureGeometryKHR> accelerationStructureGeometries;
 		std::vector<uint32_t> triangleCounts;
 		std::vector<VkAccelerationStructureBuildRangeInfoKHR*> accelerationBuildStructureRangeInfoPointers;
 		std::vector<VkAccelerationStructureBuildRangeInfoKHR> accelerationBuildStructureRangeInfos;
 
-		for (auto primitive = mesh->begin(); primitive != mesh->end(); primitive++)
+		for (const auto& mesh : meshes)
 		{
-			VkAccelerationStructureGeometryKHR accelerationStructureGeometry{};
-			accelerationStructureGeometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
-			accelerationStructureGeometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
-			accelerationStructureGeometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
-			accelerationStructureGeometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
-			accelerationStructureGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
-			accelerationStructureGeometry.geometry.triangles.vertexData.deviceAddress = mesh->GetVertexBuffer()->GetBufferDeviceAddress() + primitive->GetVertexOffset();
-			accelerationStructureGeometry.geometry.triangles.vertexStride = sizeof(Vertex);
-			accelerationStructureGeometry.geometry.triangles.maxVertex = static_cast<uint32_t>(primitive->GetVertexCount());
-			accelerationStructureGeometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT16;
-			accelerationStructureGeometry.geometry.triangles.indexData.deviceAddress = mesh->GetIndexBuffer()->GetBufferDeviceAddress();
-			accelerationStructureGeometry.geometry.triangles.transformData.deviceAddress = m_TransformBuffer->GetBufferDeviceAddress();
-			accelerationStructureGeometries.push_back(accelerationStructureGeometry);
-			triangleCounts.push_back(static_cast<uint32_t>(primitive->GetIndexCount() / 3));
+			glm::mat4 transformMatrix = mesh->GetModelMatrix();
+			auto transformBuffer = Buffer::Create(BufferDescription::Defaults::AccelerationStructureBuildInput, sizeof(VkTransformMatrixKHR));
+			transformBuffer->WriteData(&transformMatrix, sizeof(VkTransformMatrixKHR));
+			m_TransformBuffers.push_back(transformBuffer);
 
-			VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
-			accelerationStructureBuildRangeInfo.primitiveCount = static_cast<uint32_t>(primitive->GetIndexCount() / 3);
-			accelerationStructureBuildRangeInfo.primitiveOffset = static_cast<uint32_t>(primitive->GetIndexOffset());
-			accelerationBuildStructureRangeInfos.push_back(accelerationStructureBuildRangeInfo);
+			for (auto primitive = mesh->begin(); primitive != mesh->end(); primitive++)
+			{
+				VkAccelerationStructureGeometryKHR accelerationStructureGeometry{};
+				accelerationStructureGeometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+				accelerationStructureGeometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
+				accelerationStructureGeometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+				accelerationStructureGeometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+				accelerationStructureGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
+				accelerationStructureGeometry.geometry.triangles.vertexData.deviceAddress = mesh->GetVertexBuffer()->GetBufferDeviceAddress() + primitive->GetVertexOffset();
+				accelerationStructureGeometry.geometry.triangles.vertexStride = sizeof(Vertex);
+				accelerationStructureGeometry.geometry.triangles.maxVertex = static_cast<uint32_t>(primitive->GetVertexCount());
+				accelerationStructureGeometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT16;
+				accelerationStructureGeometry.geometry.triangles.indexData.deviceAddress = mesh->GetIndexBuffer()->GetBufferDeviceAddress();
+				accelerationStructureGeometry.geometry.triangles.transformData.deviceAddress = transformBuffer->GetBufferDeviceAddress();
+				accelerationStructureGeometries.push_back(accelerationStructureGeometry);
+				triangleCounts.push_back(static_cast<uint32_t>(primitive->GetIndexCount() / 3));
+
+				VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
+				accelerationStructureBuildRangeInfo.primitiveCount = static_cast<uint32_t>(primitive->GetIndexCount() / 3);
+				accelerationStructureBuildRangeInfo.primitiveOffset = static_cast<uint32_t>(primitive->GetIndexOffset());
+				accelerationBuildStructureRangeInfos.push_back(accelerationStructureBuildRangeInfo);
+			}
 		}
 
 		// Get size info
@@ -110,8 +106,8 @@ namespace Hog
 		m_DeviceAddress = vkGetAccelerationStructureDeviceAddressKHR(GraphicsContext::GetDevice(), &accelerationDeviceAddressInfo);
 	}
 
-	AccelerationStructure::AccelerationStructure(const std::vector<Ref<AccelerationStructure>>& bottomLevelStructures)
-		:m_TopLevel(true)
+	AccelerationStructure::AccelerationStructure(const Ref<AccelerationStructure>& bottomLevelStructure)
+		:m_TopLevel(true), m_BottomLevelAS(bottomLevelStructure)
 	{
 		VkTransformMatrixKHR transformMatrix = {
 			1.0f, 0.0f, 0.0f, 0.0f,
@@ -119,28 +115,23 @@ namespace Hog
 			0.0f, 0.0f, 1.0f, 0.0f 
 		};
 
-		std::vector<VkAccelerationStructureInstanceKHR> structureInstances(bottomLevelStructures.size());
-		std::transform(bottomLevelStructures.begin(), bottomLevelStructures.end(), structureInstances.begin(), 
-			[transformMatrix](Ref<AccelerationStructure> structure ){
-				VkAccelerationStructureInstanceKHR instance{};
-				instance.transform = transformMatrix;
-				instance.instanceCustomIndex = 0;
-				instance.mask = 0xFF;
-				instance.instanceShaderBindingTableRecordOffset = 0;
-				instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
-				instance.accelerationStructureReference = structure->GetDeviceAddress();
-				return instance;
-			});
+		VkAccelerationStructureInstanceKHR instance{};
+		instance.transform = transformMatrix;
+		instance.instanceCustomIndex = 0;
+		instance.mask = 0xFF;
+		instance.instanceShaderBindingTableRecordOffset = 0;
+		instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+		instance.accelerationStructureReference = bottomLevelStructure->GetDeviceAddress();
 		
-		m_InstanceBuffer = Buffer::Create(BufferDescription::Defaults::AccelerationStructureBuildInput, structureInstances.size() + sizeof(VkAccelerationStructureInstanceKHR));
-		m_InstanceBuffer->WriteData(structureInstances.data(), structureInstances.size() + sizeof(VkAccelerationStructureInstanceKHR));
+		m_InstanceBuffer = Buffer::Create(BufferDescription::Defaults::AccelerationStructureBuildInput, sizeof(VkAccelerationStructureInstanceKHR));
+		m_InstanceBuffer->WriteData(&instance, sizeof(VkAccelerationStructureInstanceKHR));
 
 		VkAccelerationStructureGeometryKHR accelerationStructureGeometry{};
 		accelerationStructureGeometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
 		accelerationStructureGeometry.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
 		accelerationStructureGeometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
 		accelerationStructureGeometry.geometry.instances.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
-		accelerationStructureGeometry.geometry.instances.arrayOfPointers = VK_TRUE;
+		accelerationStructureGeometry.geometry.instances.arrayOfPointers = VK_FALSE;
 		accelerationStructureGeometry.geometry.instances.data.deviceAddress = m_InstanceBuffer->GetBufferDeviceAddress();
 
 		// Get size info
@@ -154,15 +145,14 @@ namespace Hog
 		accelerationStructureBuildGeometryInfo.geometryCount = 1;
 		accelerationStructureBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
 
-		uint32_t primitive_count = static_cast<uint32_t>(structureInstances.size());
-
+		uint32_t instanceCount = 1;
 		VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{};
 		accelerationStructureBuildSizesInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
 		vkGetAccelerationStructureBuildSizesKHR(
 			GraphicsContext::GetDevice(),
 			VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
 			&accelerationStructureBuildGeometryInfo,
-			&primitive_count,
+			&instanceCount,
 			&accelerationStructureBuildSizesInfo);
 
 		m_AccelerationStructureBuffer = Buffer::Create(BufferDescription::Defaults::AccelerationStructure, accelerationStructureBuildSizesInfo.accelerationStructureSize);
@@ -182,7 +172,7 @@ namespace Hog
 		accelerationStructureBuildGeometryInfo.scratchData.deviceAddress = scratchBuffer->GetBufferDeviceAddress();
 
 		VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
-		accelerationStructureBuildRangeInfo.primitiveCount = primitive_count;
+		accelerationStructureBuildRangeInfo.primitiveCount = instanceCount;
 		std::vector<VkAccelerationStructureBuildRangeInfoKHR*> accelerationBuildStructureRangeInfos = { &accelerationStructureBuildRangeInfo };
 
 		// Build the acceleration structure on the device via a one-time command buffer submission
@@ -204,9 +194,11 @@ namespace Hog
 	
 	AccelerationStructure::~AccelerationStructure()
 	{
-		m_TransformBuffer.reset();
+		m_TransformBuffers.clear();
 		m_AccelerationStructureBuffer.reset();
 		m_InstanceBuffer.reset();
+		m_Meshes.clear();
+		m_BottomLevelAS.reset();
 		vkDestroyAccelerationStructureKHR(GraphicsContext::GetDevice(), m_Handle, nullptr);
 	}
 }
