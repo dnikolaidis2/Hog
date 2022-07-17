@@ -223,7 +223,84 @@ namespace Hog
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_Handle);
 	}
 
-	RayTracingPipeline::RayTracingPipeline()
+	Ref<Pipeline> RayTracingPipeline::Create(const Configuration& configuration)
 	{
+		return CreateRef<RayTracingPipeline>(configuration);
+	}
+
+	RayTracingPipeline::RayTracingPipeline(const Configuration& configuration)
+		: m_Config(configuration)
+	{
+		std::for_each(m_Config.Shaders.begin(), m_Config.Shaders.end(),
+			[this](const std::string& shader) {
+				AddShader(shader);
+			});
+	}
+
+	void RayTracingPipeline::Generate(VkRenderPass renderPass, VkSpecializationInfo* specializationInfo)
+	{
+		auto data = ShaderReflection::ReflectPipelineLayout(m_ShaderSources);
+
+		m_PipelineLayout = data.PipelineLayout;
+
+		for (const auto& [stage, source] : m_ShaderSources)
+		{
+			VkShaderModuleCreateInfo createInfo{};
+			createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+			createInfo.codeSize = (uint32_t)source->Code.size() * sizeof(uint32_t);
+			createInfo.pCode = source->Code.data();
+
+			VkShaderModule shaderModule;
+			CheckVkResult(vkCreateShaderModule(GraphicsContext::GetDevice(), &createInfo, nullptr, &shaderModule));
+
+			AddShaderStage(stage, shaderModule, specializationInfo);
+			m_ShaderModules[stage] = shaderModule;
+
+			
+			if (stage == ShaderType::Defaults::ClosestHit)
+			{
+				VkRayTracingShaderGroupCreateInfoKHR shaderGroup{
+					.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
+					.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+					.generalShader = VK_SHADER_UNUSED_KHR,
+					.closestHitShader = static_cast<uint32_t>(m_ShaderStageCreateInfos.size()) - 1,
+					.anyHitShader = VK_SHADER_UNUSED_KHR,
+					.intersectionShader = VK_SHADER_UNUSED_KHR,
+				};
+
+				m_ShaderGroups.push_back(shaderGroup);
+			}
+			else
+			{
+				VkRayTracingShaderGroupCreateInfoKHR shaderGroup{
+					.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
+					.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+					.generalShader = static_cast<uint32_t>(m_ShaderStageCreateInfos.size()) - 1,
+					.closestHitShader = VK_SHADER_UNUSED_KHR,
+					.anyHitShader = VK_SHADER_UNUSED_KHR,
+					.intersectionShader = VK_SHADER_UNUSED_KHR,
+				};
+
+				m_ShaderGroups.push_back(shaderGroup);
+			}
+		}
+
+		m_RayTracingPipelineCreateInfo.stageCount = static_cast<uint32_t>(m_ShaderStageCreateInfos.size());
+		m_RayTracingPipelineCreateInfo.pStages = m_ShaderStageCreateInfos.data();
+		m_RayTracingPipelineCreateInfo.groupCount = static_cast<uint32_t>(m_ShaderGroups.size());
+		m_RayTracingPipelineCreateInfo.pGroups = m_ShaderGroups.data();
+		
+		m_RayTracingPipelineCreateInfo.maxPipelineRayRecursionDepth = m_Config.MaxRayRecursionDepth;
+		
+		m_RayTracingPipelineCreateInfo.layout = m_PipelineLayout;
+
+		CheckVkResult(vkCreateRayTracingPipelinesKHR(GraphicsContext::GetDevice(), VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &m_RayTracingPipelineCreateInfo, nullptr, &m_Handle));
+	}
+
+	void RayTracingPipeline::Bind(VkCommandBuffer commandBuffer)
+	{
+		HG_PROFILE_FUNCTION();
+
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_Handle);
 	}
 }

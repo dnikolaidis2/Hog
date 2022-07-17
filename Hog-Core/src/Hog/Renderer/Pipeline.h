@@ -225,9 +225,28 @@ namespace Hog
 		};
 	};
 
-	class RayTracingPipeline
+	class RayTracingPipeline : public Pipeline
 	{
 	public:
-		RayTracingPipeline();
+		struct Configuration
+		{
+			std::vector<std::string> Shaders;
+			uint32_t MaxRayRecursionDepth = 2;
+		};
+	public:
+		static Ref<Pipeline> Create(const Configuration& configuration);
+	public:
+		RayTracingPipeline(const Configuration& configuration);
+
+		virtual void Generate(VkRenderPass renderPass, VkSpecializationInfo* specializationInfo) override;
+		virtual void Bind(VkCommandBuffer commandBuffer) override;
+	private:
+		Configuration m_Config;
+
+		std::vector<VkRayTracingShaderGroupCreateInfoKHR> m_ShaderGroups;
+
+		VkRayTracingPipelineCreateInfoKHR m_RayTracingPipelineCreateInfo = {
+			.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR,
+		};
 	};
 }
