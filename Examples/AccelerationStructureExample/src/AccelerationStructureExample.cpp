@@ -1,0 +1,90 @@
+#include "AccelerationStructureExample.h"
+
+static auto& context = GraphicsContext::Get();
+constexpr uint32_t BufferElements = 32;
+
+AccelerationStructureExample::AccelerationStructureExample()
+	: Layer("AccelerationStructureExample")
+{
+
+}
+
+void AccelerationStructureExample::OnAttach()
+{
+	HG_PROFILE_FUNCTION();
+
+	CVarSystem::Get()->SetIntCVar("application.enableImGui", 0);
+
+	ShaderCache::Initialize();
+	GraphicsContext::Initialize();
+
+	LoadGltfFile("assets/models/sponza/sponza.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
+
+	m_TopLevelAS = AccelerationStructure::Create(m_OpaqueMeshes);
+
+	m_ComputeBuffer = Buffer::Create(BufferDescription::Defaults::ReadbackStorageBuffer, BufferElements * sizeof(uint32_t));
+
+	uint32_t n = 0;
+	std::vector<uint32_t> tempBuffer(BufferElements);
+	std::generate(tempBuffer.begin(), tempBuffer.end(), [&n] { return n++; });
+	
+	m_ComputeBuffer->WriteData(tempBuffer.data(), tempBuffer.size() * sizeof(uint32_t));
+
+	RenderGraph graph;
+	uint32_t bufferElements = 32;
+
+	auto fib = graph.AddStage(nullptr, 
+		{ "Fibonacci stage", RendererStageType::ForwardCompute, 
+		ComputePipeline::Create({
+			.Shader = "Headless.compute",
+		}),
+		{
+			{"values", ResourceType::Storage, ShaderType::Defaults::Compute, m_ComputeBuffer, 0, 0},
+			{ "BUFFER_ELEMENTS", ResourceType::Constant, ShaderType::Defaults::Compute, 0, sizeof(uint32_t), &bufferElements}
+		},
+		{bufferElements, 1, 1}
+	});
+
+	Renderer::Initialize(graph);
+
+	std::vector<uint32_t> computeBuffer(BufferElements);
+	m_ComputeBuffer->ReadData(computeBuffer.data(), BufferElements);
+
+	HG_INFO("Before fibonacci stage");
+	for (int i = 0; i < computeBuffer.size(); i++)
+	{
+		HG_TRACE("computeBuffer[{0}] = {1}", i, computeBuffer[i]);
+	}
+}
+
+void AccelerationStructureExample::OnDetach()
+{
+	HG_PROFILE_FUNCTION()
+
+	std::vector<uint32_t> computeBuffer(BufferElements);
+	HG_INFO("After fibonacci stage");
+	m_ComputeBuffer->ReadData(computeBuffer.data(), BufferElements);
+	for (int i = 0; i < computeBuffer.size(); i++)
+	{
+		HG_TRACE("computeBuffer[{0}] = {1}", i, computeBuffer[i]);
+	}
+
+	GraphicsContext::WaitIdle();
+
+	Renderer::Cleanup();
+
+	m_ComputeBuffer.reset();
+
+	GraphicsContext::Deinitialize();
+}
+
+void AccelerationStructureExample::OnUpdate(Timestep ts)
+{
+	HG_PROFILE_FUNCTION()
+
+	Application::Get().Close();
+}
+
+void AccelerationStructureExample::OnImGuiRender()
+{
+}

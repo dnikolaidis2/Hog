@@ -35,6 +35,7 @@
 #include "Hog/Renderer/Texture.h"
 #include "Hog/Renderer/EditorCamera.h"
 #include "Hog/Renderer/Light.h"
+#include "Hog/Renderer/AccelerationStructure.h"
 
 /*
 #include "Hog/Renderer/Renderer.h"

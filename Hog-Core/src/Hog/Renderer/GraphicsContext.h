@@ -195,8 +195,31 @@ namespace Hog {
 			.pUserData = nullptr // Optional
 		};
 
+		VkPhysicalDeviceBufferAddressFeaturesEXT m_BufferDeviceAddressFetures = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT,
+			.bufferDeviceAddress = VK_TRUE,
+		};
+
+		VkPhysicalDeviceRayQueryFeaturesKHR m_RayQueryFeatures = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR,
+			.pNext = &m_BufferDeviceAddressFetures,
+		};
+
+		VkPhysicalDeviceRayTracingPipelineFeaturesKHR m_RayTracingPipelineFeatures = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR,
+			.pNext = &m_RayQueryFeatures,
+			.rayTracingPipeline = VK_TRUE,
+		};
+
+		VkPhysicalDeviceAccelerationStructureFeaturesKHR m_AccelerationStructureFeatures = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR,
+			.pNext = &m_RayTracingPipelineFeatures,
+			.accelerationStructure = VK_TRUE,
+		};
+
 		VkPhysicalDeviceVulkan13Features m_DeviceFeatures13 = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+			.pNext = &m_AccelerationStructureFeatures,
 			.synchronization2 = VK_TRUE,
 			.maintenance4 = VK_TRUE,
 		};
@@ -254,6 +277,8 @@ namespace Hog {
 			VK_KHR_MAINTENANCE_4_EXTENSION_NAME,
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 			VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
+			VK_KHR_RAY_QUERY_EXTENSION_NAME,
+			VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
 			VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
 			VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, 
 			VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,

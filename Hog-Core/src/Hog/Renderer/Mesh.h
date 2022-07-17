@@ -46,12 +46,18 @@ namespace Hog
 		~Mesh() = default;
 
 		void AddPrimitive(const std::vector<Vertex>& vertexData, const std::vector<uint16_t>& indexData);
+		size_t GetPrimitiveCount() const { return m_Primitives.size(); }
 		void Build();
 
 		void SetModelMatrix(glm::mat4 matrix) { m_ModelMatrix = matrix; }
 		glm::mat4 GetModelMatrix() const { return m_ModelMatrix; }
 
 		void Draw(VkCommandBuffer commandBuffer);
+		
+		std::vector<MeshPrimitive>::iterator begin() { return m_Primitives.begin(); }
+		std::vector<MeshPrimitive>::iterator end() { return m_Primitives.end(); }
+		std::vector<MeshPrimitive>::const_iterator begin() const { return m_Primitives.begin(); }
+		std::vector<MeshPrimitive>::const_iterator end() const { return m_Primitives.end(); }
 	private:
 		std::string m_Name;
 		std::vector<MeshPrimitive> m_Primitives;
