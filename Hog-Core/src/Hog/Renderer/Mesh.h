@@ -52,6 +52,9 @@ namespace Hog
 		void SetModelMatrix(glm::mat4 matrix) { m_ModelMatrix = matrix; }
 		glm::mat4 GetModelMatrix() const { return m_ModelMatrix; }
 
+		Ref<Buffer> GetVertexBuffer() { return m_VertexBuffer; }
+		Ref<Buffer> GetIndexBuffer() { return m_IndexBuffer; }
+
 		void Draw(VkCommandBuffer commandBuffer);
 		
 		std::vector<MeshPrimitive>::iterator begin() { return m_Primitives.begin(); }
