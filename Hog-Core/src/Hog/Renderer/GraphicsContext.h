@@ -46,11 +46,62 @@ namespace Hog {
 			VkSurfaceCapabilitiesKHR SurfaceCapabilities;
 			std::vector<VkSurfaceFormatKHR> SurfaceFormats;
 			std::vector<VkPresentModeKHR> PresentModes;
-			VkPhysicalDeviceMemoryProperties MemoryProperties;
-			VkPhysicalDeviceProperties DeviceProperties;
+
+			VkPhysicalDeviceMemoryProperties2 MemoryProperties2 = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2,
+			};
+
+			VkPhysicalDeviceRayTracingPipelinePropertiesKHR RayTracingPipelineProperties = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR,
+			};
+
+			VkPhysicalDeviceAccelerationStructurePropertiesKHR AccelerationStructureProperties = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR,
+				.pNext = &RayTracingPipelineProperties,
+			};
+
+			VkPhysicalDeviceVulkan13Properties Vulkan13Properties = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_PROPERTIES,
+				.pNext = &AccelerationStructureProperties,
+			};
+
+			VkPhysicalDeviceVulkan12Properties Vulkan12Properties = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES,
+				.pNext = &Vulkan13Properties,
+			};
+
+			VkPhysicalDeviceVulkan11Properties Vulkan11Properties = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES,
+				.pNext = &Vulkan12Properties,
+			};
+
+			VkPhysicalDeviceProperties2 DeviceProperties2 = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+				.pNext = &Vulkan11Properties,
+			};
+
+			VkPhysicalDeviceBufferAddressFeaturesEXT BufferDeviceAddressFetures = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT,
+			};
+
+			VkPhysicalDeviceRayQueryFeaturesKHR RayQueryFeatures = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR,
+				.pNext = &BufferDeviceAddressFetures,
+			};
+
+			VkPhysicalDeviceRayTracingPipelineFeaturesKHR RayTracingPipelineFeatures = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR,
+				.pNext = &RayQueryFeatures,
+			};
+
+			VkPhysicalDeviceAccelerationStructureFeaturesKHR AccelerationStructureFeatures = {
+				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR,
+				.pNext = &RayTracingPipelineFeatures,
+			};
 
 			VkPhysicalDeviceVulkan13Features PhysicalDeviceVulkan13Features = {
 				.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+				.pNext = &AccelerationStructureFeatures,
 			};
 
 			VkPhysicalDeviceVulkan12Features PhysicalDeviceVulkan12Features = {

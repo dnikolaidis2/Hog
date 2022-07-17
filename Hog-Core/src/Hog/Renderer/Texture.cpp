@@ -37,7 +37,7 @@ namespace Hog {
 		}
 		
 		samplerInfo.anisotropyEnable = VK_TRUE;
-		samplerInfo.maxAnisotropy = GraphicsContext::GetGPUInfo()->DeviceProperties.limits.maxSamplerAnisotropy;
+		samplerInfo.maxAnisotropy = GraphicsContext::GetGPUInfo()->DeviceProperties2.properties.limits.maxSamplerAnisotropy;
 
 		CheckVkResult(vkCreateSampler(GraphicsContext::GetDevice(), &samplerInfo, nullptr, &m_Sampler));
 	}

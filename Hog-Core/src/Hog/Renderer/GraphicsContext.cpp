@@ -510,12 +510,12 @@ namespace Hog {
 
 			// Almost done! Up next wee get the memory types supported by the device.
 			// This will be needed later once we start allocating memory for buffers, images, etc.
-			vkGetPhysicalDeviceMemoryProperties(gpu.Device, &gpu.MemoryProperties);
+			vkGetPhysicalDeviceMemoryProperties2(gpu.Device, &gpu.MemoryProperties2);
 
 			// Lastly we get the actual device properties.
 			// Of note this includes a MASSIVE struct (VkPhysicalDeviceLimits) which outlines 
 			// all possible limits you could run into when attemptin to render.
-			vkGetPhysicalDeviceProperties(gpu.Device, &gpu.DeviceProperties);
+			vkGetPhysicalDeviceProperties2(gpu.Device, &gpu.DeviceProperties2);
 		}
 	}
 
@@ -878,7 +878,7 @@ namespace Hog {
 
 	VkSampleCountFlagBits GraphicsContext::GetMaxMSAASampleCount()
 	{
-		const VkSampleCountFlags counts = m_GPU->DeviceProperties.limits.framebufferColorSampleCounts & m_GPU->DeviceProperties.limits.framebufferDepthSampleCounts;
+		const VkSampleCountFlags counts = m_GPU->DeviceProperties2.properties.limits.framebufferColorSampleCounts & m_GPU->DeviceProperties2.properties.limits.framebufferDepthSampleCounts;
 
 		if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
 		if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
