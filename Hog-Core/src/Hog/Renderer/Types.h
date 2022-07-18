@@ -385,7 +385,8 @@ namespace Hog
 			SampledColorAttachment,
 			SampledPositionAttachment,
 			SampledNormalAttachment,
-			Texture
+			Texture,
+			Storage
 		};
 
 		VkImageType Type = VK_IMAGE_TYPE_2D;
@@ -425,6 +426,7 @@ namespace Hog
 			ClosestHit			= VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
 			Mesh				= VK_SHADER_STAGE_MESH_BIT_NV,
 			CombinedFragVert	= VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT,
+			CombinedRaygenClosestHit = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
 		};
 
 		VkShaderStageFlags Stage;
@@ -474,7 +476,7 @@ namespace Hog
 			return "";
 		}
 
-		bool operator==(const Defaults& other) const { return Stage == static_cast<VkShaderStageFlags>(other); }
+		bool operator==(const ShaderType::Defaults& other) const { return Stage == static_cast<VkShaderStageFlags>(other); }
 		bool operator==(const ShaderType& other) const
 		{
 			return Stage == other.Stage;
@@ -488,12 +490,12 @@ namespace Hog
 
 	enum class ResourceType
 	{
-		Uniform, Constant, PushConstant, Storage, Sampler, SamplerArray
+		Uniform, Constant, PushConstant, Storage, StorageImage, Sampler, SamplerArray, AccelerationStructure
 	};
 
 	enum class RendererStageType
 	{
-		ForwardCompute, DeferredCompute, ForwardGraphics, DeferredGraphics, Blit, ImGui, Barrier, ScreenSpacePass
+		ForwardCompute, DeferredCompute, ForwardGraphics, DeferredGraphics, Blit, ImGui, Barrier, ScreenSpacePass, RayTracing
 	};
 
 	static inline VkPipelineBindPoint ToPipelineBindPoint(RendererStageType type)

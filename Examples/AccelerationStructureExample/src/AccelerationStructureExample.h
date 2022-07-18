@@ -16,7 +16,6 @@ public:
 	void OnUpdate(Timestep ts) override;
 	virtual void OnImGuiRender() override;
 private:
-	Ref<Buffer> m_ComputeBuffer = nullptr;	
 	std::vector<Ref<Mesh>> m_TransparentMeshes;
 	std::vector<Ref<Mesh>> m_OpaqueMeshes;
 	std::vector<Ref<Texture>> m_Textures;

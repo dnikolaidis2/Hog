@@ -22,58 +22,64 @@ void AccelerationStructureExample::OnAttach()
 
 	m_TopLevelAS = AccelerationStructure::Create(m_OpaqueMeshes);
 
-	m_ComputeBuffer = Buffer::Create(BufferDescription::Defaults::ReadbackStorageBuffer, BufferElements * sizeof(uint32_t));
-
-	uint32_t n = 0;
-	std::vector<uint32_t> tempBuffer(BufferElements);
-	std::generate(tempBuffer.begin(), tempBuffer.end(), [&n] { return n++; });
-	
-	m_ComputeBuffer->WriteData(tempBuffer.data(), tempBuffer.size() * sizeof(uint32_t));
+	auto storageImage = Image::Create(ImageDescription::Defaults::Storage, 1, VK_FORMAT_B8G8R8A8_UNORM);
 
 	RenderGraph graph;
-	uint32_t bufferElements = 32;
 
-	auto fib = graph.AddStage(nullptr, 
-		{ "Fibonacci stage", RendererStageType::ForwardCompute, 
-		ComputePipeline::Create({
-			.Shader = "Headless.compute",
-		}),
+	auto raytrace = graph.AddStage(nullptr, 
+		{ "Fibonacci stage", RendererStageType::RayTracing, 
+		RayTracingPipeline::Create(
+			{
+				.Shaders = {
+					"raygen.raygen",
+					"miss.miss",
+					"closesthit.closesthit",
+				},
+			}
+		),
+		Ref<Hog::ShaderBindingTable>(nullptr),
 		{
-			{"values", ResourceType::Storage, ShaderType::Defaults::Compute, m_ComputeBuffer, 0, 0},
-			{ "BUFFER_ELEMENTS", ResourceType::Constant, ShaderType::Defaults::Compute, 0, sizeof(uint32_t), &bufferElements}
+			{"", ResourceType::AccelerationStructure, ShaderType::Defaults::RayGeneration, m_TopLevelAS, 0, 0},
+			{"storage", ResourceType::StorageImage, ShaderType::Defaults::RayGeneration, storageImage, 0, 1, {
+				ImageLayout::Undefined, ImageLayout::General,
+			}},
+			{"storage", ResourceType::Uniform, ShaderType::Defaults::RayGeneration, m_ViewProjection, 0, 2},
 		},
-		{bufferElements, 1, 1}
+		{storageImage->GetWidth(), storageImage->GetHeight(), 1}
 	});
 
+	graph.AddStage(raytrace, {
+		"BlitStage", RendererStageType::Blit,
+		GraphicsPipeline::Create({
+			.Shaders = {"fullscreen.vertex", "blit.fragment"},
+			.Rasterizer = {
+				.CullMode = CullMode::Front,
+			},
+			.BlendAttachments = {
+				{
+					.Enable = false,
+				},
+			},
+		}),
+		{
+			{"FinalRender", ResourceType::Sampler, ShaderType::Defaults::Fragment, Texture::Create(storageImage), 0, 0, {
+				ImageLayout::General, ImageLayout::ColorAttachmentOptimal,
+			}},
+		},
+		{{"SwapchainImage", AttachmentType::Swapchain, true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::PresentSrcKHR}},},
+		});
+
 	Renderer::Initialize(graph);
-
-	std::vector<uint32_t> computeBuffer(BufferElements);
-	m_ComputeBuffer->ReadData(computeBuffer.data(), BufferElements);
-
-	HG_INFO("Before fibonacci stage");
-	for (int i = 0; i < computeBuffer.size(); i++)
-	{
-		HG_TRACE("computeBuffer[{0}] = {1}", i, computeBuffer[i]);
-	}
 }
 
 void AccelerationStructureExample::OnDetach()
 {
 	HG_PROFILE_FUNCTION()
 
-	std::vector<uint32_t> computeBuffer(BufferElements);
-	HG_INFO("After fibonacci stage");
-	m_ComputeBuffer->ReadData(computeBuffer.data(), BufferElements);
-	for (int i = 0; i < computeBuffer.size(); i++)
-	{
-		HG_TRACE("computeBuffer[{0}] = {1}", i, computeBuffer[i]);
-	}
-
 	GraphicsContext::WaitIdle();
 
 	Renderer::Cleanup();
 
-	m_ComputeBuffer.reset();
 	m_OpaqueMeshes.clear();
 	m_TransparentMeshes.clear();
 	m_Textures.clear();

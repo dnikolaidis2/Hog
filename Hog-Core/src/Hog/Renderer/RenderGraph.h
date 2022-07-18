@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Hog/Renderer/Types.h"
 #include "Hog/Renderer/Pipeline.h"
 #include "Hog/Renderer/Buffer.h"
 #include "Hog/Renderer/Mesh.h"
 #include "Hog/Renderer/Texture.h"
-#include "Hog/Renderer/Types.h"
+#include "Hog/Renderer/ShaderBindingTable.h"
+#include "Hog/Renderer/AccelerationStructure.h"
 
 namespace Hog
 {
@@ -148,6 +150,8 @@ namespace Hog
 		ShaderType BindLocation;
 		Ref<Buffer> Buffer = nullptr;
 		Ref<Texture> Texture = nullptr;
+		Ref<Image> StorageImage = nullptr;
+		Ref<AccelerationStructure> TLAS = nullptr;
 		std::vector<Ref<Hog::Texture>> Textures;
 		uint32_t ConstantID = 0;
 		size_t ConstantSize = 0;
@@ -162,6 +166,12 @@ namespace Hog
 
 		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Texture> texture, uint32_t set, uint32_t binding, BarrierDescription barrier = {})
 			: Name(name), Type(type), BindLocation(bindLocation), Texture(texture), Binding(binding), Set(set), Barrier(barrier) {}
+		
+		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::Image> image, uint32_t set, uint32_t binding, BarrierDescription barrier = {})
+			: Name(name), Type(type), BindLocation(bindLocation), StorageImage(image), Binding(binding), Set(set), Barrier(barrier) {}
+
+		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, Ref<Hog::AccelerationStructure> tlas, uint32_t set, uint32_t binding, BarrierDescription barrier = {})
+			: Name(name), Type(type), BindLocation(bindLocation), TLAS(tlas), Binding(binding), Set(set), Barrier(barrier) {}
 
 		ResourceElement(const std::string& name, ResourceType type, ShaderType bindLocation, const std::vector<Ref<Hog::Texture>>& textures, uint32_t set, uint32_t binding, uint32_t arrayMaxCount,  BarrierDescription barrier = {})
 			: Name(name), Type(type), BindLocation(bindLocation), Textures(textures), Binding(binding), Set(set), ArrayMaxCount(arrayMaxCount), Barrier(barrier) {}
@@ -208,9 +218,14 @@ namespace Hog
 		glm::ivec3 GroupCounts = {0, 0, 0};
 		Ref<Buffer> DispatchBuffer;
 		BarrierDescription BarrierDescription;
+		Ref<Hog::ShaderBindingTable> ShaderBindingTable;
 
 		StageDescription(const std::string& name, RendererStageType type, Ref<Hog::Pipeline> pipeline, std::initializer_list<ResourceElement> resources, glm::ivec3 groupCounts)
-			: Name(name), Pipeline(pipeline), StageType(type), VertexInputLayout({}), Resources(resources), GroupCounts(groupCounts) {}
+			: Name(name), Pipeline(pipeline), StageType(type), Resources(resources), GroupCounts(groupCounts) {}
+
+		StageDescription(const std::string& name, RendererStageType type,
+			Ref<Hog::Pipeline> pipeline, Ref<Hog::ShaderBindingTable> shaderBindingTable, std::initializer_list<ResourceElement> resources, glm::ivec3 queryDimensions)
+			: Name(name), Pipeline(pipeline), StageType(type), ShaderBindingTable(shaderBindingTable), Resources(resources), GroupCounts(queryDimensions) {}
 
 		StageDescription(const std::string& name, RendererStageType type, std::initializer_list<AttachmentElement> attachmentElements)
 			: Name(name), StageType(type), Attachments(attachmentElements) {}

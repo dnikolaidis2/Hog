@@ -344,6 +344,12 @@ namespace Hog
 				ImageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 				ImageAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
 			}break;
+			
+			case Defaults::Storage:
+			{
+				ImageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+				ImageAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+			}break;
 		}
 	}
 
