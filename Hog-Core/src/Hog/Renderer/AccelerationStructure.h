@@ -15,6 +15,7 @@ namespace Hog{
 
 		VkDeviceAddress GetDeviceAddress() const { return m_DeviceAddress; }
 		VkAccelerationStructureKHR GetHandle() const { return m_Handle; }
+		const VkAccelerationStructureKHR* GetHandlePtr() const { return &m_Handle; }
 	private:
 		bool m_TopLevel = false;
 		Ref<Buffer> m_AccelerationStructureBuffer;

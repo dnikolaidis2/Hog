@@ -247,6 +247,29 @@ namespace Hog {
 		return *this;
 	}
 
+	DescriptorBuilder& DescriptorBuilder::BindAccelerationStructure(uint32_t binding, VkWriteDescriptorSetAccelerationStructureKHR* acceleratrionStructureInfo, VkDescriptorType type, VkShaderStageFlags stageFlags)
+	{
+		VkDescriptorSetLayoutBinding newBinding{};
+
+		newBinding.descriptorCount = 1;
+		newBinding.descriptorType = type;
+		newBinding.pImmutableSamplers = nullptr;
+		newBinding.stageFlags = stageFlags;
+		newBinding.binding = binding;
+
+		m_Bindings.push_back(newBinding);
+
+		VkWriteDescriptorSet newWrite{};
+		newWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		newWrite.pNext = acceleratrionStructureInfo;
+		newWrite.dstBinding = binding;
+		newWrite.descriptorCount = 1;
+		newWrite.descriptorType = type;
+
+		m_Writes.push_back(newWrite);
+		return *this;
+	}
+
 	bool DescriptorBuilder::Build(VkDescriptorSet& set, VkDescriptorSetLayout& layout)
 	{
 		//build layout first

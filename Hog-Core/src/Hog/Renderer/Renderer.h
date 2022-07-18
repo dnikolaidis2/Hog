@@ -62,6 +62,7 @@ namespace Hog
 		void ForwardCompute(VkCommandBuffer commandBuffer);
 		void ImGui(VkCommandBuffer commandBuffer);
 		void BlitStage(VkCommandBuffer commandBuffer);
+		void RayTracing(VkCommandBuffer commandBuffer);
 
 		void BindResources(VkCommandBuffer commandBuffer, DescriptorAllocator* allocator);
 	};

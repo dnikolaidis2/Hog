@@ -108,6 +108,20 @@ namespace Hog
 
 		for (auto& stage : s_Data.Stages)
 		{
+			for (const auto & resource : stage.Info.Resources)
+			{
+				if (resource.Barrier)
+				{
+					if (resource.StorageImage)
+					{
+						resource.StorageImage->ExecuteBarrier(currentFrame.CommandBuffer, resource.Barrier);
+					}
+					else if (resource.Texture)
+					{
+						resource.Texture->GetImage()->ExecuteBarrier(currentFrame.CommandBuffer, resource.Barrier);
+					}
+				}
+			}
 			stage.Execute(currentFrame.CommandBuffer);
 		}
 
@@ -423,6 +437,11 @@ namespace Hog
 			}
 		}
 
+		if (Info.StageType == RendererStageType::RayTracing)
+		{
+			Info.ShaderBindingTable = ShaderBindingTable::Create(Info.Pipeline->GetHandle());
+		}
+
 		if (Info.StageType != RendererStageType::Blit && RenderPass != VK_NULL_HANDLE)
 		{
 			auto attachments = Info.Attachments.GetElements();
@@ -469,6 +488,10 @@ namespace Hog
 			case RendererStageType::ScreenSpacePass:
 			{
 				ForwardGraphics(commandBuffer);
+			}break;
+			case RendererStageType::RayTracing:
+			{
+				RayTracing(commandBuffer);
 			}break;
 		}
 
@@ -666,12 +689,29 @@ namespace Hog
 		vkCmdEndRenderPass(commandBuffer);
 	}
 
+	void RendererStage::RayTracing(VkCommandBuffer commandBuffer)
+	{
+		Info.Pipeline->Bind(commandBuffer);
+		BindResources(commandBuffer, &s_Data.GetCurrentFrame().DescriptorAllocator);
+
+		vkCmdTraceRaysKHR(commandBuffer,
+			Info.ShaderBindingTable->GetRaygenShaderSBTEntry(),
+			Info.ShaderBindingTable->GetMissShaderSBTEntry(),
+			Info.ShaderBindingTable->GetHitShaderSBTEntry(),
+			Info.ShaderBindingTable->GetCallableShaderSBTEntry(),
+			Info.GroupCounts.x,
+			Info.GroupCounts.y,
+			Info.GroupCounts.z
+		);
+	}
+
 	void RendererStage::BindResources(VkCommandBuffer commandBuffer, DescriptorAllocator* allocator)
 	{
 		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 		auto db = DescriptorBuilder::Begin(Renderer::GetDescriptorLayoutCache(), allocator);
 		std::vector<VkDescriptorImageInfo*> imageInfos;
 		std::vector<VkDescriptorBufferInfo*> bufferInfos;
+		std::vector<VkWriteDescriptorSetAccelerationStructureKHR*> acceleratrionStructureInfos;
 
 		for (int i = 0; i < Info.Resources.size(); i++)
 		{
@@ -689,6 +729,15 @@ namespace Hog
 					imageInfos.push_back(sourceImage);
 					
 					db.BindImage(resource.Binding, imageInfos.back(), VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, resource.BindLocation);
+				}break;
+				case ResourceType::StorageImage:
+				{
+					VkDescriptorImageInfo* sourceImage = new VkDescriptorImageInfo;
+					sourceImage->imageView = resource.StorageImage->GetImageView();
+					sourceImage->imageLayout = resource.StorageImage->GetImageLayout();
+					imageInfos.push_back(sourceImage);
+
+					db.BindImage(resource.Binding, imageInfos.back(), VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, resource.BindLocation);
 				}break;
 				case ResourceType::Storage:
 				{
@@ -710,9 +759,7 @@ namespace Hog
 
 					db.BindBuffer(resource.Binding, bufferInfos.back(), resource.Buffer->GetBufferDescription(), resource.BindLocation);
 				}break;
-				case ResourceType::PushConstant:
-				{
-				}break;
+				case ResourceType::PushConstant: break;
 				case ResourceType::Constant: break;
 				case ResourceType::SamplerArray:
 				{
@@ -728,6 +775,18 @@ namespace Hog
 					imageInfos.push_back(imageInfosLocal);
 
 					db.BindImage(resource.Binding, imageInfos.back(), VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, resource.BindLocation, resource.Textures.size(), resource.ArrayMaxCount);
+				}break;
+				case ResourceType::AccelerationStructure:
+				{
+					VkWriteDescriptorSetAccelerationStructureKHR* accelerationStructureInfo = new VkWriteDescriptorSetAccelerationStructureKHR;
+					accelerationStructureInfo->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+					accelerationStructureInfo->pNext = nullptr;
+					accelerationStructureInfo->accelerationStructureCount = 1;
+					accelerationStructureInfo->pAccelerationStructures = resource.TLAS->GetHandlePtr();
+
+					acceleratrionStructureInfos.push_back(accelerationStructureInfo);
+
+					db.BindAccelerationStructure(resource.Binding, acceleratrionStructureInfos.back(), VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, resource.BindLocation);
 				}break;
 			}
 		}
@@ -745,6 +804,11 @@ namespace Hog
 		for (size_t i = 0; i < bufferInfos.size(); i++)
 		{
 			delete bufferInfos[i];
+		}
+		
+		for (size_t i = 0; i < acceleratrionStructureInfos.size(); i++)
+		{
+			delete acceleratrionStructureInfos[i];
 		}
 	}
 }

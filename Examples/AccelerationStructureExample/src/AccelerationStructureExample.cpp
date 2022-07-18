@@ -22,6 +22,8 @@ void AccelerationStructureExample::OnAttach()
 
 	m_TopLevelAS = AccelerationStructure::Create(m_OpaqueMeshes);
 
+	m_ViewProjection = Buffer::Create(BufferDescription::Defaults::UniformBuffer, 2 * sizeof(glm::mat4));
+
 	auto storageImage = Image::Create(ImageDescription::Defaults::Storage, 1, VK_FORMAT_B8G8R8A8_UNORM);
 
 	RenderGraph graph;
@@ -35,11 +37,11 @@ void AccelerationStructureExample::OnAttach()
 					"miss.miss",
 					"closesthit.closesthit",
 				},
+				.MaxRayRecursionDepth = 1,
 			}
 		),
-		Ref<Hog::ShaderBindingTable>(nullptr),
 		{
-			{"", ResourceType::AccelerationStructure, ShaderType::Defaults::RayGeneration, m_TopLevelAS, 0, 0},
+			{"TLAS", ResourceType::AccelerationStructure, ShaderType::Defaults::RayGeneration, m_TopLevelAS, 0, 0},
 			{"storage", ResourceType::StorageImage, ShaderType::Defaults::RayGeneration, storageImage, 0, 1, {
 				ImageLayout::Undefined, ImageLayout::General,
 			}},

@@ -298,6 +298,7 @@ namespace Hog
 			AccelerationStructureBuildInput,
 			AccelerationStructure,
 			AccelerationStructureScratchBuffer,
+			ShaderBindingTable,
 		};
 
 		VmaMemoryUsage MemoryUsage = VMA_MEMORY_USAGE_AUTO;
@@ -683,6 +684,15 @@ namespace Hog
 			: OldLayout(oldLayout), NewLayout(newLayout) {}
 		BarrierDescription(PipelineStage srcStage, AccessFlag srcAccessMask, PipelineStage dstStage, AccessFlag dstAccessMask)
 			: SrcStage(srcStage), SrcAccessMask(srcAccessMask), DstStage(dstStage), DstAccessMask(dstAccessMask) {}
+
+		operator bool() const {
+			return SrcStage != PipelineStage::None ||
+				SrcAccessMask != AccessFlag::None ||
+				DstStage != PipelineStage::None ||
+				DstAccessMask != AccessFlag::None || 
+				OldLayout != ImageLayout::Undefined || 
+				NewLayout != ImageLayout::Undefined;
+		}
 	};
 
 	enum class CullMode : VkFlags

@@ -223,10 +223,6 @@ namespace Hog
 		StageDescription(const std::string& name, RendererStageType type, Ref<Hog::Pipeline> pipeline, std::initializer_list<ResourceElement> resources, glm::ivec3 groupCounts)
 			: Name(name), Pipeline(pipeline), StageType(type), Resources(resources), GroupCounts(groupCounts) {}
 
-		StageDescription(const std::string& name, RendererStageType type,
-			Ref<Hog::Pipeline> pipeline, Ref<Hog::ShaderBindingTable> shaderBindingTable, std::initializer_list<ResourceElement> resources, glm::ivec3 queryDimensions)
-			: Name(name), Pipeline(pipeline), StageType(type), ShaderBindingTable(shaderBindingTable), Resources(resources), GroupCounts(queryDimensions) {}
-
 		StageDescription(const std::string& name, RendererStageType type, std::initializer_list<AttachmentElement> attachmentElements)
 			: Name(name), StageType(type), Attachments(attachmentElements) {}
 

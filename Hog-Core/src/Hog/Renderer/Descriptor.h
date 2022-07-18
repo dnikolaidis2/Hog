@@ -27,7 +27,8 @@ namespace Hog {
 				{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2.f },
 				{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1.f },
 				{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1.f },
-				{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0.5f }
+				{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0.5f },
+				{ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1.f }
 			};
 		};
 
@@ -91,6 +92,8 @@ namespace Hog {
 		DescriptorBuilder& BindBuffer(uint32_t binding, VkDescriptorBufferInfo* bufferInfo, VkDescriptorType type, VkShaderStageFlags stageFlags);
 
 		DescriptorBuilder& BindImage(uint32_t binding, VkDescriptorImageInfo* imageInfo, VkDescriptorType type, VkShaderStageFlags stageFlags, uint32_t descriptorCount = 1, uint32_t descriptorBindingCount = 1);
+		
+		DescriptorBuilder& BindAccelerationStructure(uint32_t binding, VkWriteDescriptorSetAccelerationStructureKHR* acceleratrionStructureInfo, VkDescriptorType type, VkShaderStageFlags stageFlags);
 
 		bool Build(VkDescriptorSet& set, VkDescriptorSetLayout& layout);
 		bool Build(VkDescriptorSet& set);
