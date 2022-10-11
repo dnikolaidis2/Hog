@@ -28,7 +28,7 @@ void DeferredExample::OnAttach()
 	// LoadGltfFile("assets/models/cube/cube.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 	// LoadGltfFile("assets/models/plane/plane.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 
-	Ref<Texture> shadowMap = Texture::Create(Image::Create(ImageDescription::Defaults::ShadowMap, 4096, 4096, 1, static_cast<VkFormat>(DataType::Defaults::Depth32)));
+	Ref<Texture> shadowMap = Texture::Create(Image::Create(ImageDescription::Defaults::ShadowMap, 2048, 2048, 1, static_cast<VkFormat>(DataType::Defaults::Depth32)));
 
 	Ref<Texture> albedoAttachment = Texture::Create(Image::Create(ImageDescription::Defaults::SampledColorAttachment, 1));
 	Ref<Texture> positionAttachment = Texture::Create(Image::Create(ImageDescription::Defaults::SampledPositionAttachment, 1));
@@ -45,7 +45,10 @@ void DeferredExample::OnAttach()
 
 	auto shadowPass = graph.AddStage(nullptr, {
 		"Shadow Pass", RendererStageType::ForwardGraphics, GraphicsPipeline::Create({
-				.Shaders = {"Shadow.vertex", "Shadow.fragment"},
+			.Shaders = {"Shadow.vertex", "Shadow.fragment"},
+				.Rasterizer = {
+					.CullMode = CullMode::Back,
+				}
 			}
 		),
 		{
@@ -62,9 +65,10 @@ void DeferredExample::OnAttach()
 	});
 
 	auto gbuffer = graph.AddStage(shadowPass, {
-		"GBuffer", RendererStageType::ForwardGraphics, 
+		"GBuffer", RendererStageType::ForwardGraphics,
 		GraphicsPipeline::Create({
 				.Shaders = {"GBuffer.vertex", "GBuffer.fragment"},
+				// Need three blend attachments. One for each color attachment
 				.BlendAttachments = {{}, {}, {},},
 			}
 		),
@@ -83,15 +87,19 @@ void DeferredExample::OnAttach()
 		},
 		m_OpaqueMeshes,
 		{
-			{"Position", AttachmentType::Color, positionAttachment->GetImage(), true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
-			{"Normal", AttachmentType::Color, normalAttachment->GetImage(), true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
-			{"Albedo", AttachmentType::Color, albedoAttachment->GetImage(), true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
-			{"Depth", AttachmentType::Depth, depthAttachment->GetImage(), true, {ImageLayout::DepthStencilAttachmentOptimal, ImageLayout::DepthStencilAttachmentOptimal}},
+			{"Position", AttachmentType::Color, positionAttachment->GetImage(), true, 
+				{ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
+			{"Normal", AttachmentType::Color, normalAttachment->GetImage(), true, 
+				{ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
+			{"Albedo", AttachmentType::Color, albedoAttachment->GetImage(), true, 
+				{ImageLayout::ColorAttachmentOptimal, ImageLayout::ShaderReadOnlyOptimal}},
+			{"Depth", AttachmentType::Depth, depthAttachment->GetImage(), true,
+				{ImageLayout::DepthStencilAttachmentOptimal, ImageLayout::DepthStencilAttachmentOptimal}},
 		},
 	});
 
-	auto lightingPass = graph.AddStage(gbuffer, {
-		"Lighting stage", RendererStageType::ScreenSpacePass, GraphicsPipeline::Create({
+	auto defferedShade = graph.AddStage(gbuffer, {
+		"Deffered Shade", RendererStageType::ScreenSpacePass, GraphicsPipeline::Create({
 				.Shaders = {"fullscreen.vertex", "Lighting.fragment"},
 				.Rasterizer = {
 					.CullMode = CullMode::Front,
@@ -110,7 +118,7 @@ void DeferredExample::OnAttach()
 		},
 	});
 
-	graph.AddStage(lightingPass, {
+	graph.AddStage(defferedShade, {
 		"BlitStage", RendererStageType::Blit, GraphicsPipeline::Create({
 				.Shaders = {"fullscreen.vertex", "ToneMapping.fragment"},
 				.Rasterizer = {
@@ -130,6 +138,7 @@ void DeferredExample::OnAttach()
 		{{"SwapchainImage", AttachmentType::Swapchain, true, {ImageLayout::ColorAttachmentOptimal, ImageLayout::PresentSrcKHR}},},
 	});
 
+	// Renderer::EnableDebugPasses(true);
 	Renderer::Initialize(graph);
 
 	m_EditorCamera = EditorCamera(30.0f, 1.778f, 0.1f, 10000.0f);
@@ -151,7 +160,7 @@ void DeferredExample::OnDetach()
 	m_MaterialBuffer.reset();
 	m_LightBuffer.reset();
 	m_ViewProjection.reset();
-	m_LightViewProjection.reset();
+	m_LightViewProjection.reset(); 
 
 	GraphicsContext::Deinitialize();
 }
@@ -160,16 +169,15 @@ void DeferredExample::OnUpdate(Timestep ts)
 {
 	HG_PROFILE_FUNCTION();
 
-	float nearPlane = 1.0f, farPlane = 70.0f;
-	glm::mat4 lightViewProj = glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, nearPlane, farPlane)
-		 * glm::lookAt(m_Lights[0]->GetLightData().Position,
-						glm::vec3(0.0f), 
-						glm::vec3(0.0f, 0.0f, 1.0f));
+	float nearPlane = 1.0f, farPlane = 50.0f;
+	glm::mat4 lightViewProj = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, nearPlane, farPlane)
+		* glm::lookAt(m_Lights[0]->GetLightData().Position, Math::Vector3::Zero, Math::Vector3::Up);
 	m_LightViewProjection->WriteData(&lightViewProj, sizeof(lightViewProj));
 
 	m_EditorCamera.OnUpdate(ts);
-	// glm::mat4 viewProj = m_EditorCamera.GetViewProjection();
-	glm::mat4 viewProj = m_Cameras.begin()->second;
+	glm::mat4 viewProj = m_EditorCamera.GetViewProjection();
+	//glm::mat4 viewProj = m_Cameras.begin()->second;
+
 	m_ViewProjection->WriteData(&viewProj, sizeof(viewProj));
 }
 

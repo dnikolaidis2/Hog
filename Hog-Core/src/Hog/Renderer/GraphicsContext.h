@@ -322,7 +322,10 @@ namespace Hog {
 			.shaderSampledImageArrayDynamicIndexing = VK_TRUE,
 		};
 
-		std::vector<const char*> m_InstanceExtensions = {  };
+		std::vector<const char*> m_InstanceExtensions = {
+
+		};
+
 		std::vector<const char*> m_DeviceExtensions = { 
 			VK_KHR_MAINTENANCE_1_EXTENSION_NAME,
 			VK_KHR_MAINTENANCE_4_EXTENSION_NAME,
@@ -335,7 +338,8 @@ namespace Hog {
 			VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
 			VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
 			VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
-			VK_KHR_SPIRV_1_4_EXTENSION_NAME
+			VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+			VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME,
 		};
 
 		std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };

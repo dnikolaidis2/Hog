@@ -108,20 +108,6 @@ namespace Hog
 
 		for (auto& stage : s_Data.Stages)
 		{
-			for (const auto & resource : stage.Info.Resources)
-			{
-				if (resource.Barrier)
-				{
-					if (resource.StorageImage)
-					{
-						resource.StorageImage->ExecuteBarrier(currentFrame.CommandBuffer, resource.Barrier);
-					}
-					else if (resource.Texture)
-					{
-						resource.Texture->GetImage()->ExecuteBarrier(currentFrame.CommandBuffer, resource.Barrier);
-					}
-				}
-			}
 			stage.Execute(currentFrame.CommandBuffer);
 		}
 
@@ -457,7 +443,22 @@ namespace Hog
 
 	void RendererStage::Execute(VkCommandBuffer commandBuffer)
 	{
-		for (auto&& attachment : Info.Attachments)
+		/*for (const auto& resource : stage.Info.Resources)
+		{
+			if (resource.Barrier)
+			{
+				if (resource.StorageImage)
+				{
+					resource.StorageImage->ExecuteBarrier(currentFrame.CommandBuffer, resource.Barrier);
+				}
+				else if (resource.Texture)
+				{
+					resource.Texture->GetImage()->ExecuteBarrier(currentFrame.CommandBuffer, resource.Barrier);
+				}
+			}
+		}*/
+
+		for (const auto& attachment : Info.Attachments)
 		{
 			if (attachment.Image)
 			{
@@ -495,7 +496,7 @@ namespace Hog
 			}break;
 		}
 
-		for (auto && attachment : Info.Attachments)
+		for (const auto& attachment : Info.Attachments)
 		{
 			if (attachment.Image)
 			{
