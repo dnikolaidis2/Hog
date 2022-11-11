@@ -147,7 +147,7 @@ void GraphicsExample::OnUpdate(Timestep ts)
 	HG_PROFILE_FUNCTION();
 
 	m_EditorCamera.OnUpdate(ts);
-	glm::mat4 viewProj = m_Cameras.begin()->second;
+	glm::mat4 viewProj = m_Cameras.begin()->second.GetViewProjection();
 	m_ViewProjection->WriteData(&viewProj, sizeof(viewProj));
 }
 

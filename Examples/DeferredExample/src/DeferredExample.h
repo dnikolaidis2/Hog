@@ -27,7 +27,7 @@ private:
 	std::vector<Ref<Mesh>> m_TransparentMeshes;
 	std::vector<Ref<Mesh>> m_OpaqueMeshes;
 	std::vector<Ref<Texture>> m_Textures;
-	std::unordered_map<std::string, glm::mat4> m_Cameras;
+	std::unordered_map<std::string, Camera> m_Cameras;
 	std::vector<Ref<Material>> m_Materials;
 	std::vector<Ref<Light>> m_Lights;
 	Ref<Buffer> m_MaterialBuffer;

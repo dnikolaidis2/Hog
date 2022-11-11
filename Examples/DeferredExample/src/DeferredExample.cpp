@@ -23,7 +23,8 @@ void DeferredExample::OnAttach()
 	GraphicsContext::Initialize();
 
 	// LoadGltfFile("assets/models/sponza-intel/NewSponza_Main_Blender_glTF.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
-	LoadGltfFile("assets/models/sponza/sponza.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
+	// LoadGltfFile("assets/models/sponza/sponza.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
+	LoadGltfFile("assets/models/test-scene/test-scene.glb", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 	// LoadGltfFile("assets/models/armor/armor-test.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 	// LoadGltfFile("assets/models/cube/cube.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 	// LoadGltfFile("assets/models/plane/plane.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
@@ -53,6 +54,10 @@ void DeferredExample::OnAttach()
 		),
 		{
 			{DataType::Defaults::Float3, "a_Position"},
+			{DataType::Defaults::Float2, "a_TexCoords"},
+			{DataType::Defaults::Float3, "a_Normal"},
+			{DataType::Defaults::Float4, "a_Tangent"},
+			{DataType::Defaults::Int, "a_MaterialIndex"},
 		},
 		{
 			{"u_ViewProjection", ResourceType::Uniform, ShaderType::Defaults::Vertex, m_LightViewProjection, 0, 0},
@@ -82,7 +87,7 @@ void DeferredExample::OnAttach()
 		{
 			{"u_ViewProjection", ResourceType::Uniform, ShaderType::Defaults::Vertex, m_ViewProjection, 0, 0},
 			{"u_Materials", ResourceType::Uniform, ShaderType::Defaults::Fragment, m_MaterialBuffer, 0, 1},
-			{"u_Textures", ResourceType::SamplerArray, ShaderType::Defaults::Fragment, m_Textures, 0, 2, 512},
+			//{"u_Textures", ResourceType::SamplerArray, ShaderType::Defaults::Fragment, m_Textures, 0, 2, 512},
 			{"p_Model", ResourceType::PushConstant, ShaderType::Defaults::Vertex, sizeof(PushConstant), &m_PushConstant},
 		},
 		m_OpaqueMeshes,
@@ -175,8 +180,8 @@ void DeferredExample::OnUpdate(Timestep ts)
 	m_LightViewProjection->WriteData(&lightViewProj, sizeof(lightViewProj));
 
 	m_EditorCamera.OnUpdate(ts);
-	glm::mat4 viewProj = m_EditorCamera.GetViewProjection();
-	//glm::mat4 viewProj = m_Cameras.begin()->second;
+	//glm::mat4 viewProj = m_EditorCamera.GetViewProjection();
+	glm::mat4 viewProj = m_Cameras["Camera"].GetViewProjection();
 
 	m_ViewProjection->WriteData(&viewProj, sizeof(viewProj));
 }

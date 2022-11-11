@@ -12,7 +12,9 @@
 namespace Hog {
 
 	EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
-		: m_FOV(fov), m_AspectRatio(aspectRatio), m_NearClip(nearClip), m_FarClip(farClip), Camera(glm::perspective(glm::radians(fov), aspectRatio, nearClip, farClip))
+		: m_FOV(fov), m_AspectRatio(aspectRatio), m_NearClip(nearClip), m_FarClip(farClip),
+	Camera(glm::perspective(glm::radians(fov), aspectRatio, nearClip, farClip),
+		glm::translate(glm::mat4(1.0f), m_Position))
 	{
 		UpdateView();
 	}
@@ -29,8 +31,8 @@ namespace Hog {
 		m_Position = CalculatePosition();
 
 		glm::quat orientation = GetOrientation();
-		m_ViewMatrix = glm::translate(glm::mat4(1.0f), m_Position) * glm::toMat4(orientation);
-		m_ViewMatrix = glm::inverse(m_ViewMatrix);
+		m_View = glm::translate(glm::mat4(1.0f), m_Position) * glm::toMat4(orientation);
+		m_View = glm::inverse(m_View);
 	}
 
 	std::pair<float, float> EditorCamera::PanSpeed() const

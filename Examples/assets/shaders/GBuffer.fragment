@@ -40,7 +40,7 @@ layout(std140, set = 0, binding = 1) uniform MaterialDataStub
     MaterialData u_Materials[MATERIAL_ARRAY_SIZE];
 };
 
-layout(set = 0, binding = 2) uniform sampler2D u_Textures[TEXTURE_ARRAY_SIZE];
+// layout(set = 0, binding = 2) uniform sampler2D u_Textures[TEXTURE_ARRAY_SIZE];
 
 void main() 
 {
@@ -56,7 +56,7 @@ void main()
 	vec3 tnorm;
 	if (mat.BumpMapIndex != -1)
 	{
-		tnorm = TBN * normalize(texture(u_Textures[mat.BumpMapIndex], v_TexCoord).xyz * 2.0 - vec3(1.0));
+		// tnorm = TBN * normalize(texture(u_Textures[mat.BumpMapIndex], v_TexCoord).xyz * 2.0 - vec3(1.0));
 	}
 	else
 	{
@@ -67,7 +67,7 @@ void main()
 
 	if (mat.DiffuseTextureIndex != -1)
 	{
-		o_Albedo = texture(u_Textures[mat.DiffuseTextureIndex], v_TexCoord);
+		// o_Albedo = texture(u_Textures[mat.DiffuseTextureIndex], v_TexCoord);
 	}
 	else
 	{

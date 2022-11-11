@@ -11,7 +11,7 @@
 #include "Hog/Renderer/Texture.h"
 #include "Hog/Renderer/Material.h"
 #include "Hog/Renderer/Light.h"
-#include "Hog/Renderer/EditorCamera.h"
+#include "Hog/Renderer/Camera.h"
 #include "Hog/Debug/Instrumentor.h"
 #include "Hog/Math/Math.h"
 
@@ -27,7 +27,7 @@ namespace Hog
 		LoaderOptions options,
 		std::vector<Ref<Mesh>>& opaque,
 		std::vector<Ref<Mesh>>& transparent,
-		std::unordered_map<std::string, glm::mat4>& cameras,
+		std::unordered_map<std::string, Camera>& cameras,
 		std::vector<Ref<Texture>>& textures,
 		std::vector<Ref<Material>>& materials,
 		Ref<Buffer>& materialBuffer,
@@ -296,9 +296,9 @@ namespace Hog
 						node->camera->data.perspective.zfar);
 					glm::mat4 view = glm::translate(glm::mat4(1.0f), translation)
 						* glm::toMat4(rotation);
-					glm::mat4 camera = projection * glm::inverse(view);
+					// glm::mat4 camera = projection * glm::inverse(view);
 
-					cameras[node->camera->name] = camera;
+					cameras[node->camera->name] = Camera(projection, glm::inverse(view));
 
 					/*
 					std::vector<glm::vec3> frustrumCorners;
@@ -358,7 +358,7 @@ namespace Hog
 						.Position = {translation},
 						.Type = type,
 						.Color = {node->light->color[0], node->light->color[1], node->light->color[2], 1.0f},
-						.Direction = glm::vec3(0.0f, 0.0f, 1.0f) * rotation,
+						.Direction = glm::vec3(0.0f, 1.0f, 0.0f) * rotation,
 						.Intensity = node->light->intensity,
 					});
 					
