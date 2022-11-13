@@ -18,7 +18,7 @@ void AccelerationStructureExample::OnAttach()
 	ShaderCache::Initialize();
 	GraphicsContext::Initialize();
 
-	LoadGltfFile("assets/models/sponza/sponza.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
+	Util::Loader::LoadGltf("assets/models/sponza/sponza.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 
 	m_TopLevelAS = AccelerationStructure::Create(m_OpaqueMeshes);
 

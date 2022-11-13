@@ -3,6 +3,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <Hog/ImGui/ImGuiHelper.h>
+#include <Hog/Math/Math.h>
 
 static auto& context = GraphicsContext::Get();
 
@@ -24,7 +25,7 @@ void DeferredExample::OnAttach()
 
 	// LoadGltfFile("assets/models/sponza-intel/NewSponza_Main_Blender_glTF.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 	// LoadGltfFile("assets/models/sponza/sponza.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
-	LoadGltfFile("assets/models/test-scene/test-scene.glb", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
+	Util::Loader::LoadGltf("assets/models/test-scene/test-scene.glb", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 	// LoadGltfFile("assets/models/armor/armor-test.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 	// LoadGltfFile("assets/models/cube/cube.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
 	// LoadGltfFile("assets/models/plane/plane.gltf", {}, m_OpaqueMeshes, m_TransparentMeshes, m_Cameras, m_Textures, m_Materials, m_MaterialBuffer, m_Lights, m_LightBuffer);
@@ -181,7 +182,7 @@ void DeferredExample::OnUpdate(Timestep ts)
 
 	m_EditorCamera.OnUpdate(ts);
 	//glm::mat4 viewProj = m_EditorCamera.GetViewProjection();
-	glm::mat4 viewProj = m_Cameras["Camera"].GetViewProjection();
+	glm::mat4 viewProj = m_Cameras["Camera.006"].GetViewProjection();
 
 	m_ViewProjection->WriteData(&viewProj, sizeof(viewProj));
 }

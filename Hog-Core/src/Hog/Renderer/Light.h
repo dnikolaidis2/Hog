@@ -1,6 +1,8 @@
 #pragma once
 
 #include <glm/glm.hpp>
+
+#include "Camera.h"
 #include "Hog/Renderer/Buffer.h"
 
 namespace Hog {
@@ -41,8 +43,11 @@ namespace Hog {
 		void UpdateData();
 
 		const LightData& GetLightData() { return m_Data; }
+
+		void SetShadowCamera(const Camera& camera) { m_ShadowCamera = camera; }
 	private:
 		Ref<BufferRegion> m_Region;
 		LightData m_Data;
+		Camera m_ShadowCamera;
 	};
 }
