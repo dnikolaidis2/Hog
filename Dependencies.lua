@@ -22,6 +22,14 @@ IncludeDir["VulkanSDK"] = "%{VULKAN_SDK}/Include"
 IncludeDir["optick"] = "%{wks.location}/Hog-Core/vendor/optick/src"
 IncludeDir["volk"] = "%{wks.location}/Hog-Core/vendor/volk"
 
+IncludeDir["boost"] = {}
+IncludeDir["boost"]["container_hash"] = "%{wks.location}/Hog-Core/vendor/boost/container_hash/include"
+IncludeDir["boost"]["type_traits"] = "%{wks.location}/Hog-Core/vendor/boost/type_traits/include"
+IncludeDir["boost"]["config"] = "%{wks.location}/Hog-Core/vendor/boost/config/include"
+IncludeDir["boost"]["describe"] = "%{wks.location}/Hog-Core/vendor/boost/describe/include"
+IncludeDir["boost"]["mp11"] = "%{wks.location}/Hog-Core/vendor/boost/mp11/include"
+IncludeDir["boost"]["static_assert"] = "%{wks.location}/Hog-Core/vendor/boost/static_assert/include"
+
 LibraryDir = {}
 
 LibraryDir["VulkanSDK"] = "%{VULKAN_SDK}/Lib"

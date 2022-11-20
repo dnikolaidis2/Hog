@@ -19,3 +19,21 @@
 [submodule "Hog-Core/vendor/spirv-reflect"]
 	path = Hog-Core/vendor/spirv-reflect
 	url = git@github.com:dnikolaidis2/SPIRV-Reflect.git
+[submodule "Hog-Core/vendor/boost/container_hash"]
+	path = Hog-Core/vendor/boost/container_hash
+	url = https://github.com/boostorg/container_hash.git
+[submodule "Hog-Core/vendor/boost/type_traits"]
+	path = Hog-Core/vendor/boost/type_traits
+	url = https://github.com/boostorg/type_traits.git
+[submodule "Hog-Core/vendor/boost/config"]
+	path = Hog-Core/vendor/boost/config
+	url = https://github.com/boostorg/config.git
+[submodule "Hog-Core/vendor/boost/describe"]
+	path = Hog-Core/vendor/boost/describe
+	url = https://github.com/boostorg/describe.git
+[submodule "Hog-Core/vendor/boost/mp11"]
+	path = Hog-Core/vendor/boost/mp11
+	url = https://github.com/boostorg/mp11.git
+[submodule "Hog-Core/vendor/boost/static_assert"]
+	path = Hog-Core/vendor/boost/static_assert
+	url = https://github.com/boostorg/static_assert.git

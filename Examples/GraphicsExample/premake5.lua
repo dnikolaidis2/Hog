@@ -34,6 +34,12 @@ project "GraphicsExample"
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.volk}",
 		"%{IncludeDir.VulkanSDK}",
+		"%{IncludeDir.boost.container_hash}",
+		"%{IncludeDir.boost.type_traits}",
+		"%{IncludeDir.boost.config}",
+		"%{IncludeDir.boost.describe}",
+		"%{IncludeDir.boost.mp11}",
+		"%{IncludeDir.boost.static_assert}",
 	}
 
 	links
