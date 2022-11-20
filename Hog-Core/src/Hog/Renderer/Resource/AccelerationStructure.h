@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Hog/Renderer/Mesh.h"
-#include "Hog/Renderer/Buffer.h"
+#include "Hog/Renderer/Resource/Buffer.h"
 
 namespace Hog{
 

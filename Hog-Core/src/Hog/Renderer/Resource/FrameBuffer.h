@@ -1,5 +1,5 @@
 #pragma once
-#include "Hog/Renderer/Image.h"
+#include "Hog/Renderer/Resource/Image.h"
 
 namespace Hog {
 	class FrameBuffer

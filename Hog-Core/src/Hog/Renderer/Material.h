@@ -2,8 +2,8 @@
 
 #include <glm/glm.hpp>
 
-#include "Hog/Renderer/Buffer.h"
-#include "Hog/Renderer/Texture.h"
+#include "Hog/Renderer/Resource/Buffer.h"
+#include "Hog/Renderer/Resource/Texture.h"
 
 namespace Hog
 {

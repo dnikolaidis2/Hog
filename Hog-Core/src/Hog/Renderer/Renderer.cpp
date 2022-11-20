@@ -3,7 +3,7 @@
 
 #include "Hog/Core/Application.h"
 #include "Hog/Renderer/GraphicsContext.h"
-#include "Hog/Renderer/Buffer.h"
+#include "Hog/Renderer/Resource/Buffer.h"
 #include "Hog/Utils/RendererUtils.h"
 #include "Hog/Core/CVars.h"
 #include "Hog/ImGui/ImGuiLayer.h"

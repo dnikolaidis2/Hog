@@ -4,7 +4,7 @@
 
 #include <Hog/Utils/RendererUtils.h>
 #include <Hog/Renderer/GraphicsContext.h>
-#include <Hog/Renderer/Shader.h>
+#include <Hog/Renderer/Resource/Shader.h>
 
 namespace Hog
 {

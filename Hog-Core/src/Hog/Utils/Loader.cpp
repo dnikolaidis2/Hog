@@ -15,10 +15,57 @@ namespace Hog
 {
 	namespace Util
 	{
+		Ref<Texture> Loader::LoadTexture(cgltf_texture* texture)
+		{
+			SamplerType type{};
+
+			switch (texture->sampler->mag_filter)
+			{
+			case 9728: type.MagFilter = VK_FILTER_NEAREST; break;
+			case 9729: type.MagFilter = VK_FILTER_LINEAR; break;
+			}
+
+			switch (texture->sampler->min_filter)
+			{
+			case 9728: type.MinFilter = VK_FILTER_NEAREST; break;
+			case 9729: type.MinFilter = VK_FILTER_LINEAR; break;
+			case 9984: type.MinFilter = VK_FILTER_NEAREST; break;
+			case 9985: type.MinFilter = VK_FILTER_LINEAR; break;
+			case 9986: type.MinFilter = VK_FILTER_NEAREST; break;
+			case 9987: type.MinFilter = VK_FILTER_LINEAR; break;
+			}
+
+			switch (texture->sampler->min_filter)
+			{
+			case 9984: type.MipMode = VK_SAMPLER_MIPMAP_MODE_NEAREST; break;
+			case 9985: type.MipMode = VK_SAMPLER_MIPMAP_MODE_NEAREST; break;
+			case 9986: type.MipMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; break;
+			case 9987: type.MipMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; break;
+			}
+
+			switch (texture->sampler->wrap_s)
+			{
+			case 33071: type.AddressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; break;
+			case 33648: type.AddressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT; break;
+			case 10497: type.AddressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT; break;
+			}
+
+			switch (texture->sampler->wrap_t)
+			{
+			case 33071: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; break;
+			case 33648: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT; break;
+			case 10497: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT; break;
+			}
+
+			// Texture::Create(images[texture->image - data->images], type);
+
+			return nullptr;
+		}
+
 		bool Loader::LoadGltf(const std::string& filepath, Options options, std::vector<Ref<Mesh>>& opaque,
-			std::vector<Ref<Mesh>>& transparent, std::unordered_map<std::string, Camera>& cameras,
-			std::vector<Ref<Texture>>& textures, std::vector<Ref<Material>>& materials, Ref<Buffer>& materialBuffer,
-			std::vector<Ref<Light>>& lights, Ref<Buffer>& lightBuffer)
+		                      std::vector<Ref<Mesh>>& transparent, std::unordered_map<std::string, Camera>& cameras,
+		                      std::vector<Ref<Texture>>& textures, std::vector<Ref<Material>>& materials, Ref<Buffer>& materialBuffer,
+		                      std::vector<Ref<Light>>& lights, Ref<Buffer>& lightBuffer)
 		{
 			HG_PROFILE_FUNCTION();
 
@@ -56,48 +103,8 @@ namespace Hog
 			auto initialSize = textures.size();
 			for (int i = 0; i < data->textures_count; i++)
 			{
-				auto * texture = &(data->textures[i]);
-				SamplerType type {};
-
-				switch (texture->sampler->mag_filter)
-				{
-					case 9728: type.MagFilter = VK_FILTER_NEAREST; break;
-					case 9729: type.MagFilter = VK_FILTER_LINEAR; break;
-				}
-
-				switch (texture->sampler->min_filter)
-				{
-					case 9728: type.MinFilter = VK_FILTER_NEAREST; break;
-					case 9729: type.MinFilter = VK_FILTER_LINEAR; break;
-					case 9984: type.MinFilter = VK_FILTER_NEAREST; break;
-					case 9985: type.MinFilter = VK_FILTER_LINEAR; break;
-					case 9986: type.MinFilter = VK_FILTER_NEAREST; break;
-					case 9987: type.MinFilter = VK_FILTER_LINEAR; break;
-				}
-
-				switch (texture->sampler->min_filter)
-				{
-					case 9984: type.MipMode = VK_SAMPLER_MIPMAP_MODE_NEAREST; break;
-					case 9985: type.MipMode = VK_SAMPLER_MIPMAP_MODE_NEAREST; break;
-					case 9986: type.MipMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; break;
-					case 9987: type.MipMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; break;
-				}
-
-				switch (texture->sampler->wrap_s)
-				{
-					case 33071: type.AddressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; break;
-					case 33648: type.AddressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT; break;
-					case 10497: type.AddressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT; break;
-				}
-
-				switch (texture->sampler->wrap_t)
-				{
-					case 33071: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; break;
-					case 33648: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT; break;
-					case 10497: type.AddressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT; break;
-				}
-
-				Ref<Texture> textureRef = Texture::Create(images[texture->image - data->images], type);
+				auto textureRef = LoadTexture(&(data->textures[i]));
+				//textureRef->SetImage();
 				textureRef->SetGPUIndex(initialSize + i);
 
 				textures.push_back(textureRef);

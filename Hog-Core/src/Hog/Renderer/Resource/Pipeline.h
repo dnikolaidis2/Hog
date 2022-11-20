@@ -3,7 +3,7 @@
 #include <volk.h>
 
 #include "Hog/Renderer/Types.h"
-#include "Hog/Renderer/Shader.h"
+#include "Hog/Renderer/Resource/Shader.h"
 
 namespace Hog
 {

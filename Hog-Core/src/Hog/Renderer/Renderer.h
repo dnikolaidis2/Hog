@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Hog/Renderer/Image.h"
+#include "Hog/Renderer/Resource/Image.h"
 #include "Hog/Renderer/RenderGraph.h"
-#include "Hog/Renderer/FrameBuffer.h"
-#include "Hog/Renderer/Descriptor.h"
+#include "Hog/Renderer/Resource/FrameBuffer.h"
+#include "Hog/Renderer/Resource/Descriptor.h"
 #include "Hog/Renderer/GraphicsContext.h"
 
 namespace Hog

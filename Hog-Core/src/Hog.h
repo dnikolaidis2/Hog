@@ -24,31 +24,17 @@
 
 #include "Hog/Renderer/Types.h"
 #include "Hog/Renderer/GraphicsContext.h"
-#include "Hog/Renderer/Pipeline.h"
-#include "Hog/Renderer/Shader.h"
-#include "Hog/Renderer/Buffer.h"
+#include "Hog/Renderer/Resource/Pipeline.h"
+#include "Hog/Renderer/Resource/Shader.h"
+#include "Hog/Renderer/Resource/Buffer.h"
 #include "Hog/Renderer/Mesh.h"
 #include "Hog/Renderer/Material.h"
 #include "Hog/Renderer/Renderer.h"
 #include "Hog/Renderer/RenderGraph.h"
-#include "Hog/Renderer/Image.h"
-#include "Hog/Renderer/Texture.h"
+#include "Hog/Renderer/Resource/Image.h"
+#include "Hog/Renderer/Resource/Texture.h"
 #include "Hog/Renderer/EditorCamera.h"
 #include "Hog/Renderer/Light.h"
-#include "Hog/Renderer/AccelerationStructure.h"
-
-/*
-#include "Hog/Renderer/Renderer.h"
-#include "Hog/Renderer/Renderer2D.h"
-#include "Hog/Renderer/RenderCommand.h"
-
-
-#include "Hog/Renderer/Shader.h"
-#include "Hog/Renderer/Framebuffer.h"
-#include "Hog/Renderer/Texture.h"
-#include "Hog/Renderer/VertexArray.h"
-
-#include "Hog/Renderer/OrthographicCamera.h"
-*/
+#include "Hog/Renderer/Resource/AccelerationStructure.h"
 
 // -----------------------------------

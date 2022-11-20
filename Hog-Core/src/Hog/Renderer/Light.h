@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 
 #include "Camera.h"
-#include "Hog/Renderer/Buffer.h"
+#include "Hog/Renderer/Resource/Buffer.h"
 
 namespace Hog {
 	enum class LightType : int32_t

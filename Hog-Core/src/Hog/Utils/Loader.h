@@ -1,7 +1,9 @@
 #pragma once
 
+
+#include <cgltf.h>
 #include "Hog/Renderer/Mesh.h"
-#include "Hog/Renderer/Texture.h"
+#include "Hog/Renderer/Resource/Texture.h"
 #include "Hog/Renderer/Material.h"
 #include "Hog/Renderer/Light.h"
 #include "Hog/Renderer/Camera.h"
@@ -19,6 +21,8 @@ namespace Hog
 				bool FlipYPosition = false;
 			};
 
+		private:
+			static Ref<Texture> LoadTexture(cgltf_texture* texture);
 		public:
 			static bool LoadGltf(const std::string& filepath,
 				Options options,

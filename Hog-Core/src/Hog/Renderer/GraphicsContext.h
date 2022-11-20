@@ -3,7 +3,7 @@
 #include <volk.h>
 #include <vk_mem_alloc.h>
 
-#include "Hog/Renderer/Image.h"
+#include "Hog/Renderer/Resource/Image.h"
 #include "Hog/Core/Base.h"
 
 namespace Hog {

@@ -4,7 +4,7 @@
 
 #include "Hog/Core/CVars.h"
 #include "Hog/Renderer/GraphicsContext.h"
-#include "Hog/Renderer/Buffer.h"
+#include "Hog/Renderer/Resource/Buffer.h"
 
 namespace Hog
 {

@@ -5,7 +5,7 @@
 #include <stb_image.h>
 
 #include "Hog/Renderer/GraphicsContext.h"
-#include "Hog/Renderer/Buffer.h"
+#include "Hog/Renderer/Resource/Buffer.h"
 #include "Hog/Utils/RendererUtils.h"
 #include "Hog/Core/CVars.h"
 

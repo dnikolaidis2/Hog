@@ -1,29 +1,22 @@
 #pragma once
 
-#include "Hog/Renderer/Image.h"
+#include "Hog/Renderer/Resource/Image.h"
+#include "Hog/Renderer/Resource/Sampler.h"
 
 namespace Hog {
-
-	struct SamplerType
-	{
-		VkFilter MinFilter = VK_FILTER_NEAREST;
-		VkFilter MagFilter = VK_FILTER_NEAREST;
-		VkSamplerAddressMode AddressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		VkSamplerAddressMode AddressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		VkSamplerAddressMode AddressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		VkSamplerMipmapMode MipMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-	};
 
 	class Texture
 	{
 	public:
 		static Ref<Texture> Create(Ref<Image> image, SamplerType samplerType);
+		static Ref<Texture> Create(SamplerType samplerType);
 		static Ref<Texture> Create(Ref<Image> image);
 	public:
 		Texture(Ref<Image> image, SamplerType samplerType);
+		Texture(SamplerType samplerType);
 		~Texture();
 
-		VkSampler GetSampler() { return m_Sampler; }
+		VkSampler GetSampler() { return m_Sampler->GetHandle(); }
 		VkImageView GetImageView() { return m_Image->GetImageView(); }
 		VkImageLayout GetImageLayout() { return m_Image->GetImageLayout(); }
 		VkFormat GetFormat() const { return m_Image->GetFormat(); }
@@ -34,9 +27,8 @@ namespace Hog {
 		void ExecuteBarrier(VkCommandBuffer commandBuffer, const BarrierDescription& description) { m_Image->ExecuteBarrier(commandBuffer, description); }
 		void SetImageLayout(VkImageLayout layout) { m_Image->SetImageLayout(layout); }
 	private:
+		Ref<Sampler> m_Sampler;
 		Ref<Image> m_Image;
-		VkSampler m_Sampler;
-		SamplerType m_SamplerType;
 		int32_t m_GPUIndex = 0;
 	};
 }
