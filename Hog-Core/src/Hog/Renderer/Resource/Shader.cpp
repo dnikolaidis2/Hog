@@ -9,7 +9,7 @@
 #include <volk.h>
 #include <yaml-cpp/yaml.h>
 
-#include "Renderer.h"
+#include "Hog/Renderer/Renderer.h"
 #include "Hog/Core/Timer.h"
 #include "Hog/Core/CVars.h"
 #include "Hog/Utils/Filesystem.h"

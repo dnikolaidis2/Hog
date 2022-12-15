@@ -402,4 +402,45 @@ namespace Hog
 		if (name == "mesh")
 			Stage = VK_SHADER_STAGE_MESH_BIT_NV;
 	}
+
+	SamplerType::SamplerType(cgltf_sampler* sampler)
+	{
+		switch (sampler->mag_filter)
+		{
+		case 9728: MagFilter = VK_FILTER_NEAREST; break;
+		case 9729: MagFilter = VK_FILTER_LINEAR; break;
+		}
+
+		switch (sampler->min_filter)
+		{
+		case 9728: MinFilter = VK_FILTER_NEAREST; break;
+		case 9729: MinFilter = VK_FILTER_LINEAR; break;
+		case 9984: MinFilter = VK_FILTER_NEAREST; break;
+		case 9985: MinFilter = VK_FILTER_LINEAR; break;
+		case 9986: MinFilter = VK_FILTER_NEAREST; break;
+		case 9987: MinFilter = VK_FILTER_LINEAR; break;
+		}
+
+		switch (sampler->min_filter)
+		{
+		case 9984: MipMode = VK_SAMPLER_MIPMAP_MODE_NEAREST; break;
+		case 9985: MipMode = VK_SAMPLER_MIPMAP_MODE_NEAREST; break;
+		case 9986: MipMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; break;
+		case 9987: MipMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; break;
+		}
+
+		switch (sampler->wrap_s)
+		{
+		case 33071: AddressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; break;
+		case 33648: AddressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT; break;
+		case 10497: AddressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT; break;
+		}
+
+		switch (sampler->wrap_t)
+		{
+		case 33071: AddressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; break;
+		case 33648: AddressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT; break;
+		case 10497: AddressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT; break;
+		}
+	}
 };
