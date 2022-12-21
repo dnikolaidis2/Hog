@@ -128,10 +128,10 @@ namespace Hog {
 			return instance;
 		}
 
-		~GraphicsContext() { if (m_Initialized == true) Get().Deinitialize(); }
+		~GraphicsContext() { if (m_Initialized == true) Get().Cleanup(); }
 
 		static void Initialize() { Get().InitializeImpl(); }
-		static void Deinitialize() { Get().DeinitializeImpl(); }
+		static void Cleanup() { Get().CleanupImpl(); }
 		static void RecreateSwapChain() { Get().RecreateSwapChainImpl(); }
 		static void WaitIdle() { Get().WaitIdleImpl(); }
 		static VkDescriptorPool GetImGuiDescriptorPool() { Get().GetImGuiDescriptorPoolImpl(); return Get().m_ImGuiDescriptorPool; }
@@ -164,7 +164,7 @@ namespace Hog {
 		GraphicsContext() = default;
 
 		void InitializeImpl();
-		void DeinitializeImpl();
+		void CleanupImpl();
 		void RecreateSwapChainImpl();
 		void WaitIdleImpl();
 		void GetImGuiDescriptorPoolImpl();

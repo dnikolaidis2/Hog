@@ -155,7 +155,7 @@ namespace Hog {
 		m_Initialized = true;
 	}
 
-	void GraphicsContext::DeinitializeImpl()
+	void GraphicsContext::CleanupImpl()
 	{
 		for (auto& image : m_SwapchainImages)
 		{

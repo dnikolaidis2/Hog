@@ -42,9 +42,9 @@ namespace Hog {
 			return instance;
 		}
 
-		~ShaderCache() { Deinitialize(); }
+		~ShaderCache() { Cleanup(); }
 		static void Initialize() { if (Get().m_Initialized == false) Get().InitializeImpl(); }
-		static void Deinitialize() { if (Get().m_Initialized == true) Get().DeinitializeImpl(); }
+		static void Cleanup() { if (Get().m_Initialized == true) Get().CleanupImpl(); }
 		static Ref<ShaderSource> GetShader(const std::string& name) { return Get().GetShaderImpl(name); }
 		static Ref<ShaderSource> ReloadShader(const std::string& name) { return Get().ReloadShaderImpl(name); }
 	public:
@@ -54,7 +54,7 @@ namespace Hog {
 		ShaderCache() = default;
 
 		void InitializeImpl();
-		void DeinitializeImpl();
+		void CleanupImpl();
 		Ref<ShaderSource> GetShaderImpl(const std::string& name);
 		Ref<ShaderSource> ReloadShaderImpl(const std::string& name);
 		void SaveToFilesystem();

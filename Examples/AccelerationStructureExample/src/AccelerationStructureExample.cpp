@@ -92,7 +92,7 @@ void AccelerationStructureExample::OnDetach()
 	m_ViewProjection.reset();
 	m_TopLevelAS.reset();
 
-	GraphicsContext::Deinitialize();
+	GraphicsContext::Cleanup();
 }
 
 void AccelerationStructureExample::OnUpdate(Timestep ts)

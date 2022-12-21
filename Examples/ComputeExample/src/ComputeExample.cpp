@@ -71,7 +71,7 @@ void ComputeExample::OnDetach()
 
 	m_ComputeBuffer.reset();
 
-	GraphicsContext::Deinitialize();
+	GraphicsContext::Cleanup();
 }
 
 void ComputeExample::OnUpdate(Timestep ts)

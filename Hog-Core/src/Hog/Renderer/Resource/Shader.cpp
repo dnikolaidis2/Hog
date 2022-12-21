@@ -124,7 +124,7 @@ namespace Hog {
 		}
 	}
 
-	void ShaderCache::DeinitializeImpl()
+	void ShaderCache::CleanupImpl()
 	{
 		HG_PROFILE_FUNCTION();
 

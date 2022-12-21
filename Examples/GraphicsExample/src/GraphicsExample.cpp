@@ -139,7 +139,7 @@ void GraphicsExample::OnDetach()
 	m_LightBuffer.reset();
 	m_ViewProjection.reset();
 
-	GraphicsContext::Deinitialize();
+	GraphicsContext::Cleanup();
 }
 
 void GraphicsExample::OnUpdate(Timestep ts)

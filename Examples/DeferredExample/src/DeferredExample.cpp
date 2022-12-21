@@ -168,7 +168,7 @@ void DeferredExample::OnDetach()
 	m_ViewProjection.reset();
 	m_LightViewProjection.reset(); 
 
-	GraphicsContext::Deinitialize();
+	GraphicsContext::Cleanup();
 }
 
 void DeferredExample::OnUpdate(Timestep ts)
