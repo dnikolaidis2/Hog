@@ -15,10 +15,10 @@
 	url = https://github.com/thecherno/yaml-cpp
 [submodule "Hog-Core/vendor/optick"]
 	path = Hog-Core/vendor/optick
-	url = git@github.com:dnikolaidis2/optick.git
+	url = https://github.com/dnikolaidis2/optick.git
 [submodule "Hog-Core/vendor/spirv-reflect"]
 	path = Hog-Core/vendor/spirv-reflect
-	url = git@github.com:dnikolaidis2/SPIRV-Reflect.git
+	url = https://github.com/dnikolaidis2/SPIRV-Reflect.git
 [submodule "Hog-Core/vendor/boost/container_hash"]
 	path = Hog-Core/vendor/boost/container_hash
 	url = https://github.com/boostorg/container_hash.git
