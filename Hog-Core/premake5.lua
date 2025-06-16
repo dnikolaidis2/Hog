@@ -69,6 +69,10 @@ project "Hog-Core"
 		"volk"
 	}
 
+	-- Exclude a specific file from using the PCH
+	filter "files:**/spirv_reflect.cpp"
+		flags {"NoPCH"}
+
 	filter "system:windows"
 		systemversion "latest"
 
